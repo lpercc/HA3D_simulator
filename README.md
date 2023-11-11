@@ -2,8 +2,7 @@
 
 This repo is for add 3D human in real-world environment
 
-## P
-reparing dataset
+## Preparing dataset
 download Matterport3D dataset from https://niessner.github.io/Matterport/
 get download_mp.py
 ```
