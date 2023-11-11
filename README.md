@@ -2,7 +2,8 @@
 
 This repo is for add 3D human in real-world environment
 
-## preparing dataset
+## P
+reparing dataset
 download Matterport3D dataset from https://niessner.github.io/Matterport/
 get download_mp.py
 ```
@@ -45,6 +46,27 @@ python concat_skybox.py
 ```
 
 ### 4.Human motion generation
+get MDM repo from https://github.com/GuyTevet/motion-diffusion-model
+follow the README, after step 3 (https://github.com/GuyTevet/motion-diffusion-model#3-download-the-pretrained-models)
+run the script
+```
+#generate from human motion text prompts
+python -m sample.generate --model_path ./save/humanml_trans_enc_512/model000200000.pt --input_text ../HC-VLN_text_prompts.txt
+```
+You may also define:
+  --device id.
+  --seed to sample different prompts.
+  --motion_length (text-to-motion only) in seconds (maximum is 9.8[sec]).
+
+Render SMPL mesh
+```
+cp visualize.sh ./
+bash visualize.sh
+```
+move mesh file
+```
+mv -r ./save/humanml_trans_enc_512/samples_humanml_trans_enc_512_000200000_seed10_HC-VLN_text_prompts/*obj ../human_motion_meshes
+```
 
 ### 5.human-environment fusion(demo)
 ```bash
