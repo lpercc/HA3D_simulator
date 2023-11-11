@@ -2,6 +2,18 @@
 
 This repo is for add 3D human in real-world environment
 
+## preparing dataset
+download Matterport3D dataset from https://niessner.github.io/Matterport/
+get download_mp.py
+```
+conda create -n mp3d python=2.7
+conda activate mp3d
+python download_mp.py -o ./Matterport3D_dataset --type matterport_skybox_images undistorted_camera_parameters
+find ./Matterport3D_dataset/v1/scans -name '*.zip' -exec unzip -o '{}' -d ./data/v1/scans \;
+conda deactivate
+```
+
+
 ## How to run:
 ### 1. Create conda environment
 
@@ -26,7 +38,14 @@ pip install pyrender
 pip install imageio-ffmpeg
 pip install opencv-python
 ```
-### 3.human environment fusion(demo)
+### 3.concat skybox
+```
+python concat_skybox.py
+```
+
+### 4.Human motion generation
+
+### 5.human-environment fusion(demo)
 ```bash
 python fusion.py --mode run_single
 ```
@@ -36,4 +55,6 @@ Pyrender supports three backends for offscreen rendering:
   EGL, which allows for GPU-accelerated rendering without a display manager.
   default is EGL
 pyrender offscreen rendering https://pyrender.readthedocs.io/en/latest/examples/offscreen.html
+
+### 6.Create simulator
 
