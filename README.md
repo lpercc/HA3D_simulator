@@ -8,6 +8,7 @@ get download_mp.py
 ```
 conda create -n mp3d python=2.7
 conda activate mp3d
+mkdir ./Matterport3D_dataset
 python download_mp.py -o ./Matterport3D_dataset --type matterport_skybox_images undistorted_camera_parameters
 find ./Matterport3D_dataset/v1/scans -name '*.zip' -exec unzip -o '{}' -d ./data/v1/scans \;
 conda deactivate
