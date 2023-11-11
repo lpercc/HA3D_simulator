@@ -30,5 +30,10 @@ pip install opencv-python
 ```bash
 python fusion.py --mode run_single
 ```
+Pyrender supports three backends for offscreen rendering:
+  Pyglet, the same engine that runs the viewer. This requires an active display manager, so you can’t run it on a headless server. This is the default option.
+  OSMesa, a software renderer.
+  EGL, which allows for GPU-accelerated rendering without a display manager.
+  default is EGL with GPU divece
 pyrender offscreen rendering https://pyrender.readthedocs.io/en/latest/examples/offscreen.html
 
