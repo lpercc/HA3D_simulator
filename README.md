@@ -30,4 +30,5 @@ pip install opencv-python
 ```bash
 python fusion.py --mode run_single
 ```
+pyrender offscreen rendering https://pyrender.readthedocs.io/en/latest/examples/offscreen.html
 
