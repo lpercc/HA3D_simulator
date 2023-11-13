@@ -2,14 +2,14 @@
 
 This repo is for add 3D human in real-world environment
 clone this repo
-```
+```bash
 cd HC-VLN_simulator
 ```
 
 ## Preparing dataset
 download Matterport3D dataset from https://niessner.github.io/Matterport/
 get download_mp.py
-```
+```bash
 conda create -n mp3d python=2.7
 conda activate mp3d
 mkdir ./Matterport3D_dataset
@@ -19,15 +19,14 @@ conda deactivate
 ```
 
 
-## How to run:
-### 1. Create conda environment
+## 1. Create conda environment
 
-```
+```bash
 conda create --name hcvln_simulater python=3.8
 conda activate hcvln_simulater
 ```
 
-### 2. install the following packages in your environnement:
+## 2. install the following packages in your environnement:
 ```bash
 pip install matplotlib
 pip install torch
@@ -43,21 +42,24 @@ pip install pyrender
 pip install imageio-ffmpeg
 pip install opencv-python
 ```
-### 3.concat skybox
-```
+## 3.concat skybox
+```bash
 python concat_skybox.py
 ```
 
-### 4.Human motion generation
+## 4.Human motion generation
+### collacte human descriptions
+
+### generate human motion backbone
 get MDM repo from https://github.com/GuyTevet/motion-diffusion-model
-```
+```bash
 cd ..
 git clone https://github.com/GuyTevet/motion-diffusion-model.git
 cd motion-diffusion-model
 ```
 follow the README, after step 3 (https://github.com/GuyTevet/motion-diffusion-model#3-download-the-pretrained-models)
 run the script
-```
+```bash
 #copy prompts file
 cp ../HC-VLN_simulator/HC-VLN_text_prompts.txt ./assets/
 #generate from human motion text prompts
@@ -68,17 +70,17 @@ You may also define:
   --seed to sample different prompts.
   --motion_length (text-to-motion only) in seconds (maximum is 9.8[sec]).
 
-Render SMPL mesh
-```
-cp visualize.sh ./
-bash visualize.sh
-```
-move mesh file
-```
-mv -r ./save/humanml_trans_enc_512/samples_humanml_trans_enc_512_000200000_seed10_HC-VLN_text_prompts/*obj ../HC-VLN_simulator/human_motion_meshes
+### screen human motion backbone(manual)
+
+### Render SMPL mesh
+```bash
+cp ../HC-VLN_simulator/backbone2smpl.py ./visualize
+cp ../HC-VLN_simulator/human_motion_text.json ./
+
 ```
 
-### 5.human-environment fusion(demo)
+
+## 5.human-environment fusion(demo)
 ```bash
 python fusion.py --mode run_single
 ```
@@ -89,5 +91,5 @@ Pyrender supports three backends for offscreen rendering:
   default is EGL
 pyrender offscreen rendering https://pyrender.readthedocs.io/en/latest/examples/offscreen.html
 
-### 6.Create simulator
+## 6.Create simulator
 
