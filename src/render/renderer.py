@@ -7,6 +7,7 @@ import pyrender
 import numpy as np
 from pyrender.constants import RenderFlags
 import os
+#import cv2
 
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
@@ -33,7 +34,6 @@ class Renderer:
 
         #Rx = trimesh.transformations.rotation_matrix(math.radians(0), [1, 0, 0])
         #mesh.apply_transform(Rx)
-
         if mesh_filename is not None:
             mesh.export(mesh_filename)
 
@@ -99,9 +99,19 @@ class Renderer:
             render_flags = RenderFlags.RGBA
 
         rgb, _ = self.renderer.render(self.scene, flags=render_flags)
-        valid_mask = (rgb[:, :, -1] > 0)[:, :, np.newaxis]
-        #print(img.shape, valid_mask.shape, rgb.shape)
-        output_img = rgb[:, :, :-1] * valid_mask + (1 - valid_mask) * background
+        # 创建白色背景的掩码
+        white_mask = np.all(rgb[:, :, :3] >= 254, axis=-1)  # 忽略alpha通道
+
+        # 扩展掩码到三个通道，以匹配rgb和background的形状
+        white_mask_3d = np.repeat(white_mask[:, :, np.newaxis], 3, axis=2)
+
+        # 创建输出图像，其中白色背景被 background 替换
+        # 注意这里只处理RGB通道，不处理alpha通道
+        output_img = np.where(white_mask_3d, background[:, :, :3], rgb[:, :, :3])
+        #cv2.imwrite("./background.jpg",background)
+        #cv2.imwrite("./rgb_valid_mask.jpg",rgb[:, :, :-1] * valid_mask)
+        #cv2.imwrite("./background_valid_mask.jpg",(1 - valid_mask) * background)
+        #cv2.imwrite("./output_img.jpg",output_img)
         image = output_img.astype(np.uint8)
 
         self.scene.remove_node(mesh_node)

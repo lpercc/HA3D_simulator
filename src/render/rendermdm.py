@@ -5,6 +5,7 @@ import argparse
 from tqdm import tqdm
 import trimesh
 from .renderer import get_renderer
+#import cv2
 
 
 def get_rotation(theta=np.pi):
@@ -62,13 +63,14 @@ def HE_fusion(input_path, output_video_path, bgd_img_path, view_id, cam_loc, hum
     obj_files = [f for f in os.listdir(input_path) if f.endswith('.obj')]
     #print(obj_files[0].split('frame')[1].split('.obj')[0])
     sorted_obj_files = sorted(obj_files)
-    for obj_file in sorted_obj_files:
+    for obj_file in sorted_obj_files[:60]:
         obj_file.split('.')
         obj_path = os.path.join(input_path,obj_file)
         mesh = trimesh.load(obj_path)
         meshes.append(mesh)
 
     background = imageio.imread(bgd_img_path)
+    #cv2.imwrite("./background.jpg",background)
     #print(background.shape)
 
     cam_angle = compute_rel(cam_loc, human_loc, cam_heading)
