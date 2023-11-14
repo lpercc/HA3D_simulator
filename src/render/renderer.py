@@ -7,7 +7,7 @@ import pyrender
 import numpy as np
 from pyrender.constants import RenderFlags
 import os
-#import cv2
+import cv2
 
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
@@ -20,7 +20,7 @@ class Renderer:
         self.orig_img = orig_img
         self.wireframe = wireframe
         self.renderer = pyrender.OffscreenRenderer(
-            viewport_width=self.resolution[0],
+            viewport_width=self.resolution[0]/4,
             viewport_height=self.resolution[1],
             point_size=0.5
         )
@@ -54,8 +54,6 @@ class Renderer:
 
 
 
-        camera = pyrender.PerspectiveCamera(yfov=np.pi / 2.0)
-
         material = pyrender.MetallicRoughnessMaterial(
             metallicFactor=0.7,
             alphaMode='OPAQUE',
@@ -65,10 +63,8 @@ class Renderer:
         mesh = pyrender.Mesh.from_trimesh(mesh, material=material)
 
         mesh_node = self.scene.add(mesh, 'mesh')
+        
 
-        # 将刚刚创建的相机添加到场景中，并设置其位置和方向为camera_pose
-        angle = np.radians(cam_angle)  # 旋转
-        rotation_matrix = tf.rotation_matrix(angle, [0, 1, 0])
         dx, dy, dz = cam_loc # 例如，平移沿x轴，沿y轴，沿z轴
         translation_matrix = np.array([
             [1, 0, 0, dx],
@@ -76,7 +72,7 @@ class Renderer:
             [0, 0, 1, dz],
             [0, 0, 0, 1]
         ])
-        camera_pose = translation_matrix @ rotation_matrix
+        
         
         # 光源
         light_pose = np.eye(4)
@@ -89,16 +85,30 @@ class Renderer:
         light_pose[:3, 3] = [dx-1, dy, dz]
         light_node3 = self.scene.add(self.light, pose=light_pose.copy())
 
-        cam_node = self.scene.add(camera, pose=camera_pose)
-
-
-
+        camera = pyrender.PerspectiveCamera(yfov=np.pi / 2.0, aspectRatio=1)
+        
         if self.wireframe:
-            render_flags = RenderFlags.RGBA | RenderFlags.ALL_WIREFRAME
-        else:
-            render_flags = RenderFlags.RGBA
+            render_flags = RenderFlags.ALL_WIREFRAME
 
-        rgb, _ = self.renderer.render(self.scene, flags=render_flags)
+
+        #cam_nodes = []
+        image_all = []
+        cams_angle = [180,90,0,270]
+        for i in range(4):
+            angle = np.radians(cams_angle[i]-cam_angle)  # 旋转
+            rotation_matrix = tf.rotation_matrix(angle, [0, 1, 0])
+            camera_pose = translation_matrix @ rotation_matrix
+            # 将刚刚创建的相机添加到场景中，并设置其位置和方向为camera_pose
+            cam_node = self.scene.add(camera, pose=camera_pose)
+            #cam_nodes.append(cam_node)
+            image, _ = self.renderer.render(self.scene)
+            image_all.append(image)
+            #print(image.shape)
+            self.scene.remove_node(cam_node)
+
+
+        #rgb = cv2.hconcat([image_all[2], image_all[3], image_all[0], image_all[1]])
+        rgb = cv2.hconcat(image_all)
         # 创建白色背景的掩码
         white_mask = np.all(rgb[:, :, :3] >= 254, axis=-1)  # 忽略alpha通道
 
@@ -118,7 +128,7 @@ class Renderer:
         self.scene.remove_node(light_node1)
         self.scene.remove_node(light_node2)
         self.scene.remove_node(light_node3)
-        self.scene.remove_node(cam_node)
+        
 
         return image
 

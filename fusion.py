@@ -93,7 +93,7 @@ def main(args):
                         info_list.append(agent_loc) 
                         info_list.append(agent_heading)
                         info_list.append(human_loc)
-                        HE_fusion(motion_path, output_video_path, bgd_img_path, agent_view_id, agent_loc, human_loc, agent_heading)
+                        HE_fusion(motion_path, output_video_path, bgd_img_path, agent_view_id, agent_loc, human_loc, agent_heading, scan_id)
                         video_list.append(output_video_path)
                         try:
                             record_dict[scan_id][agent_view_id] += (info_list)
