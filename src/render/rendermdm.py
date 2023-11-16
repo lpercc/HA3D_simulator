@@ -74,11 +74,11 @@ def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle,
         
         while first_flag:
             print(f"camera location:{cam_loc}, camera angle:{cam_angle}")
-            img = renderer.render(mesh, background, cam_loc, cam_angle, color=color)
+            img,_ = renderer.render(mesh, background, cam_loc, cam_angle, color=color)
             first_flag, cam_angle = adjust_cam_angle(img,cam_angle)
             heading_data[scan_id][view_id] = [cam_angle]
 
-        img = renderer.render(mesh, background, cam_loc, cam_angle, color=color)
+        img, _ = renderer.render(mesh, background, cam_loc, cam_angle, color=color)
         imgs.append(img)
 
     with open("con/heading_info.json", 'w') as f:

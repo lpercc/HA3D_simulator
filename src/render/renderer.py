@@ -93,6 +93,7 @@ class Renderer:
 
         #cam_nodes = []
         image_all = []
+        image_depth_all = []
         cams_angle = [180,90,0,270]
         for i in range(4):
             angle = np.radians(cams_angle[i]-cam_angle)  # 旋转
@@ -101,14 +102,16 @@ class Renderer:
             # 将刚刚创建的相机添加到场景中，并设置其位置和方向为camera_pose
             cam_node = self.scene.add(camera, pose=camera_pose)
             #cam_nodes.append(cam_node)
-            image, _ = self.renderer.render(self.scene)
+            image, d_img = self.renderer.render(self.scene)
             image_all.append(image)
+            image_depth_all.append(d_img)
             #print(image.shape)
             self.scene.remove_node(cam_node)
 
 
         #rgb = cv2.hconcat([image_all[2], image_all[3], image_all[0], image_all[1]])
         rgb = cv2.hconcat(image_all)
+        depth = cv2.hconcat(image_depth_all)
         # 创建白色背景的掩码
         white_mask = np.all(rgb[:, :, :3] >= 254, axis=-1)  # 忽略alpha通道
 
@@ -129,8 +132,9 @@ class Renderer:
         self.scene.remove_node(light_node2)
         self.scene.remove_node(light_node3)
         
+        cv2.imwrite("./depth.jpg",depth)
 
-        return image
+        return image,depth
 
 
 def get_renderer(width, height):
