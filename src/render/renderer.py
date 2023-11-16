@@ -30,7 +30,7 @@ class Renderer:
         # set light
         self.light = pyrender.PointLight(color=[1.0, 1.0, 1.0], intensity=4)
 
-    def render(self, mesh, background, cam_loc, cam_angle, human_loc=None, human_angle=None, mesh_filename=None, color=[1.0, 1.0, 0.9]):
+    def render(self, mesh, background, background_depth, cam_loc, cam_angle, human_angle=None, mesh_filename=None, color=[1.0, 1.0, 0.9]):
 
         #Rx = trimesh.transformations.rotation_matrix(math.radians(0), [1, 0, 0])
         #mesh.apply_transform(Rx)
@@ -111,16 +111,16 @@ class Renderer:
 
         #rgb = cv2.hconcat([image_all[2], image_all[3], image_all[0], image_all[1]])
         rgb = cv2.hconcat(image_all)
-        depth = cv2.hconcat(image_depth_all)
-        # 创建白色背景的掩码
-        white_mask = np.all(rgb[:, :, :3] >= 254, axis=-1)  # 忽略alpha通道
+        human_depth = cv2.hconcat(image_depth_all) * 0.86
 
+        mask = (human_depth <= background_depth) & (human_depth != 0)
+        #print(mask.shape,np.sum(human_depth)/np.sum(human_depth != 0))
         # 扩展掩码到三个通道，以匹配rgb和background的形状
-        white_mask_3d = np.repeat(white_mask[:, :, np.newaxis], 3, axis=2)
+        mask_3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
 
         # 创建输出图像，其中白色背景被 background 替换
         # 注意这里只处理RGB通道，不处理alpha通道
-        output_img = np.where(white_mask_3d, background[:, :, :3], rgb[:, :, :3])
+        output_img = np.where(mask_3d, rgb, background)
         #cv2.imwrite("./background.jpg",background)
         #cv2.imwrite("./rgb_valid_mask.jpg",rgb[:, :, :-1] * valid_mask)
         #cv2.imwrite("./background_valid_mask.jpg",(1 - valid_mask) * background)
@@ -132,9 +132,9 @@ class Renderer:
         self.scene.remove_node(light_node2)
         self.scene.remove_node(light_node3)
         
-        cv2.imwrite("./depth.jpg",depth)
+        #np.save("./depth.npy",depth)
 
-        return image,depth
+        return image
 
 
 def get_renderer(width, height):

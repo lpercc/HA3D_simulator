@@ -53,6 +53,7 @@ def adjust_cam_angle(image, cam_angle):
 
 def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_video_path, view_id,scan_id,color=[0, 0.8, 0.5]):
     writer = imageio.get_writer(output_video_path, fps=20)
+    background_depth = np.load(os.path.join("data/v1/scans", scan_id, "matterport_panorama_depth_images", f"{view_id}.npy"))
     # Matterport3D坐标-->pyrende坐标
     cam_loc = (cam_loc[0], cam_loc[2], -cam_loc[1])
     human_loc = (human_loc[0], human_loc[2]-1.36, -human_loc[1])
@@ -74,11 +75,11 @@ def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle,
         
         while first_flag:
             print(f"camera location:{cam_loc}, camera angle:{cam_angle}")
-            img,_ = renderer.render(mesh, background, cam_loc, cam_angle, color=color)
+            img = renderer.render(mesh, background, background_depth, cam_loc, cam_angle, color=color)
             first_flag, cam_angle = adjust_cam_angle(img,cam_angle)
             heading_data[scan_id][view_id] = [cam_angle]
 
-        img, _ = renderer.render(mesh, background, cam_loc, cam_angle, color=color)
+        img = renderer.render(mesh, background, background_depth, cam_loc, cam_angle, color=color)
         imgs.append(img)
 
     with open("con/heading_info.json", 'w') as f:
