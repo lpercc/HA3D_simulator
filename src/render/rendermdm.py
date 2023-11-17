@@ -53,17 +53,18 @@ def adjust_cam_angle(image, cam_angle):
 
 def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_video_path, view_id,scan_id,color=[0, 0.8, 0.5]):
     writer = imageio.get_writer(output_video_path, fps=20)
-    background_depth = np.load(os.path.join("data/v1/scans", scan_id, "matterport_panorama_depth_images", f"{view_id}.npy"))
+    depth_ratio = 5
+    background_depth = np.load(os.path.join("data/v1/scans", scan_id, "matterport_panorama_depth", f"{view_id}.npy")) * depth_ratio - 6
     # Matterport3D坐标-->pyrende坐标
     cam_loc = (cam_loc[0], cam_loc[2], -cam_loc[1])
     human_loc = (human_loc[0], human_loc[2]-1.36, -human_loc[1])
-    #print(f"camera location:{cam_loc}, camera angle:{cam_angle}")
+    print(f"camera location:{cam_loc}, camera angle:{cam_angle}")
     print(f"human location:{human_loc}, human angle:{human_angle}")
     # human旋转矩阵
     theta_angle = (np.pi / 180 * float(human_angle))
     matrix = get_rotation(theta=theta_angle)
     imgs = []
-    first_flag =True
+    first_flag = False
     # 每个建筑场景中的视点视角朝向
     with open("con/heading_info.json", 'r') as f:
         heading_data = json.load(f)
@@ -74,11 +75,11 @@ def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle,
         mesh.vertices = mesh.vertices + human_loc
         
         while first_flag:
-            print(f"camera location:{cam_loc}, camera angle:{cam_angle}")
+            print(f"camera angle:{cam_angle}")
             img = renderer.render(mesh, background, background_depth, cam_loc, cam_angle, color=color)
             first_flag, cam_angle = adjust_cam_angle(img,cam_angle)
             heading_data[scan_id][view_id] = [cam_angle]
-
+        
         img = renderer.render(mesh, background, background_depth, cam_loc, cam_angle, color=color)
         imgs.append(img)
 
@@ -112,7 +113,7 @@ def HE_fusion(input_path, output_video_path, bgd_img_path, view_id, cam_loc, hum
     obj_files = [f for f in os.listdir(input_path) if f.endswith('.obj')]
     #print(obj_files[0].split('frame')[1].split('.obj')[0])
     sorted_obj_files = sorted(obj_files)
-    for obj_file in sorted_obj_files[:40]:
+    for obj_file in sorted_obj_files[:60]:
         obj_file.split('.')
         obj_path = os.path.join(input_path,obj_file)
         mesh = trimesh.load(obj_path)
