@@ -63,7 +63,7 @@ run the script
 #copy prompts file
 cp ../HC-VLN_simulator/HC-VLN_text_prompts.txt ./assets/
 #generate from human motion text prompts
-python -m sample.generate --model_path ./save/humanml_trans_enc_512/model000200000.pt --input_text ./assets/HC-VLN_text_prompts.txt --num_repetitions 1
+python -m sample.generate --model_path ./save/humanml_trans_enc_512/model000200000.pt --input_text ./assets/HC-VLN_text_prompts.txt --num_repetitions 3 --batch_size 145
 ```
 You may also define:
   --device id.
