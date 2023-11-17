@@ -11,7 +11,7 @@ def main(args):
 
     # human_view_info.json每个建筑场景的人物视点的信息（视点编号）
     # 一共90个建筑场景数据
-    with open('human_view_info.json', 'r') as f:
+    with open('human_motion_text.json', 'r') as f:
         human_view_data = json.load(f)
 
     GRAPHS = 'connectivity/'
@@ -58,9 +58,10 @@ def main(args):
 
 
         # 遍历建筑场景中每个人物视点，即人物所在位置的视点
-        for view_num in range(len(human_view_data[scan_id])):
+        for human_view_id in human_view_data[scan_id]:
             # 人物视点编号
-            human_view_id = human_view_data[scan_id][view_num]
+            human_motion = human_view_data[scan_id][human_view_id][0]
+            print(f"Human motion: {human_motion}")
             #print(human_view_id)
             # 随机选择人物动作编号
             # action_select = random.randrange(0, 39)
@@ -93,6 +94,7 @@ def main(args):
                         info_list.append(agent_loc) 
                         info_list.append(agent_heading)
                         info_list.append(human_loc)
+                        info_list.append(human_motion)
                         HE_fusion(motion_path, output_video_path, bgd_img_path, agent_view_id, agent_loc, human_loc, agent_heading, scan_id)
                         video_list.append(output_video_path)
                         try:

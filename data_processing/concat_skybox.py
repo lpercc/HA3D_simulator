@@ -4,6 +4,12 @@ import os
 import re
 from collections import defaultdict
 
+DOWNSIZED_WIDTH = 512
+DOWNSIZED_HEIGHT = 512
+
+# Constants
+SKYBOX_WIDTH = 1024
+SKYBOX_HEIGHT = 1024
 
 skybox_image_dir = "data/v1/scans"
 #output_dir = "data/v1/skybox"
@@ -31,8 +37,8 @@ for scan in scan_list:
         all_img = []
         for i in range(1,5):
             img_path = os.path.join(input_dir, panoramas[key][i])
-            img = cv2.imread(img_path)
-            all_img.append(img)
+            skybox = cv2.imread(img_path)
+            all_img.append(cv2.resize(skybox,(DOWNSIZED_WIDTH,DOWNSIZED_HEIGHT),interpolation=cv2.INTER_AREA))
 
         panoramic_view_img = cv2.hconcat(all_img)
         output_dir = os.path.join(scan_file, "matterport_panorama_images")
