@@ -1,7 +1,15 @@
 {
     "17DRP5sb8fy": {
-        "0e92a69a50414253a23043758f111cec": ["kitchen:An individual meal-prepping for the week.",0],
-        "30c97842da204e6290ac32904c924e17": ["familyroom:Someone napping on the couch.",1]
+        "0e92a69a50414253a23043758f111cec": [
+            "kitchen:An individual meal-prepping for the week.",
+            0,
+            0.0
+        ],
+        "51857544c192476faebf212acb1b3d90": [
+            "familyroom:Someone napping on the couch.",
+            1,
+            0.0
+        ]
     },
     "1LXtFkjw3qL": {
         "74d5b2290be74a1ba052b6fe2320e064": "A man spins around and says hello with his hands.",

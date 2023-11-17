@@ -94,7 +94,7 @@ def on_click(event, x, y, flags, param):
                 #cv2.putText(image, coord_text, (px + 10, py - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1)
                 update_text_box(image, text_box_content)
                                 # 加载并显示对应视点的图片
-                image_path = f'../data/v1/scans/{scan_id}/matterport_panorama_images/{key}.jpg'
+                image_path = f'./data/v1/scans/{scan_id}/matterport_panorama_images/{key}.jpg'
                 viewpoint_image = cv2.imread(image_path)
                 if viewpoint_image is not None:
                     # 缩小图片

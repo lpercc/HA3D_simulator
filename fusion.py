@@ -61,6 +61,7 @@ def main(args):
         for human_view_id in human_view_data[scan_id]:
             # 人物视点编号
             human_motion = human_view_data[scan_id][human_view_id][0]
+            human_heading = human_view_data[scan_id][human_view_id][2]
             print(f"Human motion: {human_motion}")
             #print(human_view_id)
             # 随机选择人物动作编号
@@ -95,7 +96,7 @@ def main(args):
                         info_list.append(agent_heading)
                         info_list.append(human_loc)
                         info_list.append(human_motion)
-                        HE_fusion(motion_path, output_video_path, bgd_img_path, agent_view_id, agent_loc, human_loc, agent_heading, scan_id)
+                        HE_fusion(motion_path, output_video_path, bgd_img_path, agent_view_id, agent_loc, human_loc, agent_heading, human_heading,scan_id,human_view_id)
                         video_list.append(output_video_path)
                         try:
                             record_dict[scan_id][agent_view_id] += (info_list)

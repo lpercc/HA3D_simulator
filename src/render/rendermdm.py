@@ -19,7 +19,7 @@ def get_rotation(theta=np.pi):
     matrix = geometry.axis_angle_to_matrix(axisangle)
     return matrix.numpy()
 
-def adjust_cam_angle(image, cam_angle):
+def adjust_cam_angle(image, cam_angle, human_angle):
     #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # 将图片从BGR转换为RGB
 
     # 设置图像的显示大小（英寸）
@@ -43,51 +43,68 @@ def adjust_cam_angle(image, cam_angle):
 
     is_adjust = input("Is adjust(y/n)?")
     if is_adjust == 'y':
-        add_angle = float(input("add_angle:"))
+        add_angle = float(input("add_agent_angle:"))
+        add_human_angle = float(input("add_human_angle(+):"))
         first_flag = True
     elif is_adjust == 'n':
         add_angle = 0
+        add_human_angle = 0
         first_flag = False
     new_angle = add_angle+cam_angle
-    return first_flag, new_angle
+    new_human_angle = add_human_angle + human_angle
+    return first_flag, new_angle, new_human_angle
 
-def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_video_path, view_id,scan_id,color=[0, 0.8, 0.5]):
+def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_video_path, view_id,scan_id,human_view_id,color=[0, 0.8, 0.5]):
     writer = imageio.get_writer(output_video_path, fps=20)
     #0.25mm per unit
     background_depth = cv2.imread(os.path.join("data/v1/scans", scan_id, "matterport_panorama_depth", f"{view_id}.png"), cv2.IMREAD_GRAYSCALE)
     # convert M
     background_depth = background_depth * 0.25 * 0.2
-    print(np.min(background_depth), np.max(background_depth))
+    #print(np.min(background_depth), np.max(background_depth))
     # Matterport3D坐标-->pyrende坐标
     cam_loc = (cam_loc[0], cam_loc[2], -cam_loc[1])
     human_loc = (human_loc[0], human_loc[2]-1.36, -human_loc[1])
     print(f"camera location:{cam_loc}, camera angle:{cam_angle}")
     print(f"human location:{human_loc}, human angle:{human_angle}")
-    # human旋转矩阵
-    theta_angle = (np.pi / 180 * float(human_angle))
-    matrix = get_rotation(theta=theta_angle)
-    imgs = []
-    first_flag = False
     # 每个建筑场景中的视点视角朝向
     with open("con/heading_info.json", 'r') as f:
         heading_data = json.load(f)
+    with open("human_motion_text.json", 'r') as f:
+        human_data = json.load(f)
+    imgs = []
+
+    first_flag = True
+
+    theta_angle = (np.pi / 180 * float(human_angle))
+    matrix = get_rotation(theta=theta_angle)
     for mesh in tqdm(meshes, desc=f"View_id {view_id}"):
+        while first_flag:
+            human_angle = human_data[scan_id][human_view_id][2]
+            print(f"camera angle:{cam_angle}, human angle:{human_angle}")
+            # human旋转矩阵
+            theta_angle = (np.pi / 180 * float(human_angle))
+            matrix = get_rotation(theta=theta_angle)
+            copy_mesh = mesh.copy()
+            #human旋转
+            copy_mesh.vertices = np.einsum("ij,ki->kj", matrix, copy_mesh.vertices)
+            #human平移
+            copy_mesh.vertices = copy_mesh.vertices + human_loc
+            img = renderer.render(copy_mesh, background, background_depth, cam_loc, cam_angle, color=color)
+            first_flag, cam_angle, human_angle = adjust_cam_angle(img,cam_angle,human_angle)
+            heading_data[scan_id][view_id] = [cam_angle]
+            human_data[scan_id][human_view_id][2] = human_angle
         #human旋转
         mesh.vertices = np.einsum("ij,ki->kj", matrix, mesh.vertices)
         #human平移
         mesh.vertices = mesh.vertices + human_loc
-        
-        while first_flag:
-            print(f"camera angle:{cam_angle}")
-            img = renderer.render(mesh, background, background_depth, cam_loc, cam_angle, color=color)
-            first_flag, cam_angle = adjust_cam_angle(img,cam_angle)
-            heading_data[scan_id][view_id] = [cam_angle]
-        
+
         img = renderer.render(mesh, background, background_depth, cam_loc, cam_angle, color=color)
         imgs.append(img)
 
     with open("con/heading_info.json", 'w') as f:
         json.dump(heading_data, f, indent=4)
+    with open("human_motion_text.json", 'w') as f:
+        json.dump(human_data, f, indent=4)
 
     for cimg in imgs:
         writer.append_data(cimg)
@@ -109,7 +126,7 @@ def compute_rel(src_loc, tar_loc, current_heading):
     #print(rel_angle, current_heading)
     return rel_angle - current_heading
 
-def HE_fusion(input_path, output_video_path, bgd_img_path, view_id, cam_loc, human_loc, cam_heading, scan_id,human_angle=0):
+def HE_fusion(input_path, output_video_path, bgd_img_path, view_id, cam_loc, human_loc, cam_heading, human_angle,scan_id,human_view_id):
     meshes = []
     # 从.obj文件创建mesh
     # 获取目录下的所有.obj文件，并按照序号从大到小排序
@@ -132,7 +149,7 @@ def HE_fusion(input_path, output_video_path, bgd_img_path, view_id, cam_loc, hum
     height = background.shape[0]
     renderer = get_renderer(width, height)
 
-    render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_video_path, view_id, scan_id)
+    render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_video_path, view_id, scan_id,human_view_id)
 
 
 def main():
