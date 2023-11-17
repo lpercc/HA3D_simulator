@@ -6,11 +6,11 @@ def visualize_opencv(scan_id):
     global selected_point, text_box_content
 
         # 加载人物所在视点数据
-    with open('../human_motion_text.json', 'r') as f:
+    with open('./human_motion_text.json', 'r') as f:
         human_motion_data = json.load(f)
     human_points = human_motion_data.get(scan_id, {})
 
-    with open('../con/pos_info/{}_pos_info.json'.format(scan_id), 'r') as f:
+    with open('./con/pos_info/{}_pos_info.json'.format(scan_id), 'r') as f:
         pos_info = json.load(f)
 
     image_size = 900

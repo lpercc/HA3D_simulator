@@ -53,8 +53,11 @@ def adjust_cam_angle(image, cam_angle):
 
 def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_video_path, view_id,scan_id,color=[0, 0.8, 0.5]):
     writer = imageio.get_writer(output_video_path, fps=20)
-    depth_ratio = 5
-    background_depth = np.load(os.path.join("data/v1/scans", scan_id, "matterport_panorama_depth", f"{view_id}.npy")) * depth_ratio - 6
+    #0.25mm per unit
+    background_depth = cv2.imread(os.path.join("data/v1/scans", scan_id, "matterport_panorama_depth", f"{view_id}.png"), cv2.IMREAD_GRAYSCALE)
+    # convert M
+    background_depth = background_depth * 0.25 * 0.2
+    print(np.min(background_depth), np.max(background_depth))
     # Matterport3D坐标-->pyrende坐标
     cam_loc = (cam_loc[0], cam_loc[2], -cam_loc[1])
     human_loc = (human_loc[0], human_loc[2]-1.36, -human_loc[1])

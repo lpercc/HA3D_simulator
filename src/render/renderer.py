@@ -111,8 +111,9 @@ class Renderer:
 
         #rgb = cv2.hconcat([image_all[2], image_all[3], image_all[0], image_all[1]])
         rgb = cv2.hconcat(image_all)
-        human_depth = cv2.hconcat(image_depth_all) * 0.86
-
+        human_depth = cv2.hconcat(image_depth_all) * 0.8
+        #print(np.max(human_depth))
+        #print(human_depth.shape, background_depth.shape)
         mask = (human_depth <= background_depth) & (human_depth != 0)
         #print(mask.shape,np.sum(human_depth)/np.sum(human_depth != 0))
         # 扩展掩码到三个通道，以匹配rgb和background的形状
