@@ -13,38 +13,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <widget class="QFrame" name="frame_1">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>10</y>
-     <width>1024</width>
-     <height>256</height>
-    </rect>
-   </property>
-   <property name="frameShape">
-    <enum>QFrame::StyledPanel</enum>
-   </property>
-   <property name="frameShadow">
-    <enum>QFrame::Raised</enum>
-   </property>
-  </widget>
-  <widget class="QFrame" name="frame_2">
-   <property name="geometry">
-    <rect>
-     <x>390</x>
-     <y>270</y>
-     <width>256</width>
-     <height>256</height>
-    </rect>
-   </property>
-   <property name="frameShape">
-    <enum>QFrame::StyledPanel</enum>
-   </property>
-   <property name="frameShadow">
-    <enum>QFrame::Raised</enum>
-   </property>
-  </widget>
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
@@ -218,13 +186,39 @@
     </rect>
    </property>
   </widget>
+  <widget class="QLabel" name="label_frame1">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>1024</width>
+     <height>256</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>frame1</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_frame2">
+   <property name="geometry">
+    <rect>
+     <x>394</x>
+     <y>270</y>
+     <width>256</width>
+     <height>256</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>frame2</string>
+   </property>
+  </widget>
   <widget class="QWidget" name="">
    <property name="geometry">
     <rect>
      <x>670</x>
-     <y>690</y>
-     <width>371</width>
-     <height>191</height>
+     <y>670</y>
+     <width>361</width>
+     <height>211</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_8">
@@ -245,18 +239,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBox_region">
-        <item>
-         <property name="text">
-          <string>Region1</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Region2</string>
-         </property>
-        </item>
-       </widget>
+       <widget class="QComboBox" name="comboBox_region"/>
       </item>
      </layout>
     </item>
@@ -277,18 +260,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBox_humanMotion">
-        <item>
-         <property name="text">
-          <string>motion1 motion1 motion1 motion1 motion1 motion1 motion1 motion1 </string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>motion2</string>
-         </property>
-        </item>
-       </widget>
+       <widget class="QComboBox" name="comboBox_humanMotion"/>
       </item>
      </layout>
     </item>
@@ -309,22 +281,31 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBox_3DmodelID">
-        <item>
-         <property name="text">
-          <string>1</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>2</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>3</string>
-         </property>
-        </item>
+       <widget class="QComboBox" name="comboBox_3DmodelID"/>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_22">
+      <item>
+       <widget class="QPushButton" name="pushButton_open">
+        <property name="text">
+         <string>OPEN</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_play">
+        <property name="text">
+         <string>PLAY</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_stop">
+        <property name="text">
+         <string>STOP</string>
+        </property>
        </widget>
       </item>
      </layout>
