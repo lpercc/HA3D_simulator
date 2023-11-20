@@ -49,7 +49,7 @@ python concat_skybox.py
 
 ## 4.Human motion generation
 ### collacte human descriptions
-
+```human_motion_text.json```
 ### generate human motion backbone
 get MDM repo from https://github.com/GuyTevet/motion-diffusion-model
 ```bash

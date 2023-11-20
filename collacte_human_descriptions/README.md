@@ -1,5 +1,7 @@
 # Collacte Human descriptions from indoor view images
-
+```bash
+pip install PyQt5
+```
 ## 1.Generate human motion prompt text with gpt4
 制作建筑中所有视点的可视化坐标图
 输入：scan_id 建筑扫描编号
