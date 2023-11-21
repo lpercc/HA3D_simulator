@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1041</width>
-    <height>884</height>
+    <height>1046</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -153,13 +153,13 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="widget_2" native="true">
+  <widget class="QChart" name="chart_1" native="true">
    <property name="geometry">
     <rect>
-     <x>10</x>
+     <x>0</x>
      <y>540</y>
-     <width>631</width>
-     <height>341</height>
+     <width>651</width>
+     <height>500</height>
     </rect>
    </property>
   </widget>
@@ -169,7 +169,7 @@
      <x>650</x>
      <y>270</y>
      <width>20</width>
-     <height>611</height>
+     <height>771</height>
     </rect>
    </property>
    <property name="orientation">
@@ -218,7 +218,7 @@
      <x>670</x>
      <y>670</y>
      <width>361</width>
-     <height>211</height>
+     <height>271</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_8">
@@ -286,11 +286,11 @@
      </layout>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_22">
+     <layout class="QVBoxLayout" name="verticalLayout_9">
       <item>
-       <widget class="QPushButton" name="pushButton_open">
+       <widget class="QPushButton" name="pushButton_stop">
         <property name="text">
-         <string>OPEN</string>
+         <string>STOP</string>
         </property>
        </widget>
       </item>
@@ -302,9 +302,9 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_stop">
+       <widget class="QPushButton" name="pushButton_open">
         <property name="text">
-         <string>STOP</string>
+         <string>OPEN</string>
         </property>
        </widget>
       </item>
@@ -339,6 +339,12 @@
    <class>QVideoWidget</class>
    <extends>QWidget</extends>
    <header>PyQt5.QtMultimediaWidgets</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>QChart</class>
+   <extends>QWidget</extends>
+   <header>PyQt5.QtChart</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

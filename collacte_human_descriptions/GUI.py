@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtMultimedia import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+from PyQt5.QtChart import *
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 from compute_human_num import compute
 
@@ -89,6 +90,10 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.player = QMediaPlayer()
         self.player.setVideoOutput(self.videowidget_motion)
 
+        # chart initial
+        data_points = [self.location_data[viewpoint_id] for viewpoint_id in self.location_data]
+        self.create_coordinates(data_points)
+        self.scatter_series = self.create_scatter_series(data_points)
  
     def preScan(self):
         index = self.scan_list.index(self.scan_id) - 1
@@ -108,6 +113,9 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.textBrowser_viewpointID.setText(self.viewpoint_id)
         self.textBrowser_location.setText(f"X:{self.location[0]} Y:{self.location[1]}")
         self.textBrowser_humanCount.setText(f"{self.human_count}")
+        data_points = [self.location_data[viewpoint_id] for viewpoint_id in self.location_data]
+        self.update_coordinates(data_points)
+        self.update_scatter_series(data_points)
     
     def nextScan(self):
         index = self.scan_list.index(self.scan_id) + 1
@@ -127,6 +135,9 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.textBrowser_viewpointID.setText(self.viewpoint_id)
         self.textBrowser_location.setText(f"X:{self.location[0]} Y:{self.location[1]}")
         self.textBrowser_humanCount.setText(f"{self.human_count}")
+        data_points = [self.location_data[viewpoint_id] for viewpoint_id in self.location_data]
+        self.update_coordinates(data_points)
+        self.update_scatter_series(data_points)
 
     def preViewpoint(self):
         index = self.viewpoint_list.index(self.viewpoint_id) - 1
@@ -211,8 +222,109 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.pushButton_play.setEnabled(True)
         self.player.pause()
  
- 
- 
+    def create_coordinates(self,data_points):
+        # 绘制坐标轴
+        axis_x = QLineSeries(self.chart_1)
+        self.chart_1.addSeries(axis_x)
+        axis_y = QLineSeries(self.chart_1)
+        self.chart_1.addSeries(axis_y)
+        self.chart_1.legend().hide()
+        
+        # 初始化最大值和最小值为第一个点的坐标
+        min_x = max_x = data_points[0][0]
+        min_y = max_y = data_points[0][1]
+
+        # 遍历所有点，更新最大值（上取整）和最小值（下取整）,
+        for x, y, _ in data_points:
+            min_x = min(min_x, x)
+            max_x = max(max_x, x)
+            min_y = min(min_y, y)
+            max_y = max(max_y, y)
+        min_x = int(min_x-1)
+        max_x = int(max_x+1)
+        min_y = int(min_y-1)
+        max_y = int(max_y+1)
+        # 创建并设置 X 轴
+        self.axisX = QValueAxis()
+        self.axisX.setRange(min_x, max_x)  # 设置轴的范围
+        self.axisX.setTickCount(max_x-min_x+1)   # 设置刻度数量，包括两端点
+        self.axisX.setLabelFormat("%d")  # 设置标签格式，这里是整数
+        self.chart_1.setAxisX(self.axisX, axis_x)
+
+        # 创建并设置 Y 轴
+        self.axisY = QValueAxis()
+        self.axisY.setRange(min_y, max_y)
+        self.axisY.setTickCount(max_y-min_y)
+        self.axisY.setLabelFormat("%d")
+        self.chart_1.setAxisY(self.axisY, axis_y)
+
+    def create_scatter_series(self, data_points):
+        # 创建散点系列
+        series = QScatterSeries()
+        series.setName("Data Points")
+        series.setMarkerShape(QScatterSeries.MarkerShapeCircle)  # 设置散点形状为圆形
+        series.setMarkerSize(10)  # 设置散点大小
+        series.setColor(QColor(Qt.blue))  # 设置散点颜色为红色
+
+        # 添加数据点
+        for point in data_points:
+            series.append(point[0], point[1])
+
+        # 将散点系列添加到图表中
+        self.chart_1.addSeries(series)
+
+        # 关联坐标轴（如果已经创建了自定义坐标轴）
+        self.chart_1.setAxisX(self.axisX, series)
+        self.chart_1.setAxisY(self.axisY, series)
+
+        return series 
+
+    def update_scatter_series(self, new_data_points):
+        # 确保散点系列存在
+        if not hasattr(self, 'scatter_series'):
+            self.scatter_series = QScatterSeries()
+            self.chart_1.addSeries(self.scatter_series)
+
+        # 清除现有数据点
+        self.scatter_series.clear()
+
+        # 添加新的数据点
+        for point in new_data_points:
+            self.scatter_series.append(point[0], point[1]) 
+
+    def update_coordinates(self,new_data_points):
+        # 检查是否已经有自定义轴，如果没有，则创建
+        if not hasattr(self, 'axisX'):
+            self.axisX = QValueAxis()
+            self.chart_1.setAxisX(self.axisX, self.scatter_series)
+
+        if not hasattr(self, 'axisY'):
+            self.axisY = QValueAxis()
+            self.chart_1.setAxisY(self.axisY, self.scatter_series)        
+        # 初始化最大值和最小值为第一个点的坐标
+        min_x = max_x = new_data_points[0][0]
+        min_y = max_y = new_data_points[0][1]
+
+        # 遍历所有点，更新最大值（上取整）和最小值（下取整）,
+        for x, y, _ in new_data_points:
+            min_x = min(min_x, x)
+            max_x = max(max_x, x)
+            min_y = min(min_y, y)
+            max_y = max(max_y, y)
+        min_x = int(min_x-1)
+        max_x = int(max_x+1)
+        min_y = int(min_y-1)
+        max_y = int(max_y+1)
+
+        # 设置 X 轴
+        self.axisX.setRange(min_x, max_x)  # 设置轴的范围
+        self.axisX.setTickCount(max_x-min_x+1)   # 设置刻度数量，包括两端点
+        #self.chart_1.setAxisX(self.axisX, axis_x)
+
+        # 设置 Y 轴
+        self.axisY.setRange(min_y, max_y)
+        self.axisY.setTickCount(max_y-min_y)
+        #self.chart_1.setAxisY(self.axisY, axis_y)
 # if __name__ == '__main__':
 #     app = QApplication(sys.argv)
 #     mainWindow = QMainWindow()
