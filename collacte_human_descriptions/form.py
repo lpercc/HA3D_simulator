@@ -119,7 +119,7 @@ class Ui_Form(object):
         self.label_frame2.setGeometry(QtCore.QRect(394, 270, 256, 256))
         self.label_frame2.setObjectName("label_frame2")
         self.widget = QtWidgets.QWidget(Form)
-        self.widget.setGeometry(QtCore.QRect(670, 670, 361, 271))
+        self.widget.setGeometry(QtCore.QRect(670, 670, 361, 297))
         self.widget.setObjectName("widget")
         self.verticalLayout_8 = QtWidgets.QVBoxLayout(self.widget)
         self.verticalLayout_8.setContentsMargins(0, 0, 0, 0)
@@ -183,6 +183,9 @@ class Ui_Form(object):
         self.line_8.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_8.setObjectName("line_8")
         self.verticalLayout_8.addWidget(self.line_8)
+        self.pushButton_random_loc = QtWidgets.QPushButton(self.widget)
+        self.pushButton_random_loc.setObjectName("pushButton_random_loc")
+        self.verticalLayout_8.addWidget(self.pushButton_random_loc)
         self.pushButton_save = QtWidgets.QPushButton(self.widget)
         self.pushButton_save.setObjectName("pushButton_save")
         self.verticalLayout_8.addWidget(self.pushButton_save)
@@ -215,6 +218,7 @@ class Ui_Form(object):
         self.pushButton_stop.setText(_translate("Form", "STOP"))
         self.pushButton_play.setText(_translate("Form", "PLAY"))
         self.pushButton_open.setText(_translate("Form", "OPEN"))
+        self.pushButton_random_loc.setText(_translate("Form", "Random Human Location"))
         self.pushButton_save.setText(_translate("Form", "Save"))
-from PyQt5.QtChart import QChart,QChartView
+from PyQt5.QtChart import QChart, QChartView
 from PyQt5.QtMultimediaWidgets import QVideoWidget

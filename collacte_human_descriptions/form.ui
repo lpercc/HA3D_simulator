@@ -218,7 +218,7 @@
      <x>670</x>
      <y>670</y>
      <width>361</width>
-     <height>271</height>
+     <height>297</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_8">
@@ -314,6 +314,13 @@
      <widget class="Line" name="line_8">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="pushButton_random_loc">
+      <property name="text">
+       <string>Random Human Location</string>
       </property>
      </widget>
     </item>
