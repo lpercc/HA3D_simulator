@@ -1,6 +1,10 @@
 import sys
 import os
 import json
+import trimesh
+import imageio.v2 as imageio
+from src.render.renderer import get_renderer
+from src.render.rendermdm import render_first_frame
 from form1 import Ui_Form
 from PyQt5.QtWidgets import *
 from PyQt5.QtMultimedia import *
@@ -8,6 +12,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtChart import *
 from PyQt5.QtMultimediaWidgets import QVideoWidget
+
 
 class myMainWindow(Ui_Form,QMainWindow):
     def __init__(self,viewpoint_image_dir, video_output_dir, motion_model_dir, scan_list, human_motion_data, agent_heading_data):
@@ -46,13 +51,23 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.human_motion = self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].split(":")[1]
         self.human_heading = self.human_motion_data[self.scan_id][self.human_viewpoint_id][2]
         self.human_location = self.location_data[self.human_viewpoint_id]
-
+        self.motion_path = os.path.join(self.motion_model_dir, self.scan_id, self.human_viewpoint_id+"_obj")
+        self.mesh = trimesh.load(os.path.join(self.motion_path,"frame000.obj"))
         ## Agent Information
-        self.agent_viewpoint_list = [agent_viewpoint for agent_viewpoint in self.location_data]
+        self.agent_viewpoint_list = []
+        for num, val in self.connection_data.items():
+            if self.human_viewpoint_id in val['visible']:
+                self.agent_viewpoint_list.append(num)
         self.agent_viewpoint_id = self.agent_viewpoint_list[0]
         self.agent_heading = self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0]
         self.agent_location = self.location_data[self.agent_viewpoint_id]
-
+        self.background = imageio.imread(os.path.join(self.panorama_image_path,self.agent_viewpoint_id+'.jpg'))
+        self.output_frame_path = "./adjust.jpg"
+        
+        # Initialize render
+        self.renderer = get_renderer(self.background.shape[1], self.background.shape[0])
+        self.updateFusion()
+        
         # Initialize Ui
         self.setupUi(self)
         
@@ -98,11 +113,13 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.dial_agentHeading.valueChanged.connect(self.on_dial_agentHeading_changed)
 
         ## Panorama Frame Label
-        pix_panorama = QPixmap(os.path.join(self.panorama_image_path,self.agent_viewpoint_id+'.jpg'))
+        pix_panorama = QPixmap(self.output_frame_path)
         self.label_frame1.setPixmap(pix_panorama)
         self.label_frame1.setScaledContents(True)  # 自适应QLabel大小
 
-        
+        ## save
+        self.pushButton_save.clicked.connect(self.headingAngleSave)
+
 
     def humanPrevious(self):
         index = self.human_viewpoint_list.index(self.human_viewpoint_id) - 1
@@ -125,16 +142,25 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.human_motion = self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].split(":")[1]
         self.human_heading = self.human_motion_data[self.scan_id][self.human_viewpoint_id][2]
         self.human_location = self.location_data[self.human_viewpoint_id]
+        self.motion_path = os.path.join(self.motion_model_dir, self.scan_id, self.human_viewpoint_id+"_obj")
+        self.mesh = trimesh.load(os.path.join(self.motion_path,"frame000.obj"))
         self.textBrowser_humanViewpointID.setText(self.human_viewpoint_id)
         self.textBrowser_region.setText(self.region)
         self.textBrowser_humanMotion.setText(self.human_motion)
         self.textBrowser_humanHeading.setText(f"{self.human_heading}")
         self.textBrowser_humanLocation.setText(f"X:{self.human_location[0]} Y:{self.human_location[1]} Z:{self.human_location[2]}")
+        self.agent_viewpoint_list = []
+        for num, val in self.connection_data.items():
+            if self.human_viewpoint_id in val['visible']:
+                self.agent_viewpoint_list.append(num)
+        self.agent_viewpoint_id = self.agent_viewpoint_list[0]
+        self.updateAgent()
 
     def on_dial_humanHeading_changed(self, value):
         self.human_motion_data[self.scan_id][self.human_viewpoint_id][2] = value
-        self.updateHuman()
-
+        self.human_heading = self.human_motion_data[self.scan_id][self.human_viewpoint_id][2]
+        self.textBrowser_humanHeading.setText(f"{self.human_heading}")
+        self.updateImage()
 
     def agentPrevious(self):
         index = self.agent_viewpoint_list.index(self.agent_viewpoint_id) - 1
@@ -153,20 +179,51 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.updateAgent()
 
     def updateAgent(self):
-        self.agent_heading = self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0]
+        try:
+            self.agent_heading = self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0]
+        except KeyError:
+            self.agent_heading_data[self.scan_id][self.agent_viewpoint_id] = [0]
+            self.agent_heading = self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0]
         self.agent_location = self.location_data[self.agent_viewpoint_id]
         self.textBrowser_agentViewpointID.setText(self.agent_viewpoint_id)
         self.textBrowser_agentHeading.setText(f"{self.agent_heading}")
         self.textBrowser_agentLocation.setText(f"X:{self.agent_location[0]} Y:{self.agent_location[1]} Z:{self.agent_location[2]}")
+        self.dial_agentHeading.setValue(int(self.agent_heading))
         self.updateImage()
 
     def on_dial_agentHeading_changed(self, value):
         self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0] = value
-        self.updateAgent()
+        self.agent_heading = self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0]
+        self.textBrowser_agentHeading.setText(f"{self.agent_heading}")
+        self.updateImage()
 
     def updateImage(self):
-        pix_panorama = QPixmap(os.path.join(self.panorama_image_path,self.agent_viewpoint_id+'.jpg'))
+        self.background = imageio.imread(os.path.join(self.panorama_image_path,self.agent_viewpoint_id+'.jpg'))
+        #self.renderer = get_renderer(self.background.shape[1], self.background.shape[0])
+        self.updateFusion()
+        pix_panorama = QPixmap(self.output_frame_path)
         self.label_frame1.setPixmap(pix_panorama)
+
+    def headingAngleSave(self):
+        with open("human_motion_text.json", 'w') as f:
+            json.dump(self.human_motion_data, f, indent=4)
+
+        with open("con/heading_info.json", 'w') as f:
+            json.dump(self.agent_heading_data, f, indent=4)
+
+    def updateFusion(self):
+        render_first_frame(self.mesh.copy(), 
+                            self.background, 
+                            self.agent_location, 
+                            self.agent_heading, 
+                            self.human_location, 
+                            self.human_heading, 
+                            self.renderer, 
+                            self.output_frame_path, 
+                            self.agent_viewpoint_id,
+                            self.scan_id,
+                            self.human_viewpoint_id)
+
 
 
 if __name__ == '__main__':

@@ -40,7 +40,7 @@ pip install chumpy
 pip install trimesh
 pip install pyrender
 pip install imageio-ffmpeg
-pip install opencv-python
+pip install opencv-python==4.1.2.30
 ```
 ## 3.concat skybox
 ```bash

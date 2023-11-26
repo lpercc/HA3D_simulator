@@ -78,21 +78,6 @@ def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle,
     theta_angle = (np.pi / 180 * float(human_angle))
     matrix = get_rotation(theta=theta_angle)
     for mesh in tqdm(meshes, desc=f"View_id {view_id}"):
-        while first_flag:
-            human_angle = human_data[scan_id][human_view_id][2]
-            print(f"camera angle:{cam_angle}, human angle:{human_angle}")
-            # human旋转矩阵
-            theta_angle = (np.pi / 180 * float(human_angle))
-            matrix = get_rotation(theta=theta_angle)
-            copy_mesh = mesh.copy()
-            #human旋转
-            copy_mesh.vertices = np.einsum("ij,ki->kj", matrix, copy_mesh.vertices)
-            #human平移
-            copy_mesh.vertices = copy_mesh.vertices + human_loc
-            img = renderer.render(copy_mesh, background, background_depth, cam_loc, cam_angle, color=color)
-            first_flag, cam_angle, human_angle = adjust_cam_angle(img,cam_angle,human_angle)
-            heading_data[scan_id][view_id] = [cam_angle]
-            human_data[scan_id][human_view_id][2] = human_angle
         #human旋转
         mesh.vertices = np.einsum("ij,ki->kj", matrix, mesh.vertices)
         #human平移
@@ -109,6 +94,29 @@ def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle,
     for cimg in imgs:
         writer.append_data(cimg)
     writer.close()
+
+def render_first_frame(mesh, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_frame_path, view_id,scan_id,human_view_id,color=[0, 0.8, 0.5]):
+    #0.25mm per unit
+    background_depth = cv2.imread(os.path.join("data/v1/scans", scan_id, "matterport_panorama_depth", f"{view_id}.png"), cv2.IMREAD_GRAYSCALE)
+    # convert M
+    background_depth = background_depth * 0.25 * 0.2
+    # Matterport3D坐标-->pyrende坐标
+    cam_loc = (cam_loc[0], cam_loc[2], -cam_loc[1])
+    human_loc = (human_loc[0], human_loc[2]-1.36, -human_loc[1])
+    print(f"camera location:{cam_loc}, camera angle:{cam_angle}")
+    print(f"human location:{human_loc}, human angle:{human_angle}")
+    # 每个建筑场景中的视点视角朝向
+
+    theta_angle = (np.pi / 180 * float(human_angle))
+    matrix = get_rotation(theta=theta_angle)
+    #human旋转
+    mesh.vertices = np.einsum("ij,ki->kj", matrix, mesh.vertices)
+    #human平移
+    mesh.vertices = mesh.vertices + human_loc
+
+    img = renderer.render(mesh, background, background_depth, cam_loc, cam_angle, color=color)
+    
+    imageio.imwrite(output_frame_path, img)
 
 def compute_rel(src_loc, tar_loc, current_heading):
     # convert to rel to y axis
