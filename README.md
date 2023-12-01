@@ -76,7 +76,7 @@ You may also define:
 ```bash
 cp ../HC-VLN_simulator/backbone2smpl.py ./visualize
 cp ../HC-VLN_simulator/human_motion_text.json ./
-python visualize/backbone2smpl.py
+python -m visualize.backbone2smpl
 
 
 ## 5.human-environment fusion(demo)

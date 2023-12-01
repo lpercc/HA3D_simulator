@@ -1,10 +1,11 @@
 import sys
 import os
 import json
+import time
 import trimesh
 import imageio.v2 as imageio
 from src.render.renderer import get_renderer
-from src.render.rendermdm import render_first_frame
+from src.render.rendermdm import render_first_frame, render_video
 from form1 import Ui_Form
 from PyQt5.QtWidgets import *
 from PyQt5.QtMultimedia import *
@@ -63,6 +64,8 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.agent_location = self.location_data[self.agent_viewpoint_id]
         self.background = imageio.imread(os.path.join(self.panorama_image_path,self.agent_viewpoint_id+'.jpg'))
         self.output_frame_path = "./adjust.jpg"
+        self.output_video_path = os.path.join(self.video_output_path,f"{self.agent_viewpoint_id}.mp4")
+        
         
         # Initialize render
         self.renderer = get_renderer(self.background.shape[1], self.background.shape[0])
@@ -116,6 +119,16 @@ class myMainWindow(Ui_Form,QMainWindow):
         pix_panorama = QPixmap(self.output_frame_path)
         self.label_frame1.setPixmap(pix_panorama)
         self.label_frame1.setScaledContents(True)  # 自适应QLabel大小
+
+        ## Fusion preview 
+        self.pushButton_fusionPreview.clicked.connect(self.updateVideo)
+        self.pushButton_play.clicked.connect(self.playFusionVideo)
+        self.pushButton_stop.clicked.connect(self.stopFusionVideo)
+        self.pushButton_play.setEnabled(False)
+        self.pushButton_stop.setEnabled(False)
+        # video player
+        self.player = QMediaPlayer()
+        self.player.setVideoOutput(self.widget_fusionVideo)
 
         ## save
         self.pushButton_save.clicked.connect(self.headingAngleSave)
@@ -204,6 +217,54 @@ class myMainWindow(Ui_Form,QMainWindow):
         pix_panorama = QPixmap(self.output_frame_path)
         self.label_frame1.setPixmap(pix_panorama)
 
+    def updateVideo(self):
+        self.output_video_path = os.path.join(self.video_output_path,f"{self.agent_viewpoint_id}.mp4")
+        meshes = []
+        i = 0
+        # 从.obj文件创建mesh
+        # 获取目录下的所有.obj文件，并按照序号从大到小排序
+        obj_files = [f for f in os.listdir(self.motion_path) if f.endswith('.obj')]
+        #print(obj_files[0].split('frame')[1].split('.obj')[0])
+        sorted_obj_files = sorted(obj_files)
+        for obj_file in sorted_obj_files[:60]:
+            i = i + 1
+            obj_file.split('.')
+            obj_path = os.path.join(self.motion_path,obj_file)
+            mesh = trimesh.load(obj_path)
+            meshes.append(mesh)
+            #self.updateFusion()
+            #pix_panorama = QPixmap(self.output_frame_path)
+            #time.sleep(100)
+            #self.label_frame1.setPixmap(pix_panorama)
+        render_video(meshes, 
+                            self.background, 
+                            self.agent_location, 
+                            self.agent_heading, 
+                            self.human_location, 
+                            self.human_heading, 
+                            self.renderer, 
+                            self.output_video_path, 
+                            self.agent_viewpoint_id,
+                            self.scan_id,
+                            self.human_viewpoint_id)
+
+        self.player.setMedia(QMediaContent(QUrl.fromLocalFile(self.output_video_path))) 
+        self.pushButton_stop.setEnabled(True)
+        self.pushButton_play.setEnabled(False)
+        self.player.play()
+
+    def playFusionVideo(self):
+        self.pushButton_stop.setEnabled(True)
+        self.pushButton_play.setEnabled(False)
+        self.player.play()
+        
+        #print(self.player.availableMetaData())
+ 
+    def stopFusionVideo(self):
+        self.pushButton_stop.setEnabled(False)
+        self.pushButton_play.setEnabled(True)
+        self.player.pause()
+
     def headingAngleSave(self):
         with open("human_motion_text.json", 'w') as f:
             json.dump(self.human_motion_data, f, indent=4)
@@ -240,7 +301,7 @@ if __name__ == '__main__':
 
     viewpoint_image_dir = os.path.join("./","data/v1/scans")
     motion_model_dir = os.path.join("./","human_motion_meshes")
-    video_output_dir = os.path.join("./", "result/v1/scans")
+    video_output_dir = os.path.join(os.getcwd(), "result/v1/scans")
 
     mainWindow = myMainWindow(viewpoint_image_dir, video_output_dir, motion_model_dir, scan_list, human_motion_data, agent_heading_data)
     mainWindow.show()

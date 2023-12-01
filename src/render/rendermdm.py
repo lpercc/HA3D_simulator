@@ -66,11 +66,6 @@ def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle,
     human_loc = (human_loc[0], human_loc[2]-1.36, -human_loc[1])
     print(f"camera location:{cam_loc}, camera angle:{cam_angle}")
     print(f"human location:{human_loc}, human angle:{human_angle}")
-    # 每个建筑场景中的视点视角朝向
-    with open("con/heading_info.json", 'r') as f:
-        heading_data = json.load(f)
-    with open("human_motion_text.json", 'r') as f:
-        human_data = json.load(f)
     imgs = []
 
     first_flag = True
@@ -86,11 +81,6 @@ def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle,
         img = renderer.render(mesh, background, background_depth, cam_loc, cam_angle, color=color)
         imgs.append(img)
 
-    with open("con/heading_info.json", 'w') as f:
-        json.dump(heading_data, f, indent=4)
-    with open("human_motion_text.json", 'w') as f:
-        json.dump(human_data, f, indent=4)
-
     for cimg in imgs:
         writer.append_data(cimg)
     writer.close()
@@ -103,8 +93,8 @@ def render_first_frame(mesh, background, cam_loc, cam_angle, human_loc, human_an
     # Matterport3D坐标-->pyrende坐标
     cam_loc = (cam_loc[0], cam_loc[2], -cam_loc[1])
     human_loc = (human_loc[0], human_loc[2]-1.36, -human_loc[1])
-    print(f"camera location:{cam_loc}, camera angle:{cam_angle}")
-    print(f"human location:{human_loc}, human angle:{human_angle}")
+    #print(f"camera location:{cam_loc}, camera angle:{cam_angle}")
+    #print(f"human location:{human_loc}, human angle:{human_angle}")
     # 每个建筑场景中的视点视角朝向
 
     theta_angle = (np.pi / 180 * float(human_angle))
