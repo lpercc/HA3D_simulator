@@ -41,6 +41,7 @@ pip install trimesh
 pip install pyrender
 pip install imageio-ffmpeg
 pip install opencv-python==4.1.2.30
+pip install PyQt5 PyQtChart
 ```
 ## 3.concat skybox
 ```bash

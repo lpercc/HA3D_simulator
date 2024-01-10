@@ -457,6 +457,7 @@ class myMainWindow(Ui_Form,QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     GRAPHS = 'connectivity/'
+    basic_dir = "/media/lmh/backend"
     # 每个建筑场景编号
     with open(GRAPHS+'scans.txt') as f:
         scans = [scan.strip() for scan in f.readlines()]
@@ -464,8 +465,8 @@ if __name__ == '__main__':
         human_motion_data = json.load(f)
     with open('region_motion_text.json', 'r') as f:
         region_motion_data = json.load(f)
-    viewpoint_image_dir = os.path.join("./","data/v1/scans")
-    model_video_dir = os.path.join("/home/lmh/fsdownload","samples_humanml_trans_enc_512_000200000_seed10_HC-VLN_text_prompts")
+    viewpoint_image_dir = os.path.join(basic_dir,"HC-VLN_dataset/data/v1/scans")
+    model_video_dir = os.path.join(basic_dir,"samples_humanml_trans_enc_512_000200000_seed10_HC-VLN_text_prompts")
     with open(os.path.join(model_video_dir, "results.txt")) as f:
         motion_text = [motion.strip() for motion in f.readlines()]
     mainWindow = myMainWindow(viewpoint_image_dir,model_video_dir, scans, human_motion_data, region_motion_data, motion_text)

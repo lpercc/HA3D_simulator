@@ -3,18 +3,207 @@
         "85c23efeaecd4d43a7dcd5b90137179e": [
             "tv:An individual enjoying a sports game, cheering loudly.",
             1,
-            102
+            91
         ],
         "30c97842da204e6290ac32904c924e17": [
             "familyroom:A couple enjoying a casual conversation.",
             1,
-            0
+            184
         ]
     },
     "1LXtFkjw3qL": {
-        "187589bb7d4644f2943079fb949c0be9": [
-            "bathroom:A person brushing their teeth in front of the mirror.",
+        "ec43700aa7b34d48a20f6cdd45dc6a55": [
+            "entryway/foyer/lobby:Someone putting on sunscreen before leaving.",
             0,
+            0
+        ],
+        "1144d00a8ebd417f8a0de419ea12c1e5": [
+            "bedroom:A child playing with toys on the floor.",
+            0,
+            0
+        ],
+        "0f7e0af0cb3b4c2abf62bba2fd955702": [
+            "kitchen:An individual meal-prepping for the week.",
+            1,
+            0
+        ],
+        "8c6c60e241e34c0685171c4f55322940": [
+            "hallway:An individual cleaning or vacuuming.",
+            0,
+            0
+        ]
+    },
+    "1pXnuDYAj8r": {
+        "1239dba1b6234964b420a56d82d79d7a": [
+            "stairs:Someone carrying groceries upstairs.",
+            0,
+            0
+        ],
+        "67dd134230034fc18ab8c30abd9af183": [
+            "entryway/foyer/lobby:Someone taking off their shoes.",
+            2,
+            0
+        ],
+        "463e439a4e974a00b23bfe7c684a2607": [
+            "hallway:Someone talking on the phone while pacing.",
+            2,
+            0
+        ]
+    },
+    "29hnd4uzFmX": {
+        "db030fc1dcc6424aa5e397d3523dafd3": [
+            "toilet:A parent teaching a young child how to use the toilet.",
+            0,
+            0
+        ],
+        "b14d29bea4b547d5923b3a09323b443d": [
+            "familyroom:Someone napping on the couch.",
+            0,
+            0
+        ],
+        "26964f2a05a344ffaa88b46e2040155f": [
+            "dining room:Someone setting the table for dinner.",
+            0,
+            0
+        ],
+        "2287f7e926a7402a8723eaf0db683d09": [
+            "hallway:A child running through the hallway.",
+            1,
+            0
+        ],
+        "1430dc4987e248a7a9ec03ca89714127": [
+            "toilet:An individual in a rush to use the toilet.",
+            1,
+            0
+        ],
+        "b95ef00660ea4ea89162e31370ba6558": [
+            "bathroom:A person brushing their teeth in front of the mirror.",
+            2,
+            0
+        ]
+    },
+    "2azQ1b91cZZ": {
+        "e7cdf75eb687483c9dbd7bd3c3e19b56": [
+            "hallway:An individual cleaning or vacuuming.",
+            0,
+            0
+        ],
+        "26dcc104db41485d96549dcf2e48a307": [
+            "utilityroom/toolroom:A person organizing tools on a wall rack.",
+            0,
+            0
+        ],
+        "3fb5a48d8a71413aacaa51f6bc569e59": [
+            "rec/game:Someone setting up a board game.",
+            0,
+            0
+        ],
+        "4da3647985964f649ca240574cb0d32c": [
+            "bedroom:Someone doing a light workout or yoga in the morning.",
+            0,
+            0
+        ],
+        "2d9efbd449f54a8ca2d563f9fab3e9bc": [
+            "bedroom:A person folding laundry on the bed.",
+            0,
+            0
+        ],
+        "2900a1db084e42b5931b67452273c691": [
+            "laundryroom/mudroom:A person doing laundry.",
+            0,
+            0
+        ],
+        "50f16d748fbc4682bde319d9eca9dc18": [
+            "bathroom:Someone taking a relaxing bath.",
+            0,
+            0
+        ]
+    },
+    "2n8kARJN3HM": {
+        "20073dab0be246c095ca24d90522b1f4": [
+            "bathroom:A child learning how to wash their hands.",
+            1,
+            0
+        ],
+        "5fe381d0097f4d0e8124dfbbee82e54f": [
+            "meetingroom/conferenceroom:Someone giving a presentation.",
+            1,
+            0
+        ],
+        "dac4509f882848258838272f16d18302": [
+            "living room:A family having a casual conversation.",
+            2,
+            0
+        ],
+        "312fcacbfe134c9f8e1420be8dc2d73f": [
+            "utilityroom/toolroom:Someone repairing a household item, like a vacuum cleaner.",
+            2,
+            0
+        ],
+        "3054e23f49704ff294fd83d920b15fda": [
+            "stairs:An individual decorating the stairway.",
+            2,
+            0
+        ],
+        "be33b5863e3741deaecd29febfc5eafa": [
+            "office:Someone organizing files.",
+            0,
+            0
+        ]
+    },
+    "2t7WUuJeko7": {
+        "27af7fd637014142a4f530cfd4557189": [
+            "entryway/foyer/lobby:A person hanging up coats.",
+            2,
+            0
+        ],
+        "9b0055db51914f059f7b9eaf79297f02": [
+            "dining booth:A group celebrating a special occasion with food and drinks.",
+            0,
+            0
+        ]
+    },
+    "5LpN3gDmAk7": {
+        "0f3465d1a89e446281cb6c39c2c63cb2": [
+            "hallway:Someone hanging pictures or artwork.",
+            1,
+            0
+        ],
+        "cdecf77c381d4468a4aae22ddd6a1202": [
+            "toilet:An individual entering or exiting the room quickly.",
+            2,
+            0
+        ],
+        "e502b3639ef645bdbbc7c51c8d72eb81": [
+            "dining booth:A group celebrating a special occasion with food and drinks.",
+            0,
+            0
+        ],
+        "1d47ba7d0b094cee93aad6322445fd4b": [
+            "office:A person making business calls.",
+            2,
+            0
+        ],
+        "f106c5744f8e444d931ed9bdd12ee3aa": [
+            "lounge:An individual listening to music.",
+            1,
+            0
+        ]
+    },
+    "5q7pvUzZiYa": {
+        "74ab065a407340d2a67a66e54d64d309": [
+            "closet:Someone trying on different outfits.",
+            0,
+            0
+        ],
+        "3c025b8e3d2040969cd00dd0e9f29b09": [
+            "toilet:Someone doing a quick check in the mirror.",
+            0,
+            0
+        ],
+        "6d11ca4d41e04bb1a725c2223c36b2aa": [
+            "kitchen:Children helping with simple kitchen tasks.",
+            1,
             0
         ]
     }

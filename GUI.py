@@ -133,7 +133,6 @@ class myMainWindow(Ui_Form,QMainWindow):
         ## save
         self.pushButton_save.clicked.connect(self.headingAngleSave)
 
-
     def humanPrevious(self):
         index = self.human_viewpoint_list.index(self.human_viewpoint_id) - 1
         self.pushButton_humanNext.setEnabled(True)
