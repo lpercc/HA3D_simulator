@@ -99,6 +99,7 @@ class myMainWindow(Ui_Form,QMainWindow):
  
     def preScan(self):
         index = self.scan_list.index(self.scan_id) - 1
+        print(f"Number {index} Scan")
         self.pushButton_scanID_next.setEnabled(True)
         # first scan
         if index == 0:
@@ -123,6 +124,7 @@ class myMainWindow(Ui_Form,QMainWindow):
     
     def nextScan(self):
         index = self.scan_list.index(self.scan_id) + 1
+        print(f"Number {index} Scan")
         self.pushButton_scanID_pre.setEnabled(True)
         # last scan
         if index == len(self.scan_list)-1:
@@ -193,6 +195,7 @@ class myMainWindow(Ui_Form,QMainWindow):
         # save
         with open("human_motion_text.json", 'w') as f:
             json.dump(human_motion_data, f, indent=4)
+        print(f"Number of annotated scan:{len(self.human_motion_data)}")
         # upgrade chart
         self.update_scatter_series()
 

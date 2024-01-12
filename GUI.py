@@ -50,9 +50,10 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.human_viewpoint_id = self.human_viewpoint_list[0]
         self.region = self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].split(":")[0]
         self.human_motion = self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].split(":")[1]
+        self.human_model_id = str(self.human_motion_data[self.scan_id][self.human_viewpoint_id][1])
         self.human_heading = self.human_motion_data[self.scan_id][self.human_viewpoint_id][2]
         self.human_location = self.location_data[self.human_viewpoint_id]
-        self.motion_path = os.path.join(self.motion_model_dir, self.scan_id, self.human_viewpoint_id+"_obj")
+        self.motion_path = os.path.join(self.motion_model_dir, self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].replace(' ', '_').replace('/', '_'), f"{self.human_model_id}_obj")
         self.mesh = trimesh.load(os.path.join(self.motion_path,"frame000.obj"))
         ## Agent Information
         self.agent_viewpoint_list = []
@@ -76,7 +77,11 @@ class myMainWindow(Ui_Form,QMainWindow):
         
         ## Scan Information textBrowser
         self.textBrowser_scanID.setText(self.scan_id)
-        
+        ## Scan Information button
+        self.pushButton_scanPrevious.setEnabled(False)
+        self.pushButton_scanPrevious.clicked.connect(self.scanPrevious)
+        self.pushButton_scanNext.clicked.connect(self.scanNext)
+
         ## Human Information textBrowser
         self.textBrowser_humanViewpointID.setText(self.human_viewpoint_id)
         self.textBrowser_region.setText(self.region)
@@ -133,6 +138,44 @@ class myMainWindow(Ui_Form,QMainWindow):
         ## save
         self.pushButton_save.clicked.connect(self.headingAngleSave)
 
+    def scanPrevious(self):
+        index = self.scan_list.index(self.scan_id) - 1
+        self.pushButton_scanNext.setEnabled(True)
+        if index == 0:
+            self.pushButton_scanPrevious.setEnabled(False)
+        self.scan_id = self.scan_list[index]
+        self.updateScan()
+    
+    def scanNext(self):
+        index = self.scan_list.index(self.scan_id) - 1
+        self.pushButton_scanPrevious.setEnabled(True)
+        if index == 0:
+            self.pushButton_scanNext.setEnabled(False)
+        self.scan_id = self.scan_list[index]
+        self.updateScan()
+
+    def updateScan(self):
+        ## 获取建筑场景所有视点信息（视点位置）
+        with open('con/pos_info/{}_pos_info.json'.format(self.scan_id), 'r') as f:
+            self.location_data = json.load(f)
+        
+        ## 获取建筑场景所有视点信息（视点之间的关系）
+        with open('con/con_info/{}_con_info.json'.format(self.scan_id), 'r') as f:
+            self.connection_data = json.load(f)
+            #print(len(connection_data))
+        
+        ## 获取该建筑场景的全景视图存放路径
+        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, f"{self.scan_id}/matterport_panorama_images")
+        
+        ## 输出路径
+        self.video_output_path = os.path.join(self.video_output_dir, f"{self.scan_id}/matterport_panorama_video")
+        if not os.path.exists(self.video_output_path):
+            os.makedirs(self.video_output_path)
+        
+        self.human_viewpoint_list = [human_viewpoint for human_viewpoint in self.human_motion_data[self.scan_id]]
+        self.human_viewpoint_id = self.human_viewpoint_list[0]
+        self.updateHuman()
+
     def humanPrevious(self):
         index = self.human_viewpoint_list.index(self.human_viewpoint_id) - 1
         self.pushButton_humanNext.setEnabled(True)
@@ -152,9 +195,10 @@ class myMainWindow(Ui_Form,QMainWindow):
     def updateHuman(self):
         self.region = self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].split(":")[0]
         self.human_motion = self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].split(":")[1]
+        self.human_model_id = str(self.human_motion_data[self.scan_id][self.human_viewpoint_id][1])
         self.human_heading = self.human_motion_data[self.scan_id][self.human_viewpoint_id][2]
         self.human_location = self.location_data[self.human_viewpoint_id]
-        self.motion_path = os.path.join(self.motion_model_dir, self.scan_id, self.human_viewpoint_id+"_obj")
+        self.motion_path = os.path.join(self.motion_model_dir, self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].replace(' ', '_').replace('/', '_'), f"{self.human_model_id}_obj")
         self.mesh = trimesh.load(os.path.join(self.motion_path,"frame000.obj"))
         self.textBrowser_humanViewpointID.setText(self.human_viewpoint_id)
         self.textBrowser_region.setText(self.region)
@@ -289,6 +333,7 @@ class myMainWindow(Ui_Form,QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     GRAPHS = 'connectivity/'
+    basic_data_dir = "/media/lmh/backend/HC-VLN_dataset"
     # 每个建筑场景编号
     with open(GRAPHS+'scans.txt') as f:
         scan_list = [scan.strip() for scan in f.readlines()]
@@ -298,9 +343,9 @@ if __name__ == '__main__':
     with open("con/heading_info.json", 'r') as f:
         agent_heading_data = json.load(f)
 
-    viewpoint_image_dir = os.path.join("./","data/v1/scans")
-    motion_model_dir = os.path.join("./","human_motion_meshes")
-    video_output_dir = os.path.join(os.getcwd(), "result/v1/scans")
+    viewpoint_image_dir = os.path.join(basic_data_dir,"data/v1/scans")
+    motion_model_dir = os.path.join(basic_data_dir,"human_motion_meshes")
+    video_output_dir = os.path.join(basic_data_dir, "data/v1/scans")
 
     mainWindow = myMainWindow(viewpoint_image_dir, video_output_dir, motion_model_dir, scan_list, human_motion_data, agent_heading_data)
     mainWindow.show()

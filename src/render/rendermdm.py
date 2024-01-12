@@ -10,6 +10,7 @@ import matplotlib.ticker as ticker
 import cv2
 import json
 
+basic_data_dir = "/media/lmh/backend/HC-VLN_dataset"
 
 def get_rotation(theta=np.pi):
     import src.utils.rotation_conversions as geometry
@@ -57,7 +58,7 @@ def adjust_cam_angle(image, cam_angle, human_angle):
 def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_video_path, view_id,scan_id,human_view_id,color=[0, 0.8, 0.5]):
     writer = imageio.get_writer(output_video_path, fps=20)
     #0.25mm per unit
-    background_depth = cv2.imread(os.path.join("data/v1/scans", scan_id, "matterport_panorama_depth", f"{view_id}.png"), cv2.IMREAD_GRAYSCALE)
+    background_depth = cv2.imread(os.path.join(basic_data_dir, "data/v1/scans", scan_id, "matterport_panorama_depth", f"{view_id}.png"), cv2.IMREAD_GRAYSCALE)
     # convert M
     background_depth = background_depth * 0.25 * 0.2
     #print(np.min(background_depth), np.max(background_depth))
@@ -87,7 +88,7 @@ def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle,
 
 def render_first_frame(mesh, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_frame_path, view_id,scan_id,human_view_id,color=[0, 0.8, 0.5]):
     #0.25mm per unit
-    background_depth = cv2.imread(os.path.join("data/v1/scans", scan_id, "matterport_panorama_depth", f"{view_id}.png"), cv2.IMREAD_GRAYSCALE)
+    background_depth = cv2.imread(os.path.join(basic_data_dir, "data/v1/scans", scan_id, "matterport_panorama_depth", f"{view_id}.png"), cv2.IMREAD_GRAYSCALE)
     # convert M
     background_depth = background_depth * 0.25 * 0.2
     # Matterport3D坐标-->pyrende坐标

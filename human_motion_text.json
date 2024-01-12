@@ -206,5 +206,477 @@
             1,
             0
         ]
+    },
+    "5ZKStnWn8Zo": {
+        "b459247b67c14ebb8c4432fce5914391": [
+            "balcony:Someone watering plants or tending to a small balcony garden.",
+            0,
+            0
+        ],
+        "0ed7cd08118a411f9c4a0a0a94c98ae1": [
+            "bathroom:A person brushing their teeth in front of the mirror.",
+            2,
+            0
+        ],
+        "98e9862442534be690344123a0ce6662": [
+            "dining booth:A family enjoying a meal together in a cozy booth.",
+            0,
+            0
+        ],
+        "6780cb21d2cb4d23b221bafb98327f46": [
+            "bathroom:A person cleaning the bathroom.",
+            0,
+            0
+        ],
+        "6448b91f106c495b8f97568556a78078": [
+            "rec/game:A family having a karaoke night.",
+            0,
+            0
+        ],
+        "9b2036bac549459e9752b7203de940f3": [
+            "balcony:A person enjoying a cup of coffee while looking at the view.",
+            0,
+            0
+        ]
+    },
+    "759xd9YjKW5": {
+        "f346ec806ac7467c97fab5a2e36793dd": [
+            "workout/gym/exercise:A person lifting weights or using gym equipment.",
+            0,
+            0
+        ],
+        "8aab1e4ed6e845328b9d8ab7e2c009ac": [
+            "bedroom:Someone reading a book in bed.",
+            1,
+            0
+        ]
+    },
+    "7y3sRwLe3Va": {
+        "e77741c3f37041a9b37ca81ce14dcb20": [
+            "porch/terrace/deck/driveway:A family having a barbecue.",
+            1,
+            0
+        ],
+        "2efa083bb8244ab2b8a16d135144e491": [
+            "other room:A person using the room for a quiet phone call.",
+            0,
+            0
+        ],
+        "77f4285b6cb34eb1a1ea6f16bce3eefb": [
+            "lounge:Someone reading a magazine.",
+            0,
+            0
+        ],
+        "49a229bbd8ad4a1585b13622a0db35f8": [
+            "entryway/foyer/lobby:Someone taking off their shoes.",
+            1,
+            0
+        ]
+    },
+    "8194nk5LbLH": {
+        "71bf74df73cd4e24a191ef4f2338ca22": [
+            "lounge:People relaxing and watching TV.",
+            2,
+            0
+        ]
+    },
+    "82sE5b5pLXE": {
+        "2104d589e68e472f85188dc93da8e6e2": [
+            "stairs:Someone exercising by running up and down.",
+            0,
+            0
+        ],
+        "ad3a2912de974a5690af5050e6ade942": [
+            "other room:A group of friends using the space for an impromptu gathering.",
+            0,
+            0
+        ],
+        "5570782157f14e58903c6b929a64014c": [
+            "familyroom:An individual practicing a musical instrument.",
+            0,
+            0
+        ],
+        "382806e60765404dbee3f82894da3a47": [
+            "kitchen:An individual meal-prepping for the week.",
+            0,
+            0
+        ],
+        "42c4e20fb0284553911bcf56e3a56710": [
+            "bathroom:Someone taking a relaxing bath.",
+            1,
+            0
+        ]
+    },
+    "8WUmhLawc2A": {
+        "d21aae0b5d944f27a0074525c803fc9f": [
+            "tv:A couple snuggled up, watching a romantic movie.",
+            1,
+            0
+        ],
+        "71c4574785a44394bfb662c2e1c617bf": [
+            "closet:Someone deciding on shoes to wear.",
+            0,
+            0
+        ],
+        "c42200c0f39d4349835954277e499f50": [
+            "dining room:A couple having a candlelit dinner.",
+            1,
+            0
+        ]
+    },
+    "aayBHfsNo7d": {
+        "a1343f391c4840fd8a25369e45016965": [
+            "hallway:Someone hanging pictures or artwork.",
+            1,
+            0
+        ],
+        "88f290e95cfa4348a09ffc1a3661055e": [
+            "living room:Someone practicing dance moves.",
+            0,
+            0
+        ],
+        "9997a34a10ad4502ae927f0855f670a5": [
+            "kitchen:Someone baking and decorating cakes.",
+            2,
+            0
+        ]
+    },
+    "ac26ZMwG7aT": {
+        "a4aaa9c679ba4a3dbdead1fb0bab0e02": [
+            "kitchen:A couple trying out a new recipe.",
+            2,
+            0
+        ],
+        "331098855d30477582b2ad4d3fcdda62": [
+            "toilet:An individual in a rush to use the toilet.",
+            2,
+            0
+        ],
+        "7804a496622640ce9d5d79ecdc992254": [
+            "closet:A person searching for a lost item.",
+            2,
+            0
+        ],
+        "8dc2bb01c486457b9a0348c413d62f67": [
+            "bedroom:An individual choosing clothes from the closet.",
+            2,
+            0
+        ],
+        "bd4a599f645342adafc1b09a953431e8": [
+            "entryway/foyer/lobby:A child excitedly greeting a pet.",
+            2,
+            0
+        ],
+        "d16d14bd9d194980b5339c4029bc4a54": [
+            "porch/terrace/deck/driveway:A family having a barbecue.",
+            1,
+            0
+        ]
+    },
+    "ARNzJeq3xxb": {
+        "2bc6812703fe4fa3ad950f15d6957cab": [
+            "lounge:An individual listening to music.",
+            2,
+            0
+        ],
+        "cd63578fb7c44a1dac44ad08819971e9": [
+            "laundryroom/mudroom:Someone cleaning muddy shoes.",
+            2,
+            0
+        ],
+        "f478660614aa4f26b558d5f2d63316ca": [
+            "dining booth:Friends laughing and sharing stories over dinner.",
+            2,
+            0
+        ]
+    },
+    "B6ByNegPMKs": {},
+    "b8cTxDM8gDG": {},
+    "cV4RVeZvu5T": {
+        "1cee4c97015545f597400825b252e091": [
+            "library:A librarian organizing books.",
+            2,
+            0
+        ],
+        "1a6418a306b8448a8529ffc6cb508d8a": [
+            "kitchen:Children helping with simple kitchen tasks.",
+            2,
+            0
+        ],
+        "6b27862316444c83b4ab9f4e19ddec77": [
+            "outdoor areas containing grass, plants, bushes, trees, etc.:Someone gardening, planting flowers or vegetables.",
+            0,
+            0
+        ]
+    },
+    "D7G3Y4RVNrH": {
+        "4610dfb32d044ad793cf8640a7ede0f4": [
+            "library:Students studying in groups.",
+            0,
+            0
+        ],
+        "4c793e5198034f3eb52a199745373fb8": [
+            "library:An individual reading quietly.",
+            0,
+            0
+        ],
+        "89f70e0571d64dbf99c48e56287b997f": [
+            "library:Someone browsing through bookshelves.",
+            0,
+            0
+        ],
+        "b1242fb861d84f088b13240a5fe3ccb1": [
+            "library:A librarian organizing books.",
+            0,
+            0
+        ]
+    },
+    "D7N2EKCX4Sj": {
+        "d101fc142df64f9f8bae9894eb86fb41": [
+            "hallway:Someone talking on the phone while pacing.",
+            0,
+            0
+        ],
+        "b07554ffc3164d45bfe9410a40632261": [
+            "hallway:An individual cleaning or vacuuming.",
+            2,
+            0
+        ],
+        "124bc48ce96a4c9a8986a915dc9f93eb": [
+            "entryway/foyer/lobby:Someone putting on sunscreen before leaving.",
+            1,
+            0
+        ],
+        "54f83ce9bf4543ff8219bd1c450ada78": [
+            "dining booth:A group celebrating a special occasion with food and drinks.",
+            1,
+            0
+        ],
+        "4693d9db2430418ab6e73e48a1969140": [
+            "hallway:An individual cleaning or vacuuming.",
+            1,
+            0
+        ],
+        "3c476cfa737347bda82af89dd8127ae3": [
+            "entryway/foyer/lobby:An individual checking the mail.",
+            2,
+            0
+        ],
+        "42715732d74240599b243d4b607b54f8": [
+            "outdoor areas containing grass, plants, bushes, trees, etc.:Someone gardening, planting flowers or vegetables.",
+            2,
+            0
+        ],
+        "53e850a074ec4c9ebecb3c8f41361d57": [
+            "office:A person making business calls.",
+            0,
+            0
+        ]
+    },
+    "dhjEzFoUFzH": {
+        "67e8a588a25d4a808d523bc54bec8483": [
+            "hallway:An individual cleaning or vacuuming.",
+            0,
+            0
+        ],
+        "f6f68ba36df249ea81c8d25f071ffa57": [
+            "hallway:A child running through the hallway.",
+            1,
+            0
+        ],
+        "0d6e04c776a44253ae6a03fe3c62936f": [
+            "meetingroom/conferenceroom:Someone giving a presentation.",
+            1,
+            0
+        ],
+        "498ba75e5cbf424aa38f491cd7ee33df": [
+            "entryway/foyer/lobby:Someone putting on sunscreen before leaving.",
+            1,
+            0
+        ],
+        "6e4397fd81434041ac2ceccdd943320d": [
+            "hallway:An individual cleaning or vacuuming.",
+            0,
+            0
+        ],
+        "bf3e9740167e4706a0f47b3158ede090": [
+            "hallway:A child running through the hallway.",
+            2,
+            0
+        ],
+        "2b36eb9da41b422e9b8f67c24f94bfef": [
+            "hallway:A child running through the hallway.",
+            0,
+            0
+        ],
+        "32e8651e5eb940c7bff34e65a4f4cbbd": [
+            "classroom:A student staying after class to talk to the teacher.",
+            0,
+            0
+        ]
+    },
+    "E9uDoFAP3SH": {
+        "8e0a04db99fd4c61a9f669d2e6e421a8": [
+            "other room:A group of friends using the space for an impromptu gathering.",
+            1,
+            0
+        ],
+        "1509b3e5dce94a3a91dda769c5b28ba7": [
+            "meetingroom/conferenceroom:Someone giving a presentation.",
+            1,
+            0
+        ],
+        "6e1e3e8662774c8b9906d3c0a3b1ed3f": [
+            "meetingroom/conferenceroom:A team brainstorming ideas.",
+            0,
+            0
+        ],
+        "e1f821fbca3e4136a79433b2e52ca1af": [
+            "other room:A person using the room for a quiet phone call.",
+            0,
+            0
+        ],
+        "d5b80b4e1a3c4a2facd2f1cd2a004b11": [
+            "other room:A group of friends using the space for an impromptu gathering.",
+            0,
+            0
+        ],
+        "3f2dacac25214cf4951aa1294825354b": [
+            "other room:Someone curiously exploring or looking around the room.",
+            0,
+            0
+        ],
+        "924f1f75e17748f8a86f11009eaad55e": [
+            "other room:Children playing imaginatively, using the room as a fort or castle.",
+            1,
+            0
+        ]
+    },
+    "e9zR4mvMWw7": {
+        "1ff35596f9cb4b98ba4f08dda81c1654": [
+            "hallway:Someone hanging pictures or artwork.",
+            1,
+            0
+        ],
+        "8783add8825d4ecf8eb1f2af3c22b8df": [
+            "bedroom:Someone reading a book in bed.",
+            1,
+            0
+        ],
+        "ac03b99e3f3642be80b4d24fde0af03a": [
+            "bedroom:A person folding laundry on the bed.",
+            0,
+            0
+        ]
+    },
+    "EDJbREhghzL": {
+        "553465b804fb4fc29bf530f71dfdf1d5": [
+            "lounge:An individual listening to music.",
+            2,
+            0
+        ],
+        "dee381115b18481c8e90a89f87cc5b94": [
+            "outdoor areas containing grass, plants, bushes, trees, etc.:Someone gardening, planting flowers or vegetables.",
+            0,
+            0
+        ],
+        "797b7729469b451ca723f4a3b35bef85": [
+            "familyroom:An individual practicing a musical instrument.",
+            1,
+            0
+        ]
+    },
+    "EU6Fwq7SyZv": {
+        "7cf50ebb46be467ea9e0145364b4ea26": [
+            "living room:Children playing video games.",
+            0,
+            0
+        ],
+        "c69f595ae3e646ee9e447c87de461ab6": [
+            "living room:A group of friends watching a sports game.",
+            0,
+            0
+        ],
+        "7464a0fef489436c920374e1ccf721ef": [
+            "entryway/foyer/lobby:A child excitedly greeting a pet.",
+            1,
+            0
+        ]
+    },
+    "fzynW3qQPVF": {
+        "2cc420cf791c45c1b618382ab9fdb9b2": [
+            "hallway:Someone talking on the phone while pacing.",
+            2,
+            0
+        ],
+        "5691a42e7c5f43bf93ebf04d245dd67d": [
+            "other room:Someone curiously exploring or looking around the room.",
+            1,
+            0
+        ],
+        "9aa865781ae5499da73a7888cf319a12": [
+            "bedroom:An individual choosing clothes from the closet.",
+            1,
+            0
+        ],
+        "5c5fc50ec4a546ba81b55ac2af86e6e0": [
+            "tv:Someone watching a concert or live performance on TV.",
+            0,
+            0
+        ],
+        "94ae921eb4c74d70a256a875f484268e": [
+            "workout/gym/exercise:A group having a fitness class or personal training session.",
+            0,
+            0
+        ],
+        "fd56504cb296487ba249bd5cf4d93f17": [
+            "workout/gym/exercise:Someone doing a yoga or pilates session.",
+            2,
+            0
+        ]
+    },
+    "GdvgFV5R1Z5": {
+        "565cc21cd28b4ee6bb5ba83c5270c032": [
+            "kitchen:Someone baking and decorating cakes.",
+            1,
+            0
+        ]
+    },
+    "gTV8FGcVJC9": {
+        "0161d2ef9de54cc5b715efb1e9c8958e": [
+            "balcony:A person enjoying a cup of coffee while looking at the view.",
+            1,
+            0
+        ],
+        "fadec661af804e4e9247830ba00e6dd8": [
+            "bedroom:An individual choosing clothes from the closet.",
+            0,
+            0
+        ],
+        "c1a3dc19c1154eb79d45f72d4885016d": [
+            "hallway:Someone hanging pictures or artwork.",
+            1,
+            0
+        ],
+        "946a278051bf460ebedec8df22714d82": [
+            "office:An individual working on a computer.",
+            0,
+            0
+        ],
+        "6c793a6f78614f7c9be480df4dded7b2": [
+            "stairs:A child sliding down the banister.",
+            2,
+            0
+        ],
+        "254f98bd6daa4313b04715ed29a61f88": [
+            "stairs:An individual decorating the stairway.",
+            0,
+            0
+        ],
+        "0d493d8230c74476b0e9814c92c3f8fd": [
+            "stairs:A child sliding down the banister.",
+            1,
+            0
+        ]
     }
 }
