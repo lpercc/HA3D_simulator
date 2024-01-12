@@ -210,6 +210,7 @@ class myMainWindow(Ui_Form,QMainWindow):
             if self.human_viewpoint_id in val['visible']:
                 self.agent_viewpoint_list.append(num)
         self.agent_viewpoint_id = self.agent_viewpoint_list[0]
+        self.dial_humanHeading.setValue(int(self.human_heading))
         self.updateAgent()
 
     def on_dial_humanHeading_changed(self, value):
