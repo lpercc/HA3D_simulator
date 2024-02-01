@@ -10,7 +10,7 @@ import matplotlib.ticker as ticker
 import cv2
 import json
 
-basic_data_dir = "/media/lmh/backend/HC-VLN_dataset"
+basic_data_dir = os.getenv('VLN_DATA_DIR')
 
 def get_rotation(theta=np.pi):
     import src.utils.rotation_conversions as geometry

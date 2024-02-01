@@ -78,12 +78,17 @@ You may also define:
 cp ../HC-VLN_simulator/backbone2smpl.py ./visualize
 cp ../HC-VLN_simulator/human_motion_text.json ./
 python -m visualize.backbone2smpl
-
+```
 
 ## 5.human-environment fusion(demo)
 ```bash
 python fusion.py --mode run_single
 ```
+## 5.1 GUI
+```bash
+python GUI.py
+```
+
 Pyrender supports three backends for offscreen rendering:
   Pyglet, the same engine that runs the viewer. This requires an active display manager, so you can’t run it on a headless server.
   OSMesa, a software renderer.

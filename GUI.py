@@ -147,7 +147,7 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.updateScan()
     
     def scanNext(self):
-        index = self.scan_list.index(self.scan_id) - 1
+        index = self.scan_list.index(self.scan_id) + 1
         self.pushButton_scanPrevious.setEnabled(True)
         if index == 0:
             self.pushButton_scanNext.setEnabled(False)
@@ -155,6 +155,9 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.updateScan()
 
     def updateScan(self):
+        self.textBrowser_scanID.setText(self.scan_id)
+        print(self.scan_list.index(self.scan_id)+1," : ", self.scan_id)
+        
         ## 获取建筑场景所有视点信息（视点位置）
         with open('con/pos_info/{}_pos_info.json'.format(self.scan_id), 'r') as f:
             self.location_data = json.load(f)
@@ -174,6 +177,10 @@ class myMainWindow(Ui_Form,QMainWindow):
         
         self.human_viewpoint_list = [human_viewpoint for human_viewpoint in self.human_motion_data[self.scan_id]]
         self.human_viewpoint_id = self.human_viewpoint_list[0]
+        self.pushButton_agentPrevious.setEnabled(False)
+        self.pushButton_agentNext.setEnabled(True)
+        self.pushButton_humanNext.setEnabled(True)
+        self.pushButton_humanPrevious.setEnabled(False)
         self.updateHuman()
 
     def humanPrevious(self):
@@ -189,9 +196,12 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.pushButton_humanPrevious.setEnabled(True)
         if index == len(self.human_viewpoint_list)-1:
             self.pushButton_humanNext.setEnabled(False)
-        self.human_viewpoint_id = self.human_viewpoint_list[index]
-        self.updateHuman()
-
+        try:
+            self.human_viewpoint_id = self.human_viewpoint_list[index]
+            self.updateHuman()
+        except IndexError:
+            self.pushButton_humanNext.setEnabled(False)
+    
     def updateHuman(self):
         self.region = self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].split(":")[0]
         self.human_motion = self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].split(":")[1]
@@ -207,10 +217,16 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.textBrowser_humanLocation.setText(f"X:{self.human_location[0]} Y:{self.human_location[1]} Z:{self.human_location[2]}")
         self.agent_viewpoint_list = []
         for num, val in self.connection_data.items():
-            if self.human_viewpoint_id in val['visible']:
-                self.agent_viewpoint_list.append(num)
+            try:
+                if self.human_viewpoint_id in val['visible']:
+                    self.agent_viewpoint_list.append(num)
+            except KeyError:
+                print(self.scan_id)
+                print(num)
         self.agent_viewpoint_id = self.agent_viewpoint_list[0]
         self.dial_humanHeading.setValue(int(self.human_heading))
+        self.pushButton_agentPrevious.setEnabled(False)
+        self.pushButton_agentNext.setEnabled(True)
         self.updateAgent()
 
     def on_dial_humanHeading_changed(self, value):
@@ -232,8 +248,11 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.pushButton_agentPrevious.setEnabled(True)
         if index == len(self.agent_viewpoint_list)-1:
             self.pushButton_agentNext.setEnabled(False)
-        self.agent_viewpoint_id = self.agent_viewpoint_list[index]
-        self.updateAgent()
+        try:
+            self.agent_viewpoint_id = self.agent_viewpoint_list[index]
+            self.updateAgent()
+        except IndexError:
+            self.pushButton_agentNext.setEnabled(False)
 
     def updateAgent(self):
         try:
@@ -334,7 +353,7 @@ class myMainWindow(Ui_Form,QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     GRAPHS = 'connectivity/'
-    basic_data_dir = "/media/lmh/backend/HC-VLN_dataset"
+    basic_data_dir = os.getenv('VLN_DATA_DIR')
     # 每个建筑场景编号
     with open(GRAPHS+'scans.txt') as f:
         scan_list = [scan.strip() for scan in f.readlines()]
