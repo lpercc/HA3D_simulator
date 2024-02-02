@@ -28,7 +28,6 @@ familyroom:Someone napping on the couch.
 familyroom:Children watching a movie with popcorn.
 familyroom:A couple enjoying a casual conversation.
 familyroom:An individual practicing a musical instrument.
-garage:
 garage:A person working on a car.
 garage:Someone organizing tools.
 garage:A group of friends working on a DIY project.
@@ -84,6 +83,7 @@ rec/game:Someone setting up a board game.
 rec/game:A group playing video games.
 rec/game:Individuals practicing darts.
 rec/game:A family having a karaoke night.
+stairs:Someone carrying groceries upstairs.
 stairs:Someone carrying groceries upstairs.
 stairs:A child sliding down the banister.
 stairs:An individual decorating the stairway.

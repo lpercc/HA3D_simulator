@@ -1,3 +1,4 @@
 {
-    "ros.distro": "humble"
+    "ros.distro": "humble",
+    "commentTranslate.hover.enabled": true
 }

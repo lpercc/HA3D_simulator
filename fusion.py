@@ -37,11 +37,11 @@ def main(args):
     # 遍历建筑场景列表
     for scan_id in scan_list:
     #scan_id = "B6ByNegPMKs"
-        #print(scan_id)
+        print(scan_id)
         # 获取该建筑场景的全景视图存放路径
-        view_path = os.path.join(args.input_dir, "{}/matterport_panorama_images".format(scan_id))
+        view_path = os.path.join(args.input_dir, "data/v1/scans/{}/matterport_panorama_images".format(scan_id))
         # 输出路径
-        output_path = os.path.join(args.output_dir, "{}/matterport_panorama_video".format(scan_id))
+        output_path = os.path.join(args.output_dir, "data/v1/scans/{}/matterport_panorama_video".format(scan_id))
         if not os.path.exists(output_path):
             os.makedirs(output_path)
         
@@ -61,6 +61,7 @@ def main(args):
         for human_view_id in human_view_data[scan_id]:
             # 人物视点编号
             human_motion = human_view_data[scan_id][human_view_id][0]
+            human_model_id = human_view_data[scan_id][human_view_id][1]
             human_heading = human_view_data[scan_id][human_view_id][2]
             print(f"Human motion: {human_motion}")
             #print(human_view_id)
@@ -69,17 +70,16 @@ def main(args):
             
             # 遍历所有视点
             for num, val in connection_data.items():
-                #try:
+                try:
                     # 判断该视点是否可见目标视点（人物）
+                    if human_view_id == num:
+                        val["visible"].append(num)
+                        print(f"human_view_id:{num}")
                     if human_view_id in val['visible']:
-
                         # 源视点编号
-                        
                         agent_view_id = num
-                        
-                        
                         info_list = []
-                        motion_path = os.path.join(args.motion_dir, scan_id, human_view_id+"_obj")
+                        motion_path = os.path.join(args.motion_dir, human_motion.replace(' ', '_').replace('/', '_'), f"{human_model_id}_obj")
                         #print(motion_path)
                         bgd_img_path = os.path.join(view_path, agent_view_id+'.jpg')
                         #print(bgd_img_path)
@@ -96,15 +96,18 @@ def main(args):
                         info_list.append(agent_heading)
                         info_list.append(human_loc)
                         info_list.append(human_motion)
-                        HE_fusion(motion_path, output_video_path, bgd_img_path, agent_view_id, agent_loc, human_loc, agent_heading, human_heading,scan_id,human_view_id)
+                        if not os.path.exists(output_video_path) or human_view_id==agent_view_id:
+                            HE_fusion(motion_path, output_video_path, bgd_img_path, agent_view_id, agent_loc, human_loc, agent_heading, human_heading,scan_id,human_view_id)
+                        else:
+                            print(f"{agent_view_id} has already fusioned")
                         video_list.append(output_video_path)
                         try:
                             record_dict[scan_id][agent_view_id] += (info_list)
                         except:
                             record_dict[scan_id][agent_view_id] = []
                             record_dict[scan_id][agent_view_id] +=(info_list)
-                #except:
-                    #print(scan_id)
+                except KeyError:
+                    print(human_view_id)
                     #break
     
     with open('video.txt', 'w') as f:
@@ -113,11 +116,12 @@ def main(args):
     #     json.dump(record_dict, info_file, indent = 3)
         
 if __name__ == "__main__":
+    basic_data_dir = os.getenv('VLN_DATA_DIR')
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', default='run_all')
     parser.add_argument('--scan', default='17DRP5sb8fy')
-    parser.add_argument('--input_dir', default='data/v1/scans')
-    parser.add_argument('--output_dir', default='result/v1/scans')
-    parser.add_argument('--motion_dir', default='human_motion_meshes')
+    parser.add_argument('--input_dir', default=basic_data_dir)
+    parser.add_argument('--output_dir', default=basic_data_dir)
+    parser.add_argument('--motion_dir', default=os.path.join(basic_data_dir,"human_motion_meshes"))
     args = parser.parse_args()
     main(args)
