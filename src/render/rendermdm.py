@@ -3,12 +3,10 @@ import imageio
 import os
 import argparse
 from tqdm import tqdm
-import trimesh
 from .renderer import get_renderer
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
+import trimesh
 import cv2
-import json
+
 
 basic_data_dir = os.getenv('VLN_DATA_DIR')
 
@@ -19,41 +17,6 @@ def get_rotation(theta=np.pi):
     axisangle = theta*axis
     matrix = geometry.axis_angle_to_matrix(axisangle)
     return matrix.numpy()
-
-def adjust_cam_angle(image, cam_angle, human_angle):
-    #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # 将图片从BGR转换为RGB
-
-    # 设置图像的显示大小（英寸）
-    figsize = (16, 4)  # 例如，10英寸宽，8英寸高
-
-    # 创建一个图表和坐标轴，并设置大小
-    fig, ax = plt.subplots(figsize=figsize)
-
-    # 显示图片
-    ax.imshow(image)
-
-    # 设置刻度
-    ax.set_xticks(range(0, image.shape[1], int(image.shape[1] / 36)))  # 假设每10%宽度设置一个刻度
-    ax.set_xticklabels(range(360, -1, -10))  # 假设刻度从0到360
-
-    # 隐藏y轴刻度
-    ax.get_yaxis().set_visible(False)
-
-    # 显示图像
-    plt.show()
-
-    is_adjust = input("Is adjust(y/n)?")
-    if is_adjust == 'y':
-        add_angle = float(input("add_agent_angle:"))
-        add_human_angle = float(input("add_human_angle(+):"))
-        first_flag = True
-    elif is_adjust == 'n':
-        add_angle = 0
-        add_human_angle = 0
-        first_flag = False
-    new_angle = add_angle+cam_angle
-    new_human_angle = add_human_angle + human_angle
-    return first_flag, new_angle, new_human_angle
 
 def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_video_path, view_id,scan_id,human_view_id,color=[0, 0.8, 0.5]):
     writer = imageio.get_writer(output_video_path, fps=20)
@@ -149,6 +112,29 @@ def HE_fusion(input_path, output_video_path, bgd_img_path, view_id, cam_loc, hum
     renderer = get_renderer(width, height)
 
     render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_video_path, view_id, scan_id,human_view_id)
+
+def render_frames(meshes, background, background_depth,cam_loc, cam_angle, cam_elevation, human_loc, human_angle, renderer, view_id,color=[0, 0.8, 0.5]):
+    # convert M
+    background_depth = background_depth * 0.25 * 0.2
+    #print(np.min(background_depth), np.max(background_depth))
+    # Matterport3D坐标-->pyrende坐标
+    cam_loc = (cam_loc[0], cam_loc[2], -cam_loc[1])
+    human_loc = (human_loc[0], human_loc[2]-1.36, -human_loc[1])
+    print(f"camera location:{cam_loc}, camera angle:{cam_angle}, camera elevation:{cam_elevation}")
+    print(f"human location:{human_loc}, human angle:{human_angle}")
+    imgs = []
+
+    theta_angle = (np.pi / 180 * float(human_angle))
+    matrix = get_rotation(theta=theta_angle)
+    for mesh in tqdm(meshes, desc=f"View_id {view_id}"):
+        #human旋转
+        mesh.vertices = np.einsum("ij,ki->kj", matrix, mesh.vertices)
+        #human平移
+        mesh.vertices = mesh.vertices + human_loc
+
+        img = renderer.render_agent(mesh, background, background_depth, cam_loc, cam_angle, cam_elevation, color=color)
+        imgs.append(img)
+    return imgs
 
 
 def main():

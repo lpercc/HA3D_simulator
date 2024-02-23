@@ -20,7 +20,7 @@ class Renderer:
         self.orig_img = orig_img
         self.wireframe = wireframe
         self.renderer = pyrender.OffscreenRenderer(
-            viewport_width=self.resolution[0]/4,
+            viewport_width=self.resolution[0],
             viewport_height=self.resolution[1],
             point_size=0.5
         )
@@ -136,6 +136,99 @@ class Renderer:
         #np.save("./depth.npy",depth)
 
         return image
+    
+    def render_agent(self, mesh, background, background_depth, cam_loc, cam_angle, cam_elevation, human_angle=None, mesh_filename=None, color=[1.0, 1.0, 0.9]):
+
+        #Rx = trimesh.transformations.rotation_matrix(math.radians(0), [1, 0, 0])
+        #mesh.apply_transform(Rx)
+        if mesh_filename is not None:
+            mesh.export(mesh_filename)
+
+        if human_angle:
+            R = trimesh.transformations.rotation_matrix(math.radians(human_angle), axis)
+            mesh.apply_transform(R)
+
+        # 这四个值分别代表x方向的缩放、y方向的缩放、x方向的平移和y方向的平移
+        # sx, sy, tx, ty = cam
+        # 弱透视相机
+        """ 
+        camera = WeakPerspectiveCamera(
+            scale=[sx, sy],
+            translation=[tx, ty],
+            #设置相机的远裁剪面。这意味着在z=1000的位置之后的所有物体都不会被渲染
+            zfar=1000.
+        ) """
+
+
+
+        material = pyrender.MetallicRoughnessMaterial(
+            metallicFactor=0.7,
+            alphaMode='OPAQUE',
+            baseColorFactor=(color[0], color[1], color[2], 1.0)
+        )
+
+        mesh = pyrender.Mesh.from_trimesh(mesh, material=material)
+
+        mesh_node = self.scene.add(mesh, 'mesh')
+        
+
+        dx, dy, dz = cam_loc # 例如，平移沿x轴，沿y轴，沿z轴
+        translation_matrix = np.array([
+            [1, 0, 0, dx],
+            [0, 1, 0, dy],
+            [0, 0, 1, dz],
+            [0, 0, 0, 1]
+        ])
+        
+        
+        # 光源
+        light_pose = np.eye(4)
+        light_pose[:3, 3] = [dx, dy, dz]
+        light_node1 = self.scene.add(self.light, pose=light_pose.copy())
+
+        camera = pyrender.PerspectiveCamera(yfov=np.pi / 3.0, aspectRatio=1)
+        
+        if self.wireframe:
+            render_flags = RenderFlags.ALL_WIREFRAME
+
+
+        #cam_nodes = []
+        rotation_matrix_heading = tf.rotation_matrix(cam_angle, [0, -1, 0])
+        rotation_matrix_elevation = tf.rotation_matrix(cam_elevation, [1, 0, 0])
+        camera_pose = translation_matrix @ (rotation_matrix_heading @ rotation_matrix_elevation)
+        # 将刚刚创建的相机添加到场景中，并设置其位置和方向为camera_pose
+        cam_node = self.scene.add(camera, pose=camera_pose)
+        #cam_nodes.append(cam_node)
+        image, d_img = self.renderer.render(self.scene)
+        #print(image.shape)
+        self.scene.remove_node(cam_node)
+
+
+        #rgb = cv2.hconcat([image_all[2], image_all[3], image_all[0], image_all[1]])
+        rgb = image
+        human_depth = d_img
+        #print(np.max(human_depth))
+        mask = (human_depth <= background_depth) & (human_depth != 0)
+        #print(mask.shape,np.sum(human_depth)/np.sum(human_depth != 0))
+        # 扩展掩码到三个通道，以匹配rgb和background的形状
+        mask_3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
+
+        # 创建输出图像，其中白色背景被 background 替换
+        # 注意这里只处理RGB通道，不处理alpha通道
+        output_img = np.where(mask_3d, rgb, background)
+        #cv2.imwrite("./background.jpg",background)
+        #cv2.imwrite("./rgb_valid_mask.jpg",rgb[:, :, :-1] * valid_mask)
+        #cv2.imwrite("./background_valid_mask.jpg",(1 - valid_mask) * background)
+        #cv2.imwrite("./output_img.jpg",output_img)
+        image = output_img.astype(np.uint8)
+
+        self.scene.remove_node(mesh_node)
+        self.scene.remove_node(light_node1)
+        
+        #np.save("./depth.npy",depth)
+
+        return image
+
 
 
 def get_renderer(width, height):
