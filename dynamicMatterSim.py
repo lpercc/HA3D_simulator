@@ -82,8 +82,8 @@ def main():
     sim.setDepthEnabled(True) # Turn on depth only after running ./scripts/depth_to_skybox.py (see README.md)
     sim.initialize()
     #sim.newEpisode(['2t7WUuJeko7'], ['1e6b606b44df4a6086c0f97e826d4d15'], [0], [0])
-    #sim.newEpisode(['1LXtFkjw3qL'], ['0b22fa63d0f54a529c525afbf2e8bb25'], [0], [0])
-    sim.newEpisode(['1LXtFkjw3qL'], ["0b302846f0994ec9851862b1d317d7f2"], [0], [0])
+    sim.newEpisode(['1LXtFkjw3qL'], ['0b22fa63d0f54a529c525afbf2e8bb25'], [0], [0])
+    #sim.newEpisode(['1LXtFkjw3qL'], ["0b302846f0994ec9851862b1d317d7f2"], [0], [0])
 
     heading = math.radians(-30)
     elevation = math.radians(-0)
