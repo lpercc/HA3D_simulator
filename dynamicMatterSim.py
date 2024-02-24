@@ -24,7 +24,7 @@ class HC_Simulator(MatterSim.Simulator):
 
         if human_angle == None:
             imgs_ny = self.fill_image(background, num_frames)
-            print(imgs_ny.shape)
+            #print(imgs_ny.shape)
             return imgs_ny
         
         meshes = []
@@ -49,7 +49,7 @@ class HC_Simulator(MatterSim.Simulator):
         renderer = get_renderer(width, height)
         imgs = render_frames(meshes, background, background_depth,cam_loc, cam_angle, cam_elevation, human_loc, human_angle, renderer, view_id,color=[0, 0.8, 0.5])
         imgs_ny = np.array(imgs, copy=False)
-        print(imgs_ny.shape)
+        #print(imgs_ny.shape)
         return imgs_ny
     
     def getState(self, num_frames):
