@@ -1,5 +1,7 @@
 import json
 import os
+import sys
+sys.path.append("../HC-VLN_simulator")
 def get_human_info(basic_data_dir, scan_id, agent_view_id):
     motion_dir = os.path.join(basic_data_dir,"human_motion_meshes")
         # 一共90个建筑场景数据
