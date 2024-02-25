@@ -106,8 +106,8 @@ class HC_Simulator(MatterSim.Simulator):
         location = state.location
         view_id = location.viewpointId
         human_angle, human_loc, motion_path = get_human_info(os.getenv('VLN_DATA_DIR'), state.scanId, view_id)
-        background = np.array(state.rgb, copy=False)
-        background_depth = np.squeeze(np.array(state.depth, copy=False), axis=-1)
+        background = np.array(state.rgb, copy=False, dtype=np.uint8)
+        background_depth = np.squeeze(np.array(state.depth, copy=False, dtype=np.uint8), axis=-1)
         #print(f"Background shape {background.shape}, background_depth shape {background_depth.shape}")
 
         if human_angle == None:
