@@ -7,6 +7,7 @@ from src.utils.get_info import get_human_info
 import MatterSim
 import math
 import requests
+import argparse
 
 class HC_Simulator(MatterSim.Simulator):
     def __init__(self,remote=False, ip="localhost", port="8080"):
@@ -156,12 +157,12 @@ class HC_SimState():
         self.navigableLocations = o_state.navigableLocations
         self.video = []
 
-def main():
+def main(args):
     WIDTH = 640
     HEIGHT = 480
     VFOV = math.radians(60)
 
-    sim = HC_Simulator(remote=True)
+    sim = HC_Simulator(remote=True, ip=args.ip, port=args.port)
     #sim.setDatasetPath(os.environ.get("MATTERPORT_DATA_DIR"))
     sim.setCameraResolution(WIDTH, HEIGHT)
     sim.setCameraVFOV(VFOV)
@@ -192,5 +193,10 @@ def main():
     writer.close()"""
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--ip', default='localhost')
+    parser.add_argument('--port', default='8080')
+    args = parser.parse_args()
+    main(args)
+
 
