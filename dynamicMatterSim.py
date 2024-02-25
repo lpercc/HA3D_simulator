@@ -141,10 +141,6 @@ class HC_Simulator(MatterSim.Simulator):
         return imgs_ny
     
 
-
-
-
-
 class HC_SimState():
     def __init__(self,o_state,remote=False):
         if remote:
@@ -152,11 +148,11 @@ class HC_SimState():
             self.step = o_state["step"]
             self.rgb = o_state["rgb"]
             self.depth = o_state["depth"]
-            self.location = o_state["location"]
+            self.location = Location(o_state["location"])
             self.heading = o_state["heading"]
             self.elevation = o_state["elevation"]
             self.viewIndex = o_state["viewIndex"]
-            self.navigableLocations = o_state["navigableLocations"]
+            self.navigableLocations = self.navigableLocations_to_object(o_state["navigableLocations"]) 
             self.video = []
         else:
             self.scanId = o_state.scanId
@@ -169,6 +165,23 @@ class HC_SimState():
             self.viewIndex = o_state.viewIndex
             self.navigableLocations = o_state.navigableLocations
             self.video = []
+
+    def navigableLocations_to_object(self, navigableLocations):
+        new_navigableLocations = []
+        for i in range(len(navigableLocations)):
+            new_navigableLocations.append(Location(navigableLocations[i]))
+        return new_navigableLocations
+    
+class Location():
+    def __init__(self, location):
+        self.viewpointId = location["viewpointId"]
+        self.ix = location["ix"]
+        self.x = location["x"]
+        self.y = location["y"]
+        self.z = location["z"]
+        self.rel_heading = location["rel_heading"]
+        self.rel_elevation = location["rel_elevation"]
+        self.rel_distance = location["rel_distance"]
     
 
 def main(args):
