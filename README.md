@@ -28,20 +28,7 @@ conda activate hcvln_simulater
 
 ## 2. install the following packages in your environnement:
 ```bash
-#pip install matplotlib
-#pip install torch
-#pip install ipdb
-#pip install sklearn
-#pip install pandas
-pip install tqdm
-pip install imageio
-#pip install pyyaml
-#pip install chumpy
-pip install trimesh
-pip install pyrender
-#pip install imageio-ffmpeg
-pip install opencv-python==4.1.2.30
-#pip install PyQt5 PyQtChart
+pip install tqdm imageio trimesh pyrender opencv-python transformers timm torch torchvision
 ```
 ## 3.concat skybox
 ```bash
