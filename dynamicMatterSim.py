@@ -80,7 +80,7 @@ class HC_Simulator(MatterSim.Simulator):
                                                          "index":index,
                                                          "heading":heading,
                                                          "elevation":elevation})
-            print('POST response: ', response.text)
+            #print('POST response: ', response.text)
         else:
             super().makeAction(index, heading, elevation)
     
@@ -196,8 +196,8 @@ def main(args):
     #sim.setDepthEnabled(True) # Turn on depth only after running ./scripts/depth_to_skybox.py (see README.md)
     sim.initialize()
     #sim.newEpisode(['2t7WUuJeko7'], ['1e6b606b44df4a6086c0f97e826d4d15'], [0], [0])
-    sim.newEpisode(['1LXtFkjw3qL'], ['0b22fa63d0f54a529c525afbf2e8bb25'], [0], [0])
-    #sim.newEpisode(['1LXtFkjw3qL'], ["0b302846f0994ec9851862b1d317d7f2"], [0], [0])
+    #sim.newEpisode(['1LXtFkjw3qL'], ['0b22fa63d0f54a529c525afbf2e8bb25'], [0], [0])
+    sim.newEpisode(['1LXtFkjw3qL'], ["0b302846f0994ec9851862b1d317d7f2"], [0], [0])
 
     heading = math.radians(-30)
     elevation = math.radians(-0)
@@ -212,13 +212,13 @@ def main(args):
     state = sim.getState(num_frames=60)[0]
     
     print(state.heading, state.elevation, state.viewIndex)
-    """
+    
     frames = state.video
     np.save("test_frames.npy", frames)
     writer = imageio.get_writer("test.mp4", fps=20)
     for frame in frames:
         writer.append_data(frame)
-    writer.close()"""
+    writer.close()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
