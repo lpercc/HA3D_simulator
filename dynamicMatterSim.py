@@ -10,7 +10,7 @@ import requests
 import argparse
 
 class HC_Simulator(MatterSim.Simulator):
-    def __init__(self,remote=False, ip="localhost", port="8080"):
+    def __init__(self,remote=False, ip="192.168.24.41", port="8080"):
         self.remote = remote
         self.address = f'http://{ip}:{port}'
         if self.remote:
@@ -88,13 +88,14 @@ class HC_Simulator(MatterSim.Simulator):
         if self.remote:
             # 发送 POST 请求
             response = requests.post(self.address, json={'function': 'Simulator getState'})
-            print('POST response: ', response.text)
-            o_state = response.text
+            #print('POST response: ', response.text)
+            o_state = response.json()
+            state = HC_SimState(o_state, remote=True)
+            state.video = self.HCFusion(state, num_frames=num_frames)
         else:
             o_state = super().getState()[0]
-        
-        state = HC_SimState(o_state)
-        state.video = self.HCFusion(o_state, num_frames=num_frames)
+            state = HC_SimState(o_state, remote=False)
+            state.video = self.HCFusion(o_state, num_frames=num_frames)
         return [state]
 
 
@@ -145,17 +146,30 @@ class HC_Simulator(MatterSim.Simulator):
 
 
 class HC_SimState():
-    def __init__(self,o_state):
-        self.scanId = o_state.scanId
-        self.step = o_state.step
-        self.rgb = o_state.rgb
-        self.depth = o_state.depth
-        self.location = o_state.location
-        self.heading = o_state.heading
-        self.elevation = o_state.elevation
-        self.viewIndex = o_state.viewIndex
-        self.navigableLocations = o_state.navigableLocations
-        self.video = []
+    def __init__(self,o_state,remote=False):
+        if remote:
+            self.scanId = o_state["scanId"]
+            self.step = o_state["step"]
+            self.rgb = o_state["rgb"]
+            self.depth = o_state["depth"]
+            self.location = o_state["location"]
+            self.heading = o_state["heading"]
+            self.elevation = o_state["elevation"]
+            self.viewIndex = o_state["viewIndex"]
+            self.navigableLocations = o_state["navigableLocations"]
+            self.video = []
+        else:
+            self.scanId = o_state.scanId
+            self.step = o_state.step
+            self.rgb = o_state.rgb
+            self.depth = o_state.depth
+            self.location = o_state.location
+            self.heading = o_state.heading
+            self.elevation = o_state.elevation
+            self.viewIndex = o_state.viewIndex
+            self.navigableLocations = o_state.navigableLocations
+            self.video = []
+    
 
 def main(args):
     WIDTH = 640
@@ -182,9 +196,10 @@ def main(args):
     print('Depth outputs are turned off by default - check driver.py:L20 to enable.\n')
 
     sim.makeAction([location], [heading], [elevation])
-"""    state = sim.getState(num_frames=60)[0]
+    state = sim.getState(num_frames=60)[0]
     
     print(state.heading, state.elevation, state.viewIndex)
+    """
     frames = state.video
     np.save("test_frames.npy", frames)
     writer = imageio.get_writer("test.mp4", fps=20)
@@ -194,7 +209,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--ip', default='localhost')
+    parser.add_argument('--ip', default='192.168.24.41')
     parser.add_argument('--port', default='8080')
     args = parser.parse_args()
     main(args)
