@@ -171,7 +171,8 @@ class HC_Simulator(MatterSim.Simulator):
                 self.state_list = json.load(f)
             print("scan view state is exist")
             print(f"states num:{len(self.state_list)}")
-            return
+            if len(self.state_list) < (len(viewpointIds)*VIEWPOINT_SIZE)
+                return
         print("-------------------------Pre Renser all scan view------------------------")
         viewpointIds = load_viewpointids()
         bar = tqdm(viewpointIds)
@@ -207,8 +208,9 @@ class HC_Simulator(MatterSim.Simulator):
                         "navigableLocations" : state_dic["navigableLocations"]
                     }
                 )
-                imageio.imsave(os.path.join(dir_path,rgb_path), state_dic["rgb"])
-                imageio.imsave(os.path.join(dir_path,depth_path), state_dic["depth"])
+                if not os.path.exists(os.path.join(dir_path,rgb_path)):
+                    imageio.imsave(os.path.join(dir_path,rgb_path), state_dic["rgb"])
+                    imageio.imsave(os.path.join(dir_path,depth_path), state_dic["depth"])
                 #print(self.state_list[0][0].scanId, self.state_list[0][0].location.viewpointId, self.state_list[0][0].step)
                 #print(self.state_list[-1][0].scanId, self.state_list[-1][0].location.viewpointId, self.state_list[-1][0].step)
         #保存为JSON
