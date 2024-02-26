@@ -109,7 +109,19 @@ def get_rel_pos(human_point, path, path_id, pos_data):
                 human_rel_pos=loc_dsc[2]
     return human_rel_pos
 
-
+def load_viewpointids():
+    GRAPHS = "connectivity/"
+    viewpointIds = []
+    with open(GRAPHS + "scans.txt") as f:
+        scans = [scan.strip() for scan in f.readlines()]
+        for scan in scans:
+            with open(GRAPHS + scan + "_connectivity.json") as j:
+                data = json.load(j)
+                for item in data:
+                    if item["included"]:
+                        viewpointIds.append((scan, item["image_id"]))
+    print("Loaded %d viewpoints" % len(viewpointIds))
+    return viewpointIds
 
 def compute_distance(viewpointId1, viewpointId2, pos_data):
     x_dis = pos_data[viewpointId1][0] - pos_data[viewpointId2][0]

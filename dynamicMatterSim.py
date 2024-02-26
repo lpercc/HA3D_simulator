@@ -3,16 +3,19 @@ import trimesh
 import imageio
 import numpy as np
 from src.render.rendermdm import get_renderer, render_frames
-from src.utils.get_info import get_human_info
+from src.utils.get_info import get_human_info, load_viewpointids
 import MatterSim
 import math
 import requests
 import argparse
+from tqdm import tqdm
 
 class HC_Simulator(MatterSim.Simulator):
     def __init__(self,remote=False, ip="192.168.24.41", port="8080"):
         self.remote = remote
         self.address = f'http://{ip}:{port}'
+        self.state_list = []
+        self.state_index = 0
         if self.remote:
             # 发送 POST 请求
             response = requests.post(self.address, json={'function': 'Simulator dynamicMatterSim'})
@@ -93,9 +96,14 @@ class HC_Simulator(MatterSim.Simulator):
             state = HC_SimState(o_state, remote=True)
             state.video = self.HCFusion(state, num_frames=num_frames)
         else:
-            o_state = super().getState()[0]
+            temp_state = super().getState()[0]#无渲染state，仅作为检查依据
+            o_state = self.state_list[self.state_index][0]
+            assert temp_state.scanId == o_state.scanId
+            assert temp_state.location.viewpointId == o_state.location.viewpointId
+            assert temp_state.viewIndex == o_state.viewIndex
             state = HC_SimState(o_state, remote=False)
             state.video = self.HCFusion(o_state, num_frames=num_frames)
+            self.state_index += 1
         return [state]
 
 
@@ -140,7 +148,29 @@ class HC_Simulator(MatterSim.Simulator):
         #print(imgs_ny.shape)
         return imgs_ny
     
+    def preRenderAll(self, VIEWPOINT_SIZE):
+        # Loop all the viewpoints in the simulator
+        print("-------------------------Pre Renser all scan view------------------------")
+        viewpointIds = load_viewpointids()
+        bar = tqdm(viewpointIds)
+        for _, (scanId, viewpointId) in enumerate(bar):
+            bar.set_description()
+            #bar = tqdm(range(VIEWPOINT_SIZE))
+            for ix in range(VIEWPOINT_SIZE):
+                #bar.set_description()
+                if ix == 0:
+                    super().newEpisode([scanId], [viewpointId], [0], [math.radians(-30)])
+                elif ix % 12 == 0:
+                    super().makeAction([0], [1.0], [1.0])
+                else:
+                    super().makeAction([0], [1.0], [0])
 
+                state = super().getState()
+                
+                self.state_list.append(state)
+            img = np.array(state[0].rgb, copy=False)
+            print(np.sum(img), img.shape)
+            imageio.imwrite('output.png', img)
 class HC_SimState():
     def __init__(self,o_state,remote=False):
         if remote:
