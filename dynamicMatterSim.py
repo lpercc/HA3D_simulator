@@ -178,9 +178,8 @@ class HC_Simulator(MatterSim.Simulator):
                 #print(self.state_list[-1][0].scanId, self.state_list[-1][0].location.viewpointId, self.state_list[-1][0].step)
             img = np.array(state[0].rgb, copy=False)
             imageio.imwrite('output.png', img)
-            if i == 3:
-                break
         print(f"images num:{len(self.state_list)}")
+
 class HC_SimState():
     def __init__(self,o_state):
         self.scanId = o_state["scanId"]
