@@ -10,6 +10,8 @@ import requests
 import argparse
 import copy
 from tqdm import tqdm
+import csv
+import json
 
 class HC_Simulator(MatterSim.Simulator):
     def __init__(self,remote=False, ip="192.168.24.41", port="8080"):
@@ -19,6 +21,8 @@ class HC_Simulator(MatterSim.Simulator):
         self.state_index = -1
         self.scanId = 0
         self.viewpointId = 0
+        self.WIDTH = 640
+        self.HEIGHT = 480
         if self.remote:
             # 发送 POST 请求
             response = requests.post(self.address, json={'function': 'Simulator dynamicMatterSim'})
@@ -155,6 +159,19 @@ class HC_Simulator(MatterSim.Simulator):
     
     def preRenderAll(self, VIEWPOINT_SIZE):
         # Loop all the viewpoints in the simulator
+        TSV_FIELDNAMES = ["scanId", "step", "rgb", "depth", "location", "heading", "elevation", "viewIndex", "navigableLocations"]
+        dir_path = f"{os.getenv('VLN_DATA_DIR')}/states"
+        json_path = os.path.join(dir_path,"simulator_states.json")
+        # 检查文件夹是否已经存在
+        if not os.path.exists(dir_path):
+            # 如果文件夹不存在，创建它
+            os.makedirs(dir_path)
+        if os.path.exists(json_path):
+            with open(json_path, 'r') as f:
+                self.state_list = json.load(f)
+            print("scan view state is exist")
+            print(f"states num:{len(self.state_list)}")
+            return
         print("-------------------------Pre Renser all scan view------------------------")
         viewpointIds = load_viewpointids()
         bar = tqdm(viewpointIds)
@@ -172,20 +189,40 @@ class HC_Simulator(MatterSim.Simulator):
 
                 state = super().getState()
                 
-                self.state_list.append(state_to_dic(state[0]))
-                
+                state_dic = state_to_dic(state[0])
+
+                #save
+                rgb_path = f"{state_dic['scanId']}_{state_dic['location']['viewpointId']}_{state_dic['step']}.png"
+                depth_path = f"{state_dic['scanId']}_{state_dic['location']['viewpointId']}_{state_dic['step']}_depth.tiff"
+                self.state_list.append(
+                    {
+                        "scanId" : state_dic["scanId"],
+                        "step" : state_dic["step"], 
+                        "rgb" : rgb_path, 
+                        "depth" : depth_path, 
+                        "location" : state_dic["location"], 
+                        "heading" : state_dic["heading"], 
+                        "elevation" : state_dic["elevation"], 
+                        "viewIndex" : state_dic["viewIndex"], 
+                        "navigableLocations" : state_dic["navigableLocations"]
+                    }
+                )
+                imageio.imsave(os.path.join(dir_path,rgb_path), state_dic["rgb"])
+                imageio.imsave(os.path.join(dir_path,depth_path), state_dic["depth"])
                 #print(self.state_list[0][0].scanId, self.state_list[0][0].location.viewpointId, self.state_list[0][0].step)
                 #print(self.state_list[-1][0].scanId, self.state_list[-1][0].location.viewpointId, self.state_list[-1][0].step)
-            img = np.array(state[0].rgb, copy=False)
-            imageio.imwrite('output.png', img)
-        print(f"images num:{len(self.state_list)}")
+        #保存为JSON
+        with open(json_path, 'w') as f:
+            json.dump(self.state_list, f, indent=4)
+        print(f"states num:{len(self.state_list)}")
 
 class HC_SimState():
     def __init__(self,o_state):
+        dir_path = f"{os.getenv('VLN_DATA_DIR')}/states"
         self.scanId = o_state["scanId"]
         self.step = o_state["step"]
-        self.rgb = o_state["rgb"]
-        self.depth = o_state["depth"]
+        self.rgb = imageio.imread(os.path.join(dir_path, o_state["rgb"]))
+        self.depth = imageio.imread(os.path.join(dir_path, o_state["depth"]))
         self.location = Location(o_state["location"])
         self.heading = o_state["heading"]
         self.elevation = o_state["elevation"]
@@ -214,10 +251,10 @@ def state_to_dic(state):
     dic = {}
     dic["scanId"] = state.scanId
     dic["step"] = state.step
-    dic["rgb"] = np.array(state.rgb, copy=True)
+    dic["rgb"] = np.array(state.rgb, copy=False)
     #dic["rgb"] = state.rgb
     #imageio.imwrite('output.png', np.array(state.rgb, copy=False))
-    dic["depth"] = np.array(state.depth, copy=True)
+    dic["depth"] = np.array(state.depth, copy=False)
     dic["depth"] = state.depth
     dic["location"] = location_type_dic(state.location)
     dic["heading"] = state.heading
