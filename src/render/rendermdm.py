@@ -120,13 +120,14 @@ def render_frames(meshes, background, background_depth,cam_loc, cam_angle, cam_e
     # Matterport3D坐标-->pyrende坐标
     cam_loc = (cam_loc[0], cam_loc[2], -cam_loc[1])
     human_loc = (human_loc[0], human_loc[2]-1.36, -human_loc[1])
-    print(f"camera location:{cam_loc}, camera angle:{cam_angle}, camera elevation:{cam_elevation}")
-    print(f"human location:{human_loc}, human angle:{human_angle}")
+    #print(f"camera location:{cam_loc}, camera angle:{cam_angle}, camera elevation:{cam_elevation}")
+    #print(f"human location:{human_loc}, human angle:{human_angle}")
     imgs = []
 
     theta_angle = (np.pi / 180 * float(human_angle))
     matrix = get_rotation(theta=theta_angle)
-    for mesh in tqdm(meshes, desc=f"View_id {view_id}"):
+    #bar = tqdm(meshes, desc=f"View_id {view_id}")
+    for mesh in meshes:
         #human旋转
         mesh.vertices = np.einsum("ij,ki->kj", matrix, mesh.vertices)
         #human平移
