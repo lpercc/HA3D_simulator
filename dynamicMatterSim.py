@@ -8,6 +8,7 @@ import MatterSim
 import math
 import requests
 import argparse
+import copy
 from tqdm import tqdm
 
 class HC_Simulator(MatterSim.Simulator):
@@ -15,7 +16,9 @@ class HC_Simulator(MatterSim.Simulator):
         self.remote = remote
         self.address = f'http://{ip}:{port}'
         self.state_list = []
-        self.state_index = 0
+        self.state_index = -1
+        self.scanId = 0
+        self.viewpointId = 0
         if self.remote:
             # 发送 POST 请求
             response = requests.post(self.address, json={'function': 'Simulator dynamicMatterSim'})
@@ -74,7 +77,10 @@ class HC_Simulator(MatterSim.Simulator):
                                                          "elevation":elevation})
             print('POST response: ', response.text)
         else:
-            super().newEpisode(scanId, viewpointId, heading, elevation)
+            #super().newEpisode(scanId, viewpointId, heading, elevation)
+            self.scanId = scanId[0]
+            self.viewpointId = viewpointId[0]
+            self.state_index += 1
 
     def makeAction(self, index, heading, elevation):
         if self.remote:
@@ -85,7 +91,8 @@ class HC_Simulator(MatterSim.Simulator):
                                                          "elevation":elevation})
             #print('POST response: ', response.text)
         else:
-            super().makeAction(index, heading, elevation)
+            #super().makeAction(index, heading, elevation)
+            self.state_index += 1
     
     def getState(self, num_frames):
         if self.remote:
@@ -96,14 +103,12 @@ class HC_Simulator(MatterSim.Simulator):
             state = HC_SimState(o_state, remote=True)
             state.video = self.HCFusion(state, num_frames=num_frames)
         else:
-            temp_state = super().getState()[0]#无渲染state，仅作为检查依据
-            o_state = self.state_list[self.state_index][0]
-            assert temp_state.scanId == o_state.scanId
-            assert temp_state.location.viewpointId == o_state.location.viewpointId
-            assert temp_state.viewIndex == o_state.viewIndex
-            state = HC_SimState(o_state, remote=False)
-            state.video = self.HCFusion(o_state, num_frames=num_frames)
-            self.state_index += 1
+            o_state = self.state_list[self.state_index]
+            state = HC_SimState(o_state)
+            assert self.scanId == state.scanId
+            assert self.viewpointId == state.location.viewpointId
+            state.video = self.HCFusion(state, num_frames=num_frames)
+            
         return [state]
 
 
@@ -114,8 +119,8 @@ class HC_Simulator(MatterSim.Simulator):
         location = state.location
         view_id = location.viewpointId
         human_angle, human_loc, motion_path = get_human_info(os.getenv('VLN_DATA_DIR'), state.scanId, view_id)
-        background = np.array(state.rgb, copy=False, dtype=np.uint8)
-        background_depth = np.squeeze(np.array(state.depth, copy=False, dtype=np.uint8), axis=-1)
+        background = state.rgb
+        background_depth = np.squeeze(state.depth, axis=-1)
         #print(f"Background shape {background.shape}, background_depth shape {background_depth.shape}")
 
         if human_angle == None:
@@ -153,7 +158,7 @@ class HC_Simulator(MatterSim.Simulator):
         print("-------------------------Pre Renser all scan view------------------------")
         viewpointIds = load_viewpointids()
         bar = tqdm(viewpointIds)
-        for _, (scanId, viewpointId) in enumerate(bar):
+        for i, (scanId, viewpointId) in enumerate(bar):
             bar.set_description()
             #bar = tqdm(range(VIEWPOINT_SIZE))
             for ix in range(VIEWPOINT_SIZE):
@@ -167,41 +172,34 @@ class HC_Simulator(MatterSim.Simulator):
 
                 state = super().getState()
                 
-                self.state_list.append(state)
+                self.state_list.append(state_to_dic(state[0]))
+                
+                #print(self.state_list[0][0].scanId, self.state_list[0][0].location.viewpointId, self.state_list[0][0].step)
+                #print(self.state_list[-1][0].scanId, self.state_list[-1][0].location.viewpointId, self.state_list[-1][0].step)
             img = np.array(state[0].rgb, copy=False)
-            print(np.sum(img), img.shape)
             imageio.imwrite('output.png', img)
+            if i == 3:
+                break
+        print(f"images num:{len(self.state_list)}")
 class HC_SimState():
-    def __init__(self,o_state,remote=False):
-        if remote:
-            self.scanId = o_state["scanId"]
-            self.step = o_state["step"]
-            self.rgb = o_state["rgb"]
-            self.depth = o_state["depth"]
-            self.location = Location(o_state["location"])
-            self.heading = o_state["heading"]
-            self.elevation = o_state["elevation"]
-            self.viewIndex = o_state["viewIndex"]
-            self.navigableLocations = self.navigableLocations_to_object(o_state["navigableLocations"]) 
-            self.video = []
-        else:
-            self.scanId = o_state.scanId
-            self.step = o_state.step
-            self.rgb = o_state.rgb
-            self.depth = o_state.depth
-            self.location = o_state.location
-            self.heading = o_state.heading
-            self.elevation = o_state.elevation
-            self.viewIndex = o_state.viewIndex
-            self.navigableLocations = o_state.navigableLocations
-            self.video = []
+    def __init__(self,o_state):
+        self.scanId = o_state["scanId"]
+        self.step = o_state["step"]
+        self.rgb = o_state["rgb"]
+        self.depth = o_state["depth"]
+        self.location = Location(o_state["location"])
+        self.heading = o_state["heading"]
+        self.elevation = o_state["elevation"]
+        self.viewIndex = o_state["viewIndex"]
+        self.navigableLocations = self.navigableLocations_to_object(o_state["navigableLocations"]) 
+        self.video = []
 
     def navigableLocations_to_object(self, navigableLocations):
         new_navigableLocations = []
         for i in range(len(navigableLocations)):
             new_navigableLocations.append(Location(navigableLocations[i]))
         return new_navigableLocations
-    
+
 class Location():
     def __init__(self, location):
         self.viewpointId = location["viewpointId"]
@@ -212,7 +210,41 @@ class Location():
         self.rel_heading = location["rel_heading"]
         self.rel_elevation = location["rel_elevation"]
         self.rel_distance = location["rel_distance"]
-    
+
+def state_to_dic(state):
+    dic = {}
+    dic["scanId"] = state.scanId
+    dic["step"] = state.step
+    dic["rgb"] = np.array(state.rgb, copy=True)
+    #dic["rgb"] = state.rgb
+    #imageio.imwrite('output.png', np.array(state.rgb, copy=False))
+    dic["depth"] = np.array(state.depth, copy=True)
+    dic["depth"] = state.depth
+    dic["location"] = location_type_dic(state.location)
+    dic["heading"] = state.heading
+    dic["elevation"] = state.elevation
+    dic["viewIndex"] = state.viewIndex
+    dic["navigableLocations"] =  navigableLocations_type_dic(state.navigableLocations)
+    return dic
+
+def location_type_dic(location):
+    dic = {            
+        "viewpointId" : location.viewpointId,  
+        "ix" : location.ix,                                            
+        "x" : location.x,                                 
+        "y" : location.y,
+        "z" : location.z,
+        "rel_heading" : location.rel_heading,                                  
+        "rel_elevation" : location.rel_elevation,
+        "rel_distance" : location.rel_distance
+    }
+    return dic
+
+def navigableLocations_type_dic(navigableLocations):
+    new_navigableLocations = []
+    for i in range(len(navigableLocations)):
+        new_navigableLocations.append(location_type_dic(navigableLocations[i]))
+    return new_navigableLocations    
 
 def main(args):
     WIDTH = 640
