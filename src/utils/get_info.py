@@ -32,23 +32,14 @@ def get_human_info(basic_data_dir, scan_id, agent_view_id):
     return None, None, None
 
 
-def get_human_on_path():
+def get_human_on_path(data_path):
 
     with open('human_motion_text.json', 'r') as f:
         human_view_data = json.load(f)
-    r2r_data = read_R2R_data("path.json")
-
+    r2r_data = read_R2R_data(data_path)
     new_r2r_data = []
-
     num = 0
-
-
-    Beginning_num = 0
-    Obstacle_num = 0
-    Around_num = 0
-    End_num = 0
     on_path_num = 0
-
     for r2r_data_item in r2r_data:
         human_info = []
         scan_id = r2r_data_item["scan"]
@@ -83,7 +74,7 @@ def get_human_on_path():
     print(f"{num} / {len(new_r2r_data)}")
     print(f"paths with human:{on_path_num}")
     #print(f"Beginning_num:{Beginning_num}, Obstacle_num:{Obstacle_num}, End_num:{End_num}, Around_num:{Around_num}, None_num:{None_num}")
-    with open("new_r2r_data.json", 'w') as f:
+    with open(data_path.split(".json")[0]+"_new.json", 'w') as f:
         json.dump(new_r2r_data, f, indent=4)
     #return
 
@@ -158,4 +149,7 @@ def get_visible_points(path, connection_data):
     
 
 if __name__ == '__main__':
-    get_human_on_path()
+    get_human_on_path("../Matterport3DSimulator/tasks/R2R/data/R2R_train.json")
+    get_human_on_path("../Matterport3DSimulator/tasks/R2R/data/R2R_test.json")
+    get_human_on_path("../Matterport3DSimulator/tasks/R2R/data/R2R_val_seen.json")
+    get_human_on_path("../Matterport3DSimulator/tasks/R2R/data/R2R_val_unseen.json")
