@@ -160,7 +160,7 @@ def get_visible_points(path, connection_data):
         print(connection_data[path_point])
     return path_visible_points
 
- def count_points_seen_human():
+def count_points_seen_human():
     GRAPHS = 'connectivity/'
     # 每个建筑场景编号
     with open(GRAPHS+'scans.txt') as f:
