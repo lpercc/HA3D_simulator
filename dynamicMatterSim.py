@@ -107,10 +107,7 @@ class HC_Simulator(MatterSim.Simulator):
             state = HC_SimState(o_state, remote=True)
             state.video = self.HCFusion(state, num_frames=num_frames)
         else:
-            try:
-                first_matching_dict = next(dic for dic in self.state_list if dic['scanId'] == self.scanId and dic['viewIndex'] == self.state_index and dic['location']['viewpointId'] == self.viewpointId)
-            except StopIteration:
-                first_matching_dict = None
+            first_matching_dict = next(dic for dic in self.state_list if dic['scanId'] == self.scanId and dic['viewIndex'] == self.state_index and dic['location']['viewpointId'] == self.viewpointId)
             o_state = first_matching_dict
             state = HC_SimState(o_state)
             assert self.scanId == state.scanId
