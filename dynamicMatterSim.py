@@ -208,6 +208,8 @@ class HC_Simulator(MatterSim.Simulator):
                         "navigableLocations" : state_dic["navigableLocations"]
                     }
                 )
+                if np.sum(state_dic["rgb"]) == 0:
+                    raise ValueError("Image is None!!!")
                 if not os.path.exists(os.path.join(dir_path,rgb_path)):
                     imageio.imsave(os.path.join(dir_path,rgb_path), state_dic["rgb"])
                     imageio.imsave(os.path.join(dir_path,depth_path), state_dic["depth"])
