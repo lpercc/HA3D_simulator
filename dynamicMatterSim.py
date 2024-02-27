@@ -96,6 +96,7 @@ class HC_Simulator(MatterSim.Simulator):
             #print('POST response: ', response.text)
         else:
             #super().makeAction(index, heading, elevation)
+            print(f"index {index}")
             self.state_index = index[0]
     
     def getState(self, num_frames):
