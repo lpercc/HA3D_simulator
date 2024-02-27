@@ -110,6 +110,7 @@ class HC_Simulator(MatterSim.Simulator):
         else:
             o_state = self.state_list[self.state_index]
             state = HC_SimState(o_state)
+            print(self.scanId,state.scanId)
             assert self.scanId == state.scanId
             assert self.viewpointId == state.location.viewpointId
             state.video = self.HCFusion(state, num_frames=num_frames)
