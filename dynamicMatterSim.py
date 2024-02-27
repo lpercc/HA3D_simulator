@@ -98,7 +98,7 @@ class HC_Simulator(MatterSim.Simulator):
         else:
             #super().makeAction(index, heading, elevation)
             #print(f"index {index}")
-            #self.state_index = index[0]
+            self.index = index[0]
             self.state_index += 1
     
     def getState(self, num_frames):
@@ -114,10 +114,10 @@ class HC_Simulator(MatterSim.Simulator):
             #matching_dicts = [dic for dic in self.state_list if dic['scanId'] == self.scanId]
             #matching_dicts = [dic for dic in matching_dicts if dic['viewIndex'] == self.state_index]
             #matching_dicts = [dic for dic in matching_dicts if dic['location']['viewpointId'] == self.viewpointId]
-            #first_matching_dict = next(dic for dic in self.state_list if dic['scanId'] == self.scanId and dic['viewIndex'] == self.state_index and dic['location']['viewpointId'] == self.viewpointId)
+            
             o_state = self.state_list[self.state_index]
             state = HC_SimState(o_state)
-            print(self.scanId,type(self.scanId),state.scanId,type(state.scanId))
+            #first_matching_dict = next(dic for dic in self.state_list if dic['scanId'] == state.scanId and dic['viewIndex'] == state.viewIndex and dic['location']['viewpointId'] == state.location.viewpointId)
             assert self.scanId == state.scanId
             assert self.viewpointId == state.location.viewpointId
             state.video = self.HCFusion(state, num_frames=num_frames)
