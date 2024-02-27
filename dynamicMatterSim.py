@@ -85,7 +85,7 @@ class HC_Simulator(MatterSim.Simulator):
             #super().newEpisode(scanId, viewpointId, heading, elevation)
             self.scanId = scanId[0]
             self.viewpointId = viewpointId[0]
-            self.state_index += 1
+            self.state_index = 0
 
     def makeAction(self, index, heading, elevation):
         if self.remote:
@@ -97,7 +97,7 @@ class HC_Simulator(MatterSim.Simulator):
             #print('POST response: ', response.text)
         else:
             #super().makeAction(index, heading, elevation)
-            self.state_index += 1
+            self.state_index = index
     
     def getState(self, num_frames):
         if self.remote:
@@ -108,9 +108,12 @@ class HC_Simulator(MatterSim.Simulator):
             state = HC_SimState(o_state, remote=True)
             state.video = self.HCFusion(state, num_frames=num_frames)
         else:
-            o_state = self.state_list[self.state_index]
-            state = HC_SimState(o_state)
-            print(self.state_index, self.scanId,state.scanId)
+            try:
+                first_matching_dict = next(dic for dic in self.state_list if dic['scanId'] == self.scanId and dic['viewIndex'] == self.state_index and dic['location']['viewpointId'] == self.viewpointId)
+            except StopIteration:
+                first_matching_dict = None
+            o_state = first_matching_dict
+            state = HC_SimState(o_state[0])
             assert self.scanId == state.scanId
             assert self.viewpointId == state.location.viewpointId
             state.video = self.HCFusion(state, num_frames=num_frames)
