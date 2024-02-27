@@ -63,13 +63,14 @@ class HC_Simulator(MatterSim.Simulator):
         else:
             super().setBatchSize(BatchSize)
 
-    def initialize(self):
+    def initialize(self, viewpoint_s):
         if self.remote:
             # 发送 POST 请求
             response = requests.post(self.address, json={'function': 'Simulator initialize'})
             print('POST response: ', response.text)
         else:
             super().initialize()
+            self.state_index = self.state_index + viewpoint_s
 
     def newEpisode(self, scanId, viewpointId, heading, elevation):
         if self.remote:
@@ -84,7 +85,7 @@ class HC_Simulator(MatterSim.Simulator):
             #super().newEpisode(scanId, viewpointId, heading, elevation)
             self.scanId = scanId[0]
             self.viewpointId = viewpointId[0]
-            self.state_index = 0
+            self.state_index += 1
 
     def makeAction(self, index, heading, elevation):
         if self.remote:
@@ -97,7 +98,8 @@ class HC_Simulator(MatterSim.Simulator):
         else:
             #super().makeAction(index, heading, elevation)
             #print(f"index {index}")
-            self.state_index = index[0]
+            #self.state_index = index[0]
+            self.state_index += 1
     
     def getState(self, num_frames):
         if self.remote:
@@ -112,8 +114,8 @@ class HC_Simulator(MatterSim.Simulator):
             #matching_dicts = [dic for dic in self.state_list if dic['scanId'] == self.scanId]
             #matching_dicts = [dic for dic in matching_dicts if dic['viewIndex'] == self.state_index]
             #matching_dicts = [dic for dic in matching_dicts if dic['location']['viewpointId'] == self.viewpointId]
-            first_matching_dict = next(dic for dic in self.state_list if dic['scanId'] == self.scanId and dic['viewIndex'] == self.state_index and dic['location']['viewpointId'] == self.viewpointId)
-            o_state = first_matching_dict
+            #first_matching_dict = next(dic for dic in self.state_list if dic['scanId'] == self.scanId and dic['viewIndex'] == self.state_index and dic['location']['viewpointId'] == self.viewpointId)
+            o_state = self.state_list[self.state_index]
             state = HC_SimState(o_state)
             #print(state.viewIndex, type(state.viewIndex))
             assert self.scanId == state.scanId
