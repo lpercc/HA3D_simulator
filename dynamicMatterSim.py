@@ -10,7 +10,8 @@ import requests
 import argparse
 import copy
 from tqdm import tqdm
-import csv
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 import json
 
 class HC_Simulator(MatterSim.Simulator):
@@ -146,8 +147,10 @@ class HC_Simulator(MatterSim.Simulator):
         # 获取目录下的所有.obj文件，并按照序号从大到小排序
         obj_files = [f for f in os.listdir(motion_path) if f.endswith('.obj')]
         #print(obj_files[0].split('frame')[1].split('.obj')[0])
+        #抽帧
+        indices = np.linspace(0, 60, num_frames, endpoint=False, dtype=int)  # dtype应改为int
         sorted_obj_files = sorted(obj_files)
-        for obj_file in sorted_obj_files[:num_frames]:
+        for obj_file in [sorted_obj_files[i] for i in indices]:  # 使用列表推导式
             obj_file.split('.')
             obj_path = os.path.join(motion_path,obj_file)
             mesh = trimesh.load(obj_path)
