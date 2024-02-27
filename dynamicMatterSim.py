@@ -112,7 +112,7 @@ class HC_Simulator(MatterSim.Simulator):
             except StopIteration:
                 first_matching_dict = None
             o_state = first_matching_dict
-            state = HC_SimState(o_state[0])
+            state = HC_SimState(o_state)
             assert self.scanId == state.scanId
             assert self.viewpointId == state.location.viewpointId
             state.video = self.HCFusion(state, num_frames=num_frames)
