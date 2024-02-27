@@ -63,14 +63,13 @@ class HC_Simulator(MatterSim.Simulator):
         else:
             super().setBatchSize(BatchSize)
 
-    def initialize(self, viewpoint_s):
+    def initialize(self):
         if self.remote:
             # 发送 POST 请求
             response = requests.post(self.address, json={'function': 'Simulator initialize'})
             print('POST response: ', response.text)
         else:
             super().initialize()
-            self.state_index = self.state_index + viewpoint_s
 
     def newEpisode(self, scanId, viewpointId, heading, elevation):
         if self.remote:
