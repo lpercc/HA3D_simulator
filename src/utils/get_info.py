@@ -32,14 +32,27 @@ def get_human_info(basic_data_dir, scan_id, agent_view_id):
     return None, None, None
 
 
-def get_human_on_path(data_path):
+def get_human_on_path():
 
     with open('human_motion_text.json', 'r') as f:
         human_view_data = json.load(f)
-    r2r_data = read_R2R_data(data_path)
+    human_count = 0
+    for scan in human_view_data:
+        human_count = human_count + len(scan)
+    print(f"human count:{human_count}")
+    r2r_data = read_R2R_data("path.json")
+
     new_r2r_data = []
+
     num = 0
+
+
+    Beginning_num = 0
+    Obstacle_num = 0
+    Around_num = 0
+    End_num = 0
     on_path_num = 0
+
     for r2r_data_item in r2r_data:
         human_info = []
         scan_id = r2r_data_item["scan"]
@@ -74,7 +87,7 @@ def get_human_on_path(data_path):
     print(f"{num} / {len(new_r2r_data)}")
     print(f"paths with human:{on_path_num}")
     #print(f"Beginning_num:{Beginning_num}, Obstacle_num:{Obstacle_num}, End_num:{End_num}, Around_num:{Around_num}, None_num:{None_num}")
-    with open(data_path.split(".json")[0]+"_new.json", 'w') as f:
+    with open("new_r2r_data.json", 'w') as f:
         json.dump(new_r2r_data, f, indent=4)
     #return
 
@@ -146,10 +159,25 @@ def get_visible_points(path, connection_data):
     except KeyError:
         print(connection_data[path_point])
     return path_visible_points
-    
+
+ def count_points_seen_human():
+    GRAPHS = 'connectivity/'
+    # 每个建筑场景编号
+    with open(GRAPHS+'scans.txt') as f:
+        scans = [scan.strip() for scan in f.readlines()]
+
+    viewpoints_counts = 0
+    human_visible_counts = 0
+    for scan_id in scans:
+        with open('con/pos_info/{}_pos_info.json'.format(scan_id), 'r') as f:
+            pos_data = json.load(f)
+        viewpoints_counts = len(pos_data) + viewpoints_counts
+        for viewpoint in pos_data:
+            human_heading, human_loc, motion_path = get_human_info("./", scan_id, viewpoint)
+            if human_heading is not None:
+                human_visible_counts += 1
+    print(f"human visible points {human_visible_counts} / All points {viewpoints_counts}")
+   
 
 if __name__ == '__main__':
-    get_human_on_path("../Matterport3DSimulator/tasks/R2R/data/R2R_train.json")
-    get_human_on_path("../Matterport3DSimulator/tasks/R2R/data/R2R_test.json")
-    get_human_on_path("../Matterport3DSimulator/tasks/R2R/data/R2R_val_seen.json")
-    get_human_on_path("../Matterport3DSimulator/tasks/R2R/data/R2R_val_unseen.json")
+    count_points_seen_human()
