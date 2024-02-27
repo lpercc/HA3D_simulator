@@ -171,7 +171,7 @@ class HC_Simulator(MatterSim.Simulator):
                 self.state_list = json.load(f)
             print("scan view state is exist")
             print(f"states num:{len(self.state_list)}")
-            if len(self.state_list) < (len(viewpointIds)*VIEWPOINT_SIZE):
+            if len(self.state_list) == (len(viewpointIds)*VIEWPOINT_SIZE):
                 return
         print("-------------------------Pre Renser all scan view------------------------")
         viewpointIds = load_viewpointids()
