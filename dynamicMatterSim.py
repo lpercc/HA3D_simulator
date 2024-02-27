@@ -162,6 +162,7 @@ class HC_Simulator(MatterSim.Simulator):
         TSV_FIELDNAMES = ["scanId", "step", "rgb", "depth", "location", "heading", "elevation", "viewIndex", "navigableLocations"]
         dir_path = f"{os.getenv('VLN_DATA_DIR')}/states"
         json_path = os.path.join(dir_path,"simulator_states.json")
+        viewpointIds = load_viewpointids()
         # 检查文件夹是否已经存在
         if not os.path.exists(dir_path):
             # 如果文件夹不存在，创建它
@@ -174,7 +175,6 @@ class HC_Simulator(MatterSim.Simulator):
             if len(self.state_list) == (len(viewpointIds)*VIEWPOINT_SIZE):
                 return
         print("-------------------------Pre Renser all scan view------------------------")
-        viewpointIds = load_viewpointids()
         bar = tqdm(viewpointIds)
         for i, (scanId, viewpointId) in enumerate(bar):
             bar.set_description()
