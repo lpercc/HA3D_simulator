@@ -22,7 +22,7 @@ def get_human_info(basic_data_dir, scan_id, agent_view_id):
             # 判断该视点是否可见目标视点（人物）
             if human_view_id == agent_view_id:
                 connection_data[agent_view_id]["visible"].append(agent_view_id)
-                print(f"human_view_id:{agent_view_id}")
+                #print(f"human_view_id:{agent_view_id}")
             if human_view_id in connection_data[agent_view_id]['visible']:
                 motion_path = os.path.join(motion_dir, human_motion.replace(' ', '_').replace('/', '_'), f"{human_model_id}_obj")
                 human_loc = [pos_data[human_view_id][0], pos_data[human_view_id][1], pos_data[human_view_id][2]]
