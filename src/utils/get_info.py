@@ -31,7 +31,6 @@ def get_human_info(basic_data_dir, scan_id, agent_view_id):
             pass
     return None, None, None
 
-
 def get_human_on_path():
 
     with open('human_motion_text.json', 'r') as f:
@@ -134,7 +133,6 @@ def compute_distance(viewpointId1, viewpointId2, pos_data):
     squared_sum = x_dis**2 + y_dis**2 + z_dis**2
     return math.sqrt(squared_sum)
 
-
 # 读取R2R数据
 def read_R2R_data(file_path):
     with open(file_path, 'r') as f:
@@ -145,7 +143,6 @@ def read_R2R_data(file_path):
     print(f"total instructions:{r2r_data_path_num * 3}")
     
     return r2r_data
-
 
 # 获取路径周围可见的点（包括路径点本身）
 def get_visible_points(path, connection_data):
@@ -177,7 +174,59 @@ def count_points_seen_human():
             if human_heading is not None:
                 human_visible_counts += 1
     print(f"human visible points {human_visible_counts} / All points {viewpoints_counts}")
-   
+
+# 计算两个列表的重合的元素数量
+def count_common_elements(list1, list2):
+    # Convert the lists to set
+    set1 = set(list1)
+    set2 = set(list2)
+    
+    # Find the intersection of the two sets
+    common_elements = set1 & set2
+    
+    # Return the number of common elements
+    return len(common_elements)
+
+#获取path上的关键点，抵达目标的必经点
+def get_crux_on_path(data_file):
+    data = read_R2R_data(data_file)
+    #遍历每条路径
+    for j,data_item in enumerate(data):
+        scan_id = data_item["scan"]
+        with open('con/con_info/{}_con_info.json'.format(scan_id), 'r') as f:
+            connection_data = json.load(f)
+        # 初始化并加入起点
+        crux_list = [data_item["path"][0]]
+        #遍历路径的每个点
+        #print(data_item["path"])
+        for i,viewpoint in enumerate(data_item["path"]):
+            #下一个点
+            if len(data_item["path"]) < 2:
+                break
+            next_viewpoint = data_item["path"][i+1]
+            #到达终点
+            if next_viewpoint == data_item["path"][-1]:
+                crux_list.append(next_viewpoint)
+                break
+            # 计算本点的可到达点列表
+            unobstructed_points = connection_data[viewpoint]['unobstructed']
+            # 计算下一点的可到达点列表
+            next_unobstructed_points = connection_data[next_viewpoint]['unobstructed']
+
+            #计算重合点>1?（为关键点？）
+            if count_common_elements(unobstructed_points, next_unobstructed_points) == 1:
+                crux_list.append(next_viewpoint)
+
+        # 写入原来的数据字典
+        data[j]["crux_points"] = crux_list
+    print(data_file)
+    with open(data_file.split(".")[0]+'_crux_'+".json", 'w') as f:
+        json.dump(data, f, indent=4)
+    
 
 if __name__ == '__main__':
-    count_points_seen_human()
+    #count_points_seen_human()
+    data_folder = 'tasks/R2R/data'
+    files = [f for f in os.listdir(data_folder) if f.endswith('.json')]
+    for file in files:
+        get_crux_on_path(os.path.join(data_folder,file))
