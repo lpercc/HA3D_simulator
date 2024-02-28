@@ -185,9 +185,9 @@ class HC_Simulator(MatterSim.Simulator):
             print("scan view state is exist")
             print(f"states num:{len(self.state_list)}")
             if len(self.state_list) == (len(viewpointIds)*VIEWPOINT_SIZE):
-                print("pass")
-                pass
-                #return
+                #print("pass")
+                #pass
+                return
         print("-------------------------Pre Renser all scan view------------------------")
         bar = tqdm(viewpointIds)
         for i, (scanId, viewpointId) in enumerate(bar):
