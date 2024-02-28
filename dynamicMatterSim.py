@@ -115,7 +115,6 @@ class HC_Simulator(MatterSim.Simulator):
             #matching_dicts = [dic for dic in self.state_list if dic['scanId'] == self.scanId]
             #matching_dicts = [dic for dic in matching_dicts if dic['viewIndex'] == self.state_index]
             #matching_dicts = [dic for dic in matching_dicts if dic['location']['viewpointId'] == self.viewpointId]
-            
             o_state = self.state_list[self.state_index]
             state = HC_SimState(o_state)
             #first_matching_dict = next(dic for dic in self.state_list if dic['scanId'] == state.scanId and dic['viewIndex'] == state.viewIndex and dic['location']['viewpointId'] == state.location.viewpointId)
@@ -187,6 +186,7 @@ class HC_Simulator(MatterSim.Simulator):
             if len(state_list) == (len(viewpointIds)*VIEWPOINT_SIZE):
                 #print("pass")
                 #pass
+                self.state_list = state_list
                 return
         print("-------------------------Pre Renser all scan view------------------------")
         bar = tqdm(viewpointIds)
