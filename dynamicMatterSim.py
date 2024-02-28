@@ -185,7 +185,9 @@ class HC_Simulator(MatterSim.Simulator):
             print("scan view state is exist")
             print(f"states num:{len(self.state_list)}")
             if len(self.state_list) == (len(viewpointIds)*VIEWPOINT_SIZE):
-                return
+                print("pass")
+                pass
+                #return
         print("-------------------------Pre Renser all scan view------------------------")
         bar = tqdm(viewpointIds)
         for i, (scanId, viewpointId) in enumerate(bar):
@@ -222,7 +224,7 @@ class HC_Simulator(MatterSim.Simulator):
                 )
                 if np.sum(state_dic["rgb"]) == 0:
                     raise ValueError("Image is None!!!")
-                if not os.path.exists(os.path.join(dir_path,rgb_path)):
+                if not (os.path.exists(os.path.join(dir_path,rgb_path)) and os.path.exists(os.path.join(dir_path,depth_path))) :
                     imageio.imsave(os.path.join(dir_path,rgb_path), state_dic["rgb"])
                     imageio.imsave(os.path.join(dir_path,depth_path), state_dic["depth"])
                 #print(self.state_list[0][0].scanId, self.state_list[0][0].location.viewpointId, self.state_list[0][0].step)
