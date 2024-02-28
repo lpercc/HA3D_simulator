@@ -181,10 +181,10 @@ class HC_Simulator(MatterSim.Simulator):
             os.makedirs(dir_path)
         if os.path.exists(json_path):
             with open(json_path, 'r') as f:
-                self.state_list = json.load(f)
+                state_list = json.load(f)
             print("scan view state is exist")
-            print(f"states num:{len(self.state_list)}")
-            if len(self.state_list) == (len(viewpointIds)*VIEWPOINT_SIZE):
+            print(f"states num:{len(state_list)}")
+            if len(state_list) == (len(viewpointIds)*VIEWPOINT_SIZE):
                 #print("pass")
                 #pass
                 return
