@@ -13,7 +13,7 @@ from tqdm import tqdm
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 import json
-
+os.environ['PYOPENGL_PLATFORM'] = 'egl'
 class HC_Simulator(MatterSim.Simulator):
     def __init__(self,remote=False, ip="192.168.24.41", port="8080"):
         self.remote = remote

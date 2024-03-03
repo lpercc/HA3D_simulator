@@ -2,6 +2,15 @@ import json
 import os
 import math
 
+# 判断viewpoint是否能看见人物，若能则返回人物信息
+# Parameters：
+## basic_data_dir :基础目录路径（人物信息所在目录）
+## scan_id :viewpoint所在建筑scan ID
+## agent_view_id :viewpoint ID
+# Return:
+## human_heading 人物朝向 弧度
+## human_loc 人物坐标[x,y,z]
+## motion_path 人物动作的3D网格数据的路径
 def get_human_info(basic_data_dir, scan_id, agent_view_id):
     motion_dir = os.path.join(basic_data_dir,"human_motion_meshes")
         # 一共90个建筑场景数据
@@ -19,10 +28,10 @@ def get_human_info(basic_data_dir, scan_id, agent_view_id):
         human_model_id = human_view_data[scan_id][human_view_id][1]
         human_heading = human_view_data[scan_id][human_view_id][2]
         try:
-            # 判断该视点是否可见目标视点（人物）
             if human_view_id == agent_view_id:
                 connection_data[agent_view_id]["visible"].append(agent_view_id)
                 #print(f"human_view_id:{agent_view_id}")
+            # 判断该视点是否可见目标视点（人物）
             if human_view_id in connection_data[agent_view_id]['visible']:
                 motion_path = os.path.join(motion_dir, human_motion.replace(' ', '_').replace('/', '_'), f"{human_model_id}_obj")
                 human_loc = [pos_data[human_view_id][0], pos_data[human_view_id][1], pos_data[human_view_id][2]]
@@ -31,26 +40,33 @@ def get_human_info(basic_data_dir, scan_id, agent_view_id):
             pass
     return None, None, None
 
-def get_human_on_path():
-
+# 计算数据集中每条路径的可见人物
+def get_human_on_path(data_dir_path):
+    print(f"**********************{data_dir_path}*****************************")
     with open('human_motion_text.json', 'r') as f:
         human_view_data = json.load(f)
     human_count = 0
     for scan in human_view_data:
         human_count = human_count + len(scan)
-    print(f"human count:{human_count}")
-    r2r_data = read_R2R_data("path.json")
+    #print(f"human count:{human_count}")
+    r2r_data = read_R2R_data(data_dir_path)
 
     new_r2r_data = []
 
-    num = 0
+    
 
-
+    All_path_num = 0
+    Beginning_path_num = 0
+    Obstacle_path_num = 0
+    Around_path_num = 0
+    End_path_num = 0
+    
+    human_num = 0
     Beginning_num = 0
     Obstacle_num = 0
     Around_num = 0
     End_num = 0
-    on_path_num = 0
+    
 
     for r2r_data_item in r2r_data:
         human_info = []
@@ -68,28 +84,58 @@ def get_human_on_path():
         for visible_point in path_visible_points:
             if visible_point in human_view_data[scan_id]:
                 human_rel_pos = get_rel_pos(visible_point, path, path_id, pos_data)
+                human_num += 1
+                Beginning_num += int(human_rel_pos == "Beginning")
+                Obstacle_num += int(human_rel_pos == "Obstacle")
+                Around_num += int(human_rel_pos == "Around")
+                End_num += int(human_rel_pos == "End")
                 human_info.append({
 					"human_viewpoint":visible_point,
 					"human_rel_pos":human_rel_pos,
 					"human_description":human_view_data[scan_id][visible_point][0]
 				})
+        # 统计含有每种相对位置的路径数量
         if len(human_info) > 0:
-            num += 1
+            All_path_num += 1
+            Beginning_flag = 0
+            Obstacle_flag = 0
+            Around_flag = 0
+            End_flag = 0
+            for item in human_info:
+                Beginning_flag = int(item["human_rel_pos"] == "Beginning")
+                Obstacle_flag = int(item["human_rel_pos"] == "Obstacle")
+                Around_flag = int(item["human_rel_pos"] == "Around")
+                End_flag = int(item["human_rel_pos"] == "End")
+            
+            Beginning_path_num += Beginning_flag
+            Obstacle_path_num += Obstacle_flag
+            Around_path_num += Around_flag
+            End_path_num += End_flag
+
         r2r_data_item["human"] = human_info
         new_r2r_data.append(r2r_data_item)
-        for item in human_info:
-            value = item["human_rel_pos"]
-            #print(value)
-            if value in ["Beginning", "Obstacle", "End"]:
-                on_path_num += 1
-                break
-    print(f"{num} / {len(new_r2r_data)}")
-    print(f"paths with human:{on_path_num}")
+    
+    print(f"paths with human:{All_path_num} / all paths {len(new_r2r_data)}")
+    print(f"Number of paths containing each relative position:")
+    print(f"All paths containing relative position:{All_path_num}")
+    print(f"Beginning:{Beginning_path_num}")
+    print(f"Obstacle:{Obstacle_path_num}")
+    print(f"Around:{Around_path_num}")
+    print(f"End:{End_path_num}")
+    print(f"Number of relative positions of each human species")
+    print(f"All relative positions:{human_num}")
+    print(f"Beginning:{Beginning_num}")
+    print(f"Obstacle:{Obstacle_num}")
+    print(f"Around:{Around_num}")
+    print(f"End:{End_num}")
+
     #print(f"Beginning_num:{Beginning_num}, Obstacle_num:{Obstacle_num}, End_num:{End_num}, Around_num:{Around_num}, None_num:{None_num}")
-    with open("new_r2r_data.json", 'w') as f:
+    
+    with open(f"{data_dir_path.split('.json')[0]}_human.json", 'w') as f:
         json.dump(new_r2r_data, f, indent=4)
     #return
 
+# 计算人物之于路径的相对位置
 def get_rel_pos(human_point, path, path_id, pos_data):
     loc_dsc = [
         "Beginning",
@@ -112,6 +158,7 @@ def get_rel_pos(human_point, path, path_id, pos_data):
                 human_rel_pos=loc_dsc[2]
     return human_rel_pos
 
+# 加载所有viewpoints
 def load_viewpointids():
     GRAPHS = "connectivity/"
     viewpointIds = []
@@ -126,6 +173,7 @@ def load_viewpointids():
     print("Loaded %d viewpoints" % len(viewpointIds))
     return viewpointIds
 
+# 计算两点距离
 def compute_distance(viewpointId1, viewpointId2, pos_data):
     x_dis = pos_data[viewpointId1][0] - pos_data[viewpointId2][0]
     y_dis = pos_data[viewpointId1][1] - pos_data[viewpointId2][1]
@@ -154,25 +202,19 @@ def get_visible_points(path, connection_data):
                 if point not in path_visible_points:
                     path_visible_points.append(point)
     except KeyError:
-        print(connection_data[path_point])
+        pass
+        #print(connection_data[path_point])
     return path_visible_points
 
+#计算可以看见人物的viewpoint总数
 def count_points_seen_human():
-    GRAPHS = 'connectivity/'
-    # 每个建筑场景编号
-    with open(GRAPHS+'scans.txt') as f:
-        scans = [scan.strip() for scan in f.readlines()]
-
-    viewpoints_counts = 0
+    all_viewpointIds = load_viewpointids()
+    viewpoints_counts = len(all_viewpointIds)
     human_visible_counts = 0
-    for scan_id in scans:
-        with open('con/pos_info/{}_pos_info.json'.format(scan_id), 'r') as f:
-            pos_data = json.load(f)
-        viewpoints_counts = len(pos_data) + viewpoints_counts
-        for viewpoint in pos_data:
-            human_heading, human_loc, motion_path = get_human_info("./", scan_id, viewpoint)
-            if human_heading is not None:
-                human_visible_counts += 1
+    for _, (scanId, viewpointId) in enumerate(all_viewpointIds):
+        _, human_loc, _ = get_human_info("./", scanId, viewpointId)
+        if human_loc is not None:
+            human_visible_counts += 1
     print(f"human visible points {human_visible_counts} / All points {viewpoints_counts}")
 
 # 计算两个列表的重合的元素数量
@@ -187,7 +229,7 @@ def count_common_elements(list1, list2):
     # Return the number of common elements
     return len(common_elements)
 
-#获取path上的关键点，抵达目标的必经点
+# 获取path上的关键点，抵达目标的必经点
 def get_crux_on_path(data_file):
     data = read_R2R_data(data_file)
     #遍历每条路径
@@ -222,11 +264,39 @@ def get_crux_on_path(data_file):
     print(data_file)
     with open(data_file.split(".")[0]+'_crux_'+".json", 'w') as f:
         json.dump(data, f, indent=4)
+
+# 获取每类区域的人物数量
+def count_human_of_region():
+    region = {}
+
+    with open('human_motion_text.json', 'r') as f:
+        human_view_data = json.load(f)
     
+    for i, scanId in enumerate(human_view_data):
+        print(f"{i}th scan {scanId}")
+        for human_viewpointId in human_view_data[scanId]:
+            print(f"**Human viewpoint {human_viewpointId}")
+            #print(human_view_data[scanId][human_viewpointId])
+            human_region = human_view_data[scanId][human_viewpointId][0].split(':')[0]
+            try:
+                region[human_region] += 1
+            except KeyError:
+                region[human_region] = 1
+    print(region)
+    print(len(region))
 
 if __name__ == '__main__':
     #count_points_seen_human()
+       
     data_folder = 'tasks/R2R/data'
-    files = [f for f in os.listdir(data_folder) if f.endswith('.json')]
-    for file in files:
-        get_crux_on_path(os.path.join(data_folder,file))
+    #files = [f for f in os.listdir(data_folder) if f.endswith('.json')]
+    #for file in files:
+        #get_crux_on_path(os.path.join(data_folder,file)) 
+    #get_human_on_path(os.path.join(data_folder,"R2R_train.json"))
+    #get_human_on_path(os.path.join(data_folder,"R2R_val_seen.json"))
+    #get_human_on_path(os.path.join(data_folder,"R2R_val_unseen.json"))
+    #get_human_on_path(os.path.join(data_folder,"path.json"))
+    count_human_of_region()
+
+    #count_points_seen_human()
+    
