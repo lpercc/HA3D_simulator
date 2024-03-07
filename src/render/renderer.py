@@ -209,7 +209,6 @@ class Renderer:
         human_depth = d_img
         #print(np.max(human_depth))
         mask = (human_depth <= background_depth) & (human_depth != 0)
-        #print(mask.shape,np.sum(human_depth)/np.sum(human_depth != 0))
         # 扩展掩码到三个通道，以匹配rgb和background的形状
         mask_3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
 
@@ -227,7 +226,7 @@ class Renderer:
         
         #np.save("./depth.npy",depth)
 
-        return image
+        return image,human_depth
 
 
 
