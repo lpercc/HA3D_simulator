@@ -20,7 +20,7 @@ class Renderer:
         self.orig_img = orig_img
         self.wireframe = wireframe
         self.renderer = pyrender.OffscreenRenderer(
-            viewport_width=self.resolution[0],
+            viewport_width=self.resolution[0]/4,
             viewport_height=self.resolution[1],
             point_size=0.5
         )
