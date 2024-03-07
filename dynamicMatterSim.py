@@ -1,6 +1,7 @@
 import os
 import trimesh
 import imageio
+import cv2
 import numpy as np
 from src.render.rendermdm import get_renderer, render_frames
 from src.utils.get_info import get_human_info, load_viewpointids
@@ -15,113 +16,63 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 import json
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
 class HC_Simulator(MatterSim.Simulator):
-    def __init__(self,remote=False, ip="192.168.24.41", port="8080"):
-        self.remote = remote
-        self.address = f'http://{ip}:{port}'
+    def __init__(self):
+        self.isRealTimeRender = False
         self.state_list = []
         self.state_index = -1
         self.scanId = 0
         self.viewpointId = 0
         self.WIDTH = 640
         self.HEIGHT = 480
-        if self.remote:
-            # 发送 POST 请求
-            response = requests.post(self.address, json={'function': 'Simulator dynamicMatterSim'})
-            print('POST response: ', response.text)
-        else:
-            super().__init__()
+        super().__init__()
     
     def setCameraResolution(self, WIDTH, HEIGHT):
-        if self.remote:
-            # 发送 POST 请求
-            response = requests.post(self.address, json={'function': 'Simulator setCameraResolution'
-                                                         , 'width': WIDTH, 'height': HEIGHT})
-            print('POST response: ', response.text)
-        else:
-            super().setCameraResolution(WIDTH, HEIGHT)
+        super().setCameraResolution(WIDTH, HEIGHT)
 
     def setCameraVFOV(self, VFOV):
-        if self.remote:
-            # 发送 POST 请求
-            response = requests.post(self.address, json={'function': 'Simulator setCameraVFOV','VFOV': VFOV})
-            print('POST response: ', response.text)
-        else:
-            super().setCameraVFOV(VFOV)
+        super().setCameraVFOV(VFOV)
 
     def setDiscretizedViewingAngles(self, flag):
-        if self.remote:
-            # 发送 POST 请求
-            response = requests.post(self.address, json={'function': 'Simulator setDiscretizedViewingAngles','flag': flag})
-            print('POST response: ', response.text)
-        else:
-            super().setDiscretizedViewingAngles(flag)
+        super().setDiscretizedViewingAngles(flag)
 
     def setBatchSize(self, BatchSize):
-        if self.remote:
-            # 发送 POST 请求
-            response = requests.post(self.address, json={'function': 'Simulator setBatchSize','BatchSize': BatchSize})
-            print('POST response: ', response.text)
-        else:
-            super().setBatchSize(BatchSize)
+        super().setBatchSize(BatchSize)
 
-    def initialize(self, viewpoint_s):
-        if self.remote:
-            # 发送 POST 请求
-            response = requests.post(self.address, json={'function': 'Simulator initialize'})
-            print('POST response: ', response.text)
-        else:
-            super().initialize()
+    def setRealTimeRender(self,isRealTimeRender):
+        self.isRealTimeRender = isRealTimeRender
+        print("Real Time Rendering mode!!!")
+
+    def initialize(self, viewpoint_s=0):
+        super().initialize()
+        if not self.isRealTimeRender:
             self.state_index = self.state_index + viewpoint_s
 
     def newEpisode(self, scanId, viewpointId, heading, elevation):
-        if self.remote:
-            # 发送 POST 请求
-            response = requests.post(self.address, json={'function': 'Simulator newEpisode',
-                                                         "scanId":scanId,
-                                                         "viewpointId":viewpointId,
-                                                         "heading":heading,
-                                                         "elevation":elevation})
-            print('POST response: ', response.text)
-        else:
-            #super().newEpisode(scanId, viewpointId, heading, elevation)
+        if not self.isRealTimeRender:
             self.scanId = scanId[0]
             self.viewpointId = viewpointId[0]
             self.state_index += 1
+        else:
+            super().newEpisode(scanId, viewpointId, heading, elevation)
 
     def makeAction(self, index, heading, elevation):
-        if self.remote:
-            # 发送 POST 请求
-            response = requests.post(self.address, json={'function': 'Simulator makeAction',
-                                                         "index":index,
-                                                         "heading":heading,
-                                                         "elevation":elevation})
-            #print('POST response: ', response.text)
-        else:
-            #super().makeAction(index, heading, elevation)
-            #print(f"index {index}")
+        if not self.isRealTimeRender:
             self.index = index[0]
             self.state_index += 1
+        else:
+            super().makeAction(index, heading, elevation)
     
     def getState(self, num_frames):
-        if self.remote:
-            # 发送 POST 请求
-            response = requests.post(self.address, json={'function': 'Simulator getState'})
-            #print('POST response: ', response.text)
-            o_state = response.json()
-            state = HC_SimState(o_state, remote=True)
-            state.video = self.HCFusion(state, num_frames=num_frames)
-        else:
-            #print(self.scanId,self.viewpointId,self.state_index)
-            #matching_dicts = [dic for dic in self.state_list if dic['scanId'] == self.scanId]
-            #matching_dicts = [dic for dic in matching_dicts if dic['viewIndex'] == self.state_index]
-            #matching_dicts = [dic for dic in matching_dicts if dic['location']['viewpointId'] == self.viewpointId]
+        if not self.isRealTimeRender:
             o_state = self.state_list[self.state_index]
-            state = HC_SimState(o_state)
-            #first_matching_dict = next(dic for dic in self.state_list if dic['scanId'] == state.scanId and dic['viewIndex'] == state.viewIndex and dic['location']['viewpointId'] == state.location.viewpointId)
+            state = HC_SimState(o_state,self.isRealTimeRender)
             assert self.scanId == state.scanId
             assert self.viewpointId == state.location.viewpointId
-            state.video = self.HCFusion(state, num_frames=num_frames)
-            
+        else:
+            o_state = super().getState()[0]
+            state = HC_SimState(o_state,self.isRealTimeRender)
+        
+        state.video = self.HCFusion(state, num_frames=num_frames)
         return [state]
 
 
@@ -132,8 +83,9 @@ class HC_Simulator(MatterSim.Simulator):
         location = state.location
         view_id = location.viewpointId
         human_angle, human_loc, motion_path = get_human_info(os.getenv('VLN_DATA_DIR'), state.scanId, view_id)
-        background = state.rgb
-        background_depth = np.squeeze(state.depth, axis=-1)
+        #background = state.rgb
+        background = cv2.cvtColor(state.rgb, cv2.COLOR_BGR2RGB).astype(np.uint8)
+        background_depth = np.squeeze(state.depth, axis=-1).astype(np.uint8)
         #print(f"Background shape {background.shape}, background_depth shape {background_depth.shape}")
 
         if human_angle == None:
@@ -235,17 +187,29 @@ class HC_Simulator(MatterSim.Simulator):
         print(f"states num:{len(self.state_list)}")
 
 class HC_SimState():
-    def __init__(self,o_state):
-        dir_path = f"{os.getenv('VLN_DATA_DIR')}/states"
-        self.scanId = o_state["scanId"]
-        self.step = o_state["step"]
-        self.rgb = imageio.imread(os.path.join(dir_path, o_state["rgb"]))
-        self.depth = imageio.imread(os.path.join(dir_path, o_state["depth"]))
-        self.location = Location(o_state["location"])
-        self.heading = o_state["heading"]
-        self.elevation = o_state["elevation"]
-        self.viewIndex = o_state["viewIndex"]
-        self.navigableLocations = self.navigableLocations_to_object(o_state["navigableLocations"]) 
+    def __init__(self,o_state,isRealTimeRender):
+
+        if isRealTimeRender:
+            self.scanId = o_state.scanId
+            self.step = o_state.step
+            self.rgb = np.array(o_state.rgb, copy=False)
+            self.depth = np.array(o_state.depth, copy=False)
+            self.location = o_state.location
+            self.heading = o_state.heading
+            self.elevation = o_state.elevation
+            self.viewIndex = o_state.viewIndex
+            self.navigableLocations = o_state.navigableLocations
+        else:
+            dir_path = f"{os.getenv('VLN_DATA_DIR')}/states"
+            self.scanId = o_state["scanId"]
+            self.step = o_state["step"]
+            self.rgb = cv2.imread(os.path.join(dir_path, o_state["rgb"]))
+            self.depth = cv2.imread(os.path.join(dir_path, o_state["depth"]))
+            self.location = Location(o_state["location"])
+            self.heading = o_state["heading"]
+            self.elevation = o_state["elevation"]
+            self.viewIndex = o_state["viewIndex"]
+            self.navigableLocations = self.navigableLocations_to_object(o_state["navigableLocations"]) 
         self.video = []
 
     def navigableLocations_to_object(self, navigableLocations):
@@ -301,22 +265,25 @@ def navigableLocations_type_dic(navigableLocations):
     return new_navigableLocations    
 
 def main(args):
-    WIDTH = 640
-    HEIGHT = 480
+    WIDTH = 800
+    HEIGHT = 600
     VFOV = math.radians(60)
 
-    sim = HC_Simulator(remote=True, ip=args.ip, port=args.port)
-    #sim.setDatasetPath(os.environ.get("MATTERPORT_DATA_DIR"))
+    sim = HC_Simulator()
+    sim.setRealTimeRender(True)
+    sim.setDatasetPath(os.environ.get("MATTERPORT_DATA_DIR"))
     sim.setCameraResolution(WIDTH, HEIGHT)
     sim.setCameraVFOV(VFOV)
-    #sim.setDepthEnabled(True) # Turn on depth only after running ./scripts/depth_to_skybox.py (see README.md)
+    sim.setDepthEnabled(True) # Turn on depth only after running ./scripts/depth_to_skybox.py (see README.md)
     sim.initialize()
     #sim.newEpisode(['2t7WUuJeko7'], ['1e6b606b44df4a6086c0f97e826d4d15'], [0], [0])
     #sim.newEpisode(['1LXtFkjw3qL'], ['0b22fa63d0f54a529c525afbf2e8bb25'], [0], [0])
-    sim.newEpisode(['1LXtFkjw3qL'], ["0b302846f0994ec9851862b1d317d7f2"], [0], [0])
+    scanId = '2n8kARJN3HM'
+    viewpointId = '840cd9be95274178b83c956386943c99'
+    sim.newEpisode([scanId], [viewpointId], [0], [0])
 
-    heading = math.radians(-30)
-    elevation = math.radians(-0)
+    heading = 4.765598775598298
+    elevation = 0
     location = 0
 
     print('\nPython Demo')
@@ -330,16 +297,18 @@ def main(args):
     print(state.heading, state.elevation, state.viewIndex)
     
     frames = state.video
-    np.save("test_frames.npy", frames)
-    writer = imageio.get_writer("test.mp4", fps=20)
+    #np.save("test_frames.npy", frames)
+    video_file = f"{state.scanId}_{state.location.viewpointId}_{state.viewIndex}_{state.heading}_{state.elevation}.mp4"
+    save_video_bgr(frames, video_file, 20)
+    
+def save_video_bgr(frames, filename, fps):
+    writer = imageio.get_writer(filename, fps=fps)
     for frame in frames:
         writer.append_data(frame)
     writer.close()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--ip', default='192.168.24.41')
-    parser.add_argument('--port', default='8080')
     args = parser.parse_args()
     main(args)
 

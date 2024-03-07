@@ -115,15 +115,15 @@ def HE_fusion(input_path, output_video_path, bgd_img_path, view_id, cam_loc, hum
 
 def render_frames(meshes, background, background_depth,cam_loc, cam_angle, cam_elevation, human_loc, human_angle, renderer, view_id,color=[0, 0.8, 0.5]):
     # convert M
-    background_depth = background_depth * 0.25 * 0.2
+    background_depth = background_depth * 0.25 * 0.5
     #print(np.min(background_depth), np.max(background_depth))
     # Matterport3D坐标-->pyrende坐标
     cam_loc = (cam_loc[0], cam_loc[2], -cam_loc[1])
     human_loc = (human_loc[0], human_loc[2]-1.36, -human_loc[1])
-    #print(f"camera location:{cam_loc}, camera angle:{cam_angle}, camera elevation:{cam_elevation}")
-    #print(f"human location:{human_loc}, human angle:{human_angle}")
+    print(f"camera location:{cam_loc}, camera angle:{cam_angle}, camera elevation:{cam_elevation}")
+    print(f"human location:{human_loc}, human angle:{human_angle}")
     imgs = []
-
+    human_depths = []
     theta_angle = (np.pi / 180 * float(human_angle))
     matrix = get_rotation(theta=theta_angle)
     #bar = tqdm(meshes, desc=f"View_id {view_id}")
@@ -133,8 +133,11 @@ def render_frames(meshes, background, background_depth,cam_loc, cam_angle, cam_e
         #human平移
         mesh.vertices = mesh.vertices + human_loc
 
-        img = renderer.render_agent(mesh, background, background_depth, cam_loc, cam_angle, cam_elevation, color=color)
+        img, _ = renderer.render_agent(mesh, background, background_depth, cam_loc, cam_angle, cam_elevation, color=color)
         imgs.append(img)
+        #human_depths.append(human_depth)
+    #human_depth = (human_depths[30] > 0) * 125
+    #cv2.imwrite("human_depth.png",human_depth)
     return imgs
 
 

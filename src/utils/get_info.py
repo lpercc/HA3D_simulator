@@ -22,23 +22,28 @@ def get_human_info(basic_data_dir, scan_id, agent_view_id):
         #print(len(pos_data))
     with open('con/con_info/{}_con_info.json'.format(scan_id), 'r') as f:
         connection_data = json.load(f)
+
+    human_heading = None
+    human_loc = None
+    motion_path = None
     for human_view_id in human_view_data[scan_id]:
         # 人物视点编号
         human_motion = human_view_data[scan_id][human_view_id][0]
         human_model_id = human_view_data[scan_id][human_view_id][1]
-        human_heading = human_view_data[scan_id][human_view_id][2]
         try:
             if human_view_id == agent_view_id:
                 connection_data[agent_view_id]["visible"].append(agent_view_id)
                 #print(f"human_view_id:{agent_view_id}")
             # 判断该视点是否可见目标视点（人物）
             if human_view_id in connection_data[agent_view_id]['visible']:
+                print(human_view_id)
                 motion_path = os.path.join(motion_dir, human_motion.replace(' ', '_').replace('/', '_'), f"{human_model_id}_obj")
                 human_loc = [pos_data[human_view_id][0], pos_data[human_view_id][1], pos_data[human_view_id][2]]
-                return human_heading, human_loc, motion_path
+                human_heading = human_view_data[scan_id][human_view_id][2]
         except KeyError:
             pass
-    return None, None, None
+
+    return human_heading, human_loc, motion_path
 
 # 计算数据集中每条路径的可见人物
 def get_human_on_path(data_dir_path):
