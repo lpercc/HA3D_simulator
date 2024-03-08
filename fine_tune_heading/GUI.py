@@ -64,7 +64,7 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.agent_heading = self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0]
         self.agent_location = self.location_data[self.agent_viewpoint_id]
         self.background = imageio.imread(os.path.join(self.panorama_image_path,self.agent_viewpoint_id+'.jpg'))
-        self.output_frame_path = "./adjust.jpg"
+        self.output_frame_path = "./fine_tune_heading/adjust.jpg"
         self.output_video_path = os.path.join(self.video_output_path,f"{self.agent_viewpoint_id}.mp4")
         
         
@@ -329,7 +329,7 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.player.pause()
 
     def headingAngleSave(self):
-        with open("human_motion_text.json", 'w') as f:
+        with open("human-viewpoint_pair/human_motion_text.json", 'w') as f:
             json.dump(self.human_motion_data, f, indent=4)
 
         with open("con/heading_info.json", 'w') as f:
@@ -353,19 +353,19 @@ class myMainWindow(Ui_Form,QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     GRAPHS = 'connectivity/'
-    basic_data_dir = os.getenv('VLN_DATA_DIR')
+    data_dir = os.getenv("HC3D_SIMULATOR_DTAT_PATH")
     # 每个建筑场景编号
     with open(GRAPHS+'scans.txt') as f:
         scan_list = [scan.strip() for scan in f.readlines()]
-    with open('human_motion_text.json', 'r') as f:
+    with open('human-viewpoint_pair/human_motion_text.json', 'r') as f:
         human_motion_data = json.load(f)
     # 每个建筑场景中的视点视角朝向
     with open("con/heading_info.json", 'r') as f:
         agent_heading_data = json.load(f)
 
-    viewpoint_image_dir = os.path.join(basic_data_dir,"data/v1/scans")
-    motion_model_dir = os.path.join(basic_data_dir,"human_motion_meshes")
-    video_output_dir = os.path.join(basic_data_dir, "data/v1/scans")
+    viewpoint_image_dir = os.path.join(data_dir,"data/v1/scans")
+    motion_model_dir = os.path.join(data_dir,"human_motion_meshes")
+    video_output_dir = os.path.join(data_dir, "data/v1/scans")
 
     mainWindow = myMainWindow(viewpoint_image_dir, video_output_dir, motion_model_dir, scan_list, human_motion_data, agent_heading_data)
     mainWindow.show()

@@ -14,7 +14,7 @@ import math
 def get_human_info(basic_data_dir, scan_id, agent_view_id):
     motion_dir = os.path.join(basic_data_dir,"human_motion_meshes")
         # 一共90个建筑场景数据
-    with open('human_motion_text.json', 'r') as f:
+    with open('human-viewpoint_pair/human_motion_text.json', 'r') as f:
         human_view_data = json.load(f)
             # 获取建筑场景所有视点信息（视点之间的关系）
     with open('con/pos_info/{}_pos_info.json'.format(scan_id), 'r') as f:

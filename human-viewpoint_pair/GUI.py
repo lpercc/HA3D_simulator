@@ -8,7 +8,6 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtChart import *
 from PyQt5.QtMultimediaWidgets import QVideoWidget
-from compute_human_num import compute
 import random
 import math
 
@@ -457,20 +456,25 @@ class myMainWindow(Ui_Form,QMainWindow):
             self.showImage()
             self.updateHumanMotion()
 
+def compute(pos_data,average_area):
+    view_num = len(pos_data)
+    #向上取整
+    human_num = (view_num*2 // average_area) +1
+    return view_num, human_num
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     GRAPHS = 'connectivity/'
-    basic_dir = "/media/lmh/backend"
+    data_dir = os.getenv("HC3D_SIMULATOR_DTAT_PATH")
     # 每个建筑场景编号
     with open(GRAPHS+'scans.txt') as f:
         scans = [scan.strip() for scan in f.readlines()]
-    with open('human_motion_text.json', 'r') as f:
+    with open('human-viewpoint_pair/human_motion_text.json', 'r') as f:
         human_motion_data = json.load(f)
-    with open('region_motion_text.json', 'r') as f:
+    with open('human_motion_model/region_motion_text.json', 'r') as f:
         region_motion_data = json.load(f)
-    viewpoint_image_dir = os.path.join(basic_dir,"HC-VLN_dataset_/data/v1/scans")
-    print(viewpoint_image_dir)
-    model_video_dir = os.path.join(basic_dir,"samples_humanml_trans_enc_512_000200000_seed10_HC-VLN_text_prompts")
+    viewpoint_image_dir = os.path.join(data_dir,"data/v1/scans")
+    model_video_dir = os.path.join(data_dir,"samples_humanml_trans_enc_512_000200000_seed10")
     with open(os.path.join(model_video_dir, "results.txt")) as f:
         motion_text = [motion.strip() for motion in f.readlines()]
     mainWindow = myMainWindow(viewpoint_image_dir,model_video_dir, scans, human_motion_data, region_motion_data, motion_text)

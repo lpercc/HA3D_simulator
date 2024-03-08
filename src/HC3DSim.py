@@ -3,8 +3,8 @@ import trimesh
 import imageio
 import cv2
 import numpy as np
-from src.render.rendermdm import get_renderer, render_frames
-from src.utils.get_info import get_human_info, load_viewpointids
+from render.rendermdm import get_renderer, render_frames
+from utils.get_info import get_human_info, load_viewpointids
 import MatterSim
 import math
 import requests
@@ -15,7 +15,8 @@ from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 import json
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
-class HC_Simulator(MatterSim.Simulator):
+
+class HCSimulator(MatterSim.Simulator):
     def __init__(self):
         self.isRealTimeRender = False
         self.state_list = []
@@ -65,12 +66,12 @@ class HC_Simulator(MatterSim.Simulator):
     def getState(self, num_frames):
         if not self.isRealTimeRender:
             o_state = self.state_list[self.state_index]
-            state = HC_SimState(o_state,self.isRealTimeRender)
+            state = HCSimState(o_state,self.isRealTimeRender)
             assert self.scanId == state.scanId
             assert self.viewpointId == state.location.viewpointId
         else:
             o_state = super().getState()[0]
-            state = HC_SimState(o_state,self.isRealTimeRender)
+            state = HCSimState(o_state,self.isRealTimeRender)
         
         state.video = self.HCFusion(state, num_frames=num_frames)
         return [state]
@@ -186,7 +187,7 @@ class HC_Simulator(MatterSim.Simulator):
             json.dump(self.state_list, f, indent=4)
         print(f"states num:{len(self.state_list)}")
 
-class HC_SimState():
+class HCSimState():
     def __init__(self,o_state,isRealTimeRender):
 
         if isRealTimeRender:
@@ -264,12 +265,18 @@ def navigableLocations_type_dic(navigableLocations):
         new_navigableLocations.append(location_type_dic(navigableLocations[i]))
     return new_navigableLocations    
 
+def save_video_bgr(frames, filename, fps):
+    writer = imageio.get_writer(filename, fps=fps)
+    for frame in frames:
+        writer.append_data(frame)
+    writer.close()
+
 def main(args):
     WIDTH = 800
     HEIGHT = 600
     VFOV = math.radians(60)
 
-    sim = HC_Simulator()
+    sim = HCSimulator()
     sim.setRealTimeRender(True)
     sim.setDatasetPath(os.environ.get("MATTERPORT_DATA_DIR"))
     sim.setCameraResolution(WIDTH, HEIGHT)
@@ -301,12 +308,6 @@ def main(args):
     video_file = f"{state.scanId}_{state.location.viewpointId}_{state.viewIndex}_{state.heading}_{state.elevation}.mp4"
     save_video_bgr(frames, video_file, 20)
     
-def save_video_bgr(frames, filename, fps):
-    writer = imageio.get_writer(filename, fps=fps)
-    for frame in frames:
-        writer.append_data(frame)
-    writer.close()
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     args = parser.parse_args()

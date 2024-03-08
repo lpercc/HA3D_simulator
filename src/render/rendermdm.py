@@ -11,7 +11,7 @@ import cv2
 basic_data_dir = os.getenv('VLN_DATA_DIR')
 
 def get_rotation(theta=np.pi):
-    import src.utils.rotation_conversions as geometry
+    import utils.rotation_conversions as geometry
     import torch
     axis = torch.tensor([0, 1, 0], dtype=torch.float)
     axisangle = theta*axis

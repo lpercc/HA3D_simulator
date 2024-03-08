@@ -1,10 +1,9 @@
 import os
 import json
 import argparse
-from src.render.rendermdm import HE_fusion 
+from render.rendermdm import HE_fusion 
 
-## viewpoint selection
-""" 它处理一系列图像和与之相关的数据，以在虚拟环境中创建或修改“人类视角” """
+## pre render video
 def main(args):
 
     global src_view, tar_view

@@ -1,12 +1,13 @@
 # HC-VLN_simulator
 
 This repo is for add 3D human in real-world environment
-clone this repo
-```bash
-cd HC-VLN_simulator
-```
 
-## Preparing dataset
+## set env parser 
+> 200GB
+```bash
+export HC3D_SIMULATOR_DTAT_PATH=/your/path/to/store/data && echo $HC3D_SIMULATOR_DTAT_PATH
+```
+## Download dataset
 download Matterport3D dataset from https://niessner.github.io/Matterport/
 get download_mp.py
 ```bash
