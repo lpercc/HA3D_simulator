@@ -1,0 +1,145 @@
+bathroom:A person brushing their teeth in front of the mirror.
+bathroom:Someone taking a relaxing bath.
+bathroom:A child learning how to wash their hands.
+bathroom:An individual fixing their hair.
+bathroom:A person cleaning the bathroom.
+bedroom:Someone reading a book in bed.
+bedroom:A person folding laundry on the bed.
+bedroom:A child playing with toys on the floor.
+bedroom:An individual choosing clothes from the closet.
+bedroom:Someone doing a light workout or yoga in the morning.
+closet:A person organizing clothes by color.
+closet:Someone trying on different outfits.
+closet:An individual packing a suitcase.
+closet:A person searching for a lost item.
+closet:Someone deciding on shoes to wear.
+dining room:A family enjoying a meal together.
+dining room:Someone setting the table for dinner.
+dining room:A couple having a candlelit dinner.
+dining room:An individual working on a puzzle on the dining table.
+dining room:Children doing homework at the dining table.
+entryway/foyer/lobby:A person hanging up coats.
+entryway/foyer/lobby:Someone taking off their shoes.
+entryway/foyer/lobby:A child excitedly greeting a pet.
+entryway/foyer/lobby:An individual checking the mail.
+entryway/foyer/lobby:Someone putting on sunscreen before leaving.
+familyroom:A family playing board games.
+familyroom:Someone napping on the couch.
+familyroom:Children watching a movie with popcorn.
+familyroom:A couple enjoying a casual conversation.
+familyroom:An individual practicing a musical instrument.
+garage:A person working on a car.
+garage:Someone organizing tools.
+garage:A group of friends working on a DIY project.
+garage:An individual painting or crafting large items.
+garage:Children playing with bikes or scooters
+hallway:Someone hanging pictures or artwork.
+hallway:A child running through the hallway.
+hallway:An individual cleaning or vacuuming.
+hallway:Someone talking on the phone while pacing.
+hallway:A person checking themselves in a hallway mirror.
+library:Students studying in groups.
+library:An individual reading quietly.
+library:Someone browsing through bookshelves.
+library:A librarian organizing books.
+library:A group participating in a book club discussion.
+laundryroom/mudroom:A person doing laundry.
+laundryroom/mudroom:Someone cleaning muddy shoes.
+laundryroom/mudroom:A child hanging up their coat and backpack.
+laundryroom/mudroom:An individual folding and sorting clothes.
+laundryroom/mudroom:Someone ironing clothes.
+kitchen:A family cooking together.
+kitchen:Someone baking and decorating cakes.
+kitchen:A couple trying out a new recipe.
+kitchen:Children helping with simple kitchen tasks.
+kitchen:An individual meal-prepping for the week.
+living room:A group of friends watching a sports game.
+living room:Someone practicing dance moves.
+living room:A family having a casual conversation.
+living room:An individual meditating or doing yoga.
+living room:Children playing video games.
+meetingroom/conferenceroom:A team brainstorming ideas.
+meetingroom/conferenceroom:Someone giving a presentation.
+meetingroom/conferenceroom:A group participating in a video conference.
+meetingroom/conferenceroom:Individuals taking notes during a meeting.
+meetingroom/conferenceroom:A manager discussing plans with their team.
+lounge:Friends chatting over coffee.
+lounge:Someone reading a magazine.
+lounge:A couple enjoying cocktails.
+lounge:An individual listening to music.
+lounge:People relaxing and watching TV.
+office:An individual working on a computer.
+office:Someone organizing files.
+office:A person making business calls.
+office:An individual brainstorming on a whiteboard.
+office:Someone taking a quick break with a snack.
+porch/terrace/deck/driveway:A family having a barbecue.
+porch/terrace/deck/driveway:Someone watering plants.
+porch/terrace/deck/driveway:Children playing with chalk on the driveway.
+porch/terrace/deck/driveway:A couple enjoying the sunset.
+porch/terrace/deck/driveway:An individual doing outdoor yoga.
+rec/game:Friends playing pool or billiards.
+rec/game:Someone setting up a board game.
+rec/game:A group playing video games.
+rec/game:Individuals practicing darts.
+rec/game:A family having a karaoke night.
+stairs:Someone carrying groceries upstairs.
+stairs:Someone carrying groceries upstairs.
+stairs:A child sliding down the banister.
+stairs:An individual decorating the stairway.
+stairs:Someone exercising by running up and down.
+toilet:An individual entering or exiting the room quickly.
+toilet:Someone doing a quick check in the mirror.
+toilet:A parent teaching a young child how to use the toilet.
+toilet:A person changing a baby's diaper (if space allows).
+toilet:An individual in a rush to use the toilet.
+utilityroom/toolroom:A person organizing tools on a wall rack.
+utilityroom/toolroom:Someone repairing a household item, like a vacuum cleaner.
+utilityroom/toolroom:A homeowner searching for the right tool for a DIY project.
+utilityroom/toolroom:An individual doing some woodworking or crafting.
+utilityroom/toolroom:A child observing and learning about tools from a parent.
+tv:Friends watching a movie together, with popcorn and drinks.
+tv:A family having a movie night with kids.
+tv:An individual enjoying a sports game, cheering loudly.
+tv:Someone watching a concert or live performance on TV.
+tv:A couple snuggled up, watching a romantic movie.
+workout/gym/exercise:A person lifting weights or using gym equipment.
+workout/gym/exercise:Someone doing a yoga or pilates session.
+workout/gym/exercise:An individual running on a treadmill.
+workout/gym/exercise:A group having a fitness class or personal training session.
+workout/gym/exercise:Someone stretching or cooling down after a workout.
+outdoor areas containing grass, plants, bushes, trees, etc.:A family having a picnic on the grass.
+outdoor areas containing grass, plants, bushes, trees, etc.:Someone gardening, planting flowers or vegetables.
+outdoor areas containing grass, plants, bushes, trees, etc.:Children playing hide and seek among the trees.
+outdoor areas containing grass, plants, bushes, trees, etc.:An individual reading a book under a tree.
+outdoor areas containing grass, plants, bushes, trees, etc.:A person walking their dog or playing fetch.
+balcony:A person enjoying a cup of coffee while looking at the view.
+balcony:Someone watering plants or tending to a small balcony garden.
+balcony:A couple having a quiet, intimate conversation.
+balcony:An individual doing some outdoor yoga or stretching.
+balcony:A person taking photographs of the view.
+other room:Someone curiously exploring or looking around the room.
+other room:A person using the room for a quiet phone call.
+other room:Children playing imaginatively, using the room as a fort or castle.
+other room:An individual using the room for meditation or quiet reflection.
+other room:A group of friends using the space for an impromptu gathering.
+bar:A bartender mixing and serving drinks.
+bar:Friends toasting and enjoying cocktails.
+bar:Someone tasting different types of beers or wines.
+bar:A couple having a date night at the bar.
+bar:An individual sitting alone, sipping a drink and relaxing.
+classroom:A teacher giving a lecture or lesson to students.
+classroom:Students taking notes, listening, or asking questions.
+classroom:A group working together on a class project.
+classroom:Someone giving a presentation in front of the class.
+classroom:A student staying after class to talk to the teacher.
+dining booth:A family enjoying a meal together in a cozy booth.
+dining booth:Friends laughing and sharing stories over dinner.
+dining booth:A couple having a romantic dinner in a secluded booth.
+dining booth:Someone working on a laptop or reading while eating.
+dining booth:A group celebrating a special occasion with food and drinks.
+spa/sauna:Individuals relaxing in the sauna or steam room.
+spa/sauna:A person receiving a therapeutic massage or treatment.
+spa/sauna:Someone meditating or practicing deep breathing.
+spa/sauna:A group of friends enjoying a spa day together.
+spa/sauna:An individual taking a quiet moment for self-care and relaxation.

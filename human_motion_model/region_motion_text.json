@@ -1,0 +1,205 @@
+{
+    "bathroom":[
+        "A person brushing their teeth in front of the mirror.",
+        "Someone taking a relaxing bath.",
+        "A child learning how to wash their hands.",
+        "An individual fixing their hair.",
+        "A person cleaning the bathroom."
+    ],
+    "bedroom":[
+        "Someone reading a book in bed.",
+        "A person folding laundry on the bed.",
+        "A child playing with toys on the floor.",
+        "An individual choosing clothes from the closet.",
+        "Someone doing a light workout or yoga in the morning."
+    ],
+    "closet":[
+        "A person organizing clothes by color.",
+        "Someone trying on different outfits.",
+        "An individual packing a suitcase.",
+        "A person searching for a lost item.",
+        "Someone deciding on shoes to wear."
+    ],
+    "dining room":[
+        "A family enjoying a meal together.",
+        "Someone setting the table for dinner.",
+        "A couple having a candlelit dinner.",
+        "An individual working on a puzzle on the dining table.",
+        "Children doing homework at the dining table."
+    ],
+    "entryway/foyer/lobby":[
+        "A person hanging up coats.",
+        "Someone taking off their shoes.",
+        "A child excitedly greeting a pet.",
+        "An individual checking the mail.",
+        "Someone putting on sunscreen before leaving."
+    ],
+    "familyroom":[
+        "A family playing board games.",
+        "Someone napping on the couch.",
+        "Children watching a movie with popcorn.",
+        "A couple enjoying a casual conversation.",
+        "An individual practicing a musical instrument."
+    ],
+    "garage":[
+        "A person working on a car.",
+        "Someone organizing tools.",
+        "A group of friends working on a DIY project.",
+        "An individual painting or crafting large items.",
+        "Children playing with bikes or scooters."
+    ],
+    "hallway":[
+        "Someone hanging pictures or artwork.",
+        "A child running through the hallway.",
+        "An individual cleaning or vacuuming.",
+        "Someone talking on the phone while pacing.",
+        "A person checking themselves in a hallway mirror."
+    ],
+    "library":[
+        "Students studying in groups.",
+        "An individual reading quietly.",
+        "Someone browsing through bookshelves.",
+        "A librarian organizing books.",
+        "A group participating in a book club discussion."
+    ],
+    "laundryroom/mudroom":[
+        "A person doing laundry.",
+        "Someone cleaning muddy shoes.",
+        "A child hanging up their coat and backpack.",
+        "An individual folding and sorting clothes.",
+        "Someone ironing clothes."
+    ],
+    "kitchen":[
+        "A family cooking together.",
+        "Someone baking and decorating cakes.",
+        "A couple trying out a new recipe.",
+        "Children helping with simple kitchen tasks.",
+        "An individual meal-prepping for the week."
+    ],
+    "living room":[
+        "A group of friends watching a sports game.",
+        "Someone practicing dance moves.",
+        "A family having a casual conversation.",
+        "An individual meditating or doing yoga.",
+        "Children playing video games."
+    ],
+    "meetingroom/conferenceroom":[
+        "A team brainstorming ideas.",
+        "Someone giving a presentation.",
+        "A group participating in a video conference.",
+        "Individuals taking notes during a meeting.",
+        "A manager discussing plans with their team."
+    ],
+    "lounge":[
+        "Friends chatting over coffee.",
+        "Someone reading a magazine.",
+        "A couple enjoying cocktails.",
+        "An individual listening to music.",
+        "People relaxing and watching TV."
+    ],
+    "office":[
+        "An individual working on a computer.",
+        "Someone organizing files.",
+        "A person making business calls.",
+        "An individual brainstorming on a whiteboard.",
+        "Someone taking a quick break with a snack."
+    ],
+    "porch/terrace/deck/driveway":[
+        "A family having a barbecue.",
+        "Someone watering plants.",
+        "Children playing with chalk on the driveway.",
+        "A couple enjoying the sunset.",
+        "An individual doing outdoor yoga."
+    ],
+    "rec/game":[
+        "Friends playing pool or billiards.",
+        "Someone setting up a board game.",
+        "A group playing video games.",
+        "Individuals practicing darts.",
+        "A family having a karaoke night."
+    ],
+    "stairs":[
+        "Someone carrying groceries upstairs.",
+        "Someone carrying groceries upstairs.",
+        "A child sliding down the banister.",
+        "An individual decorating the stairway.",
+        "Someone exercising by running up and down."
+    ],
+    "toilet":[
+        "An individual entering or exiting the room quickly.",
+        "Someone doing a quick check in the mirror.",
+        "A parent teaching a young child how to use the toilet.",
+        "A person changing a baby's diaper (if space allows).",
+        "An individual in a rush to use the toilet."
+    ],
+    "utilityroom/toolroom":[
+        "A person organizing tools on a wall rack.",
+        "Someone repairing a household item, like a vacuum cleaner.",
+        "A homeowner searching for the right tool for a DIY project.",
+        "An individual doing some woodworking or crafting.",
+        "A child observing and learning about tools from a parent."
+    ],
+    "tv":[
+        "Friends watching a movie together, with popcorn and drinks.",
+        "A family having a movie night with kids.",
+        "An individual enjoying a sports game, cheering loudly.",
+        "Someone watching a concert or live performance on TV.",
+        "A couple snuggled up, watching a romantic movie."
+    ],
+    "workout/gym/exercise":[
+        "A person lifting weights or using gym equipment.",
+        "Someone doing a yoga or pilates session.",
+        "An individual running on a treadmill.",
+        "A group having a fitness class or personal training session.",
+        "Someone stretching or cooling down after a workout."
+    ],
+    "outdoor areas containing grass, plants, bushes, trees, etc.":[
+        "A family having a picnic on the grass.",
+        "Someone gardening, planting flowers or vegetables.",
+        "Children playing hide and seek among the trees.",
+        "An individual reading a book under a tree.",
+        "A person walking their dog or playing fetch."
+    ],
+    "balcony":[
+        "A person enjoying a cup of coffee while looking at the view.",
+        "Someone watering plants or tending to a small balcony garden.",
+        "A couple having a quiet, intimate conversation.",
+        "An individual doing some outdoor yoga or stretching.",
+        "A person taking photographs of the view."
+    ],
+    "other room":[
+        "Someone curiously exploring or looking around the room.",
+        "A person using the room for a quiet phone call.",
+        "Children playing imaginatively, using the room as a fort or castle.",
+        "An individual using the room for meditation or quiet reflection.",
+        "A group of friends using the space for an impromptu gathering."
+    ],
+    "bar":[
+        "A bartender mixing and serving drinks.",
+        "Friends toasting and enjoying cocktails.",
+        "Someone tasting different types of beers or wines.",
+        "A couple having a date night at the bar.",
+        "An individual sitting alone, sipping a drink and relaxing."
+    ],
+    "classroom":[
+        "A teacher giving a lecture or lesson to students.",
+        "Students taking notes, listening, or asking questions.",
+        "A group working together on a class project.",
+        "Someone giving a presentation in front of the class.",
+        "A student staying after class to talk to the teacher."
+    ],
+    "dining booth":[
+        "A family enjoying a meal together in a cozy booth.",
+        "Friends laughing and sharing stories over dinner.",
+        "A couple having a romantic dinner in a secluded booth.",
+        "Someone working on a laptop or reading while eating.",
+        "A group celebrating a special occasion with food and drinks."
+    ],
+    "spa/sauna":[
+        "Individuals relaxing in the sauna or steam room.",
+        "A person receiving a therapeutic massage or treatment.",
+        "Someone meditating or practicing deep breathing.",
+        "A group of friends enjoying a spa day together.",
+        "An individual taking a quiet moment for self-care and relaxation."
+    ]
+}
