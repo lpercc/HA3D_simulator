@@ -1,6 +1,7 @@
-# HC-VLN_simulator
+# HC3D Simulator
 
-This repo is for add 3D human in real-world environment
+HC3D Simulator is for add 3D human in real-world environment
+The development of the simulator is based on：Matterport3D Simulator API, MDM
 
 ## Create conda environment
 ```bash
@@ -15,7 +16,7 @@ get download_mp.py
 ```bash
 mkdir $HC3D_SIMULATOR_DTAT_PATH/MP3D_dataset
 python2 download_mp.py -o $HC3D_SIMULATOR_DTAT_PATH/MP3D_dataset --type matterport_skybox_images undistorted_camera_parameters undistorted_depth_images
-python unzip_data.py
+python scripts/unzip_data.py
 ```
 ## Set environment
 Set an environment variable to the location of the **unzipped** dataset, where <PATH> is the full absolute path (not a relative path or symlink) to the directory containing the individual matterport scan directories (17DRP5sb8fy, 2t7WUuJeko7, etc):
