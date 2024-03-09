@@ -6,6 +6,7 @@ import trimesh
 import imageio.v2 as imageio
 from src.render.renderer import get_renderer
 from src.render.rendermdm import render_first_frame, render_video
+from src.utils.concat_skybox import concat
 from form1 import Ui_Form
 from PyQt5.QtWidgets import *
 from PyQt5.QtMultimedia import *
@@ -14,6 +15,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtChart import *
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 
+DOWNSIZED_WIDTH = 512
+DOWNSIZED_HEIGHT = 512
 
 class myMainWindow(Ui_Form,QMainWindow):
     def __init__(self,viewpoint_image_dir, video_output_dir, motion_model_dir, scan_list, human_motion_data, agent_heading_data):
@@ -38,7 +41,7 @@ class myMainWindow(Ui_Form,QMainWindow):
             #print(len(connection_data))
         
         ## 获取该建筑场景的全景视图存放路径
-        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, f"{self.scan_id}/matterport_panorama_images")
+        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, f"{self.scan_id}/matterport_skybox_images")
         
         ## 输出路径
         self.video_output_path = os.path.join(self.video_output_dir, f"{self.scan_id}/matterport_panorama_video")
@@ -63,7 +66,7 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.agent_viewpoint_id = self.agent_viewpoint_list[0]
         self.agent_heading = self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0]
         self.agent_location = self.location_data[self.agent_viewpoint_id]
-        self.background = imageio.imread(os.path.join(self.panorama_image_path,self.agent_viewpoint_id+'.jpg'))
+        self.background = concat(self.panorama_image_path, DOWNSIZED_WIDTH)
         self.output_frame_path = "./fine_tune_heading/adjust.jpg"
         self.output_video_path = os.path.join(self.video_output_path,f"{self.agent_viewpoint_id}.mp4")
         
@@ -168,7 +171,7 @@ class myMainWindow(Ui_Form,QMainWindow):
             #print(len(connection_data))
         
         ## 获取该建筑场景的全景视图存放路径
-        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, f"{self.scan_id}/matterport_panorama_images")
+        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, f"{self.scan_id}/matterport_skybox_images")
         
         ## 输出路径
         self.video_output_path = os.path.join(self.video_output_dir, f"{self.scan_id}/matterport_panorama_video")
@@ -274,7 +277,7 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.updateImage()
 
     def updateImage(self):
-        self.background = imageio.imread(os.path.join(self.panorama_image_path,self.agent_viewpoint_id+'.jpg'))
+        self.background = concat(self.panorama_image_path, DOWNSIZED_WIDTH)
         #self.renderer = get_renderer(self.background.shape[1], self.background.shape[0])
         self.updateFusion()
         pix_panorama = QPixmap(self.output_frame_path)
@@ -295,21 +298,17 @@ class myMainWindow(Ui_Form,QMainWindow):
             obj_path = os.path.join(self.motion_path,obj_file)
             mesh = trimesh.load(obj_path)
             meshes.append(mesh)
-            #self.updateFusion()
-            #pix_panorama = QPixmap(self.output_frame_path)
-            #time.sleep(100)
-            #self.label_frame1.setPixmap(pix_panorama)
         render_video(meshes, 
-                            self.background, 
-                            self.agent_location, 
-                            self.agent_heading, 
-                            self.human_location, 
-                            self.human_heading, 
-                            self.renderer, 
-                            self.output_video_path, 
-                            self.agent_viewpoint_id,
-                            self.scan_id,
-                            self.human_viewpoint_id)
+                    self.background, 
+                    self.agent_location, 
+                    self.agent_heading, 
+                    self.human_location, 
+                    self.human_heading, 
+                    self.renderer, 
+                    self.output_video_path, 
+                    self.agent_viewpoint_id,
+                    self.scan_id,
+                    self.human_viewpoint_id)
 
         self.player.setMedia(QMediaContent(QUrl.fromLocalFile(self.output_video_path))) 
         self.pushButton_stop.setEnabled(True)

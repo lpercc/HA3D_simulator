@@ -2,80 +2,54 @@
 
 This repo is for add 3D human in real-world environment
 
-## set env parser 
-> 200GB
+## Create conda environment
 ```bash
-export HC3D_SIMULATOR_DTAT_PATH=/your/path/to/store/data && echo $HC3D_SIMULATOR_DTAT_PATH
+conda create --name hc3d_simulater python=3.10
+conda activate hc3d_simulater
+pip install -r requirements.txt
 ```
 ## Download dataset
+To use the simulator you must first download the [Matterport3D Dataset](https://niessner.github.io/Matterport/) which is available after requesting access [here](https://niessner.github.io/Matterport/). The download script that will be provided allows for downloading of selected data types. At minimum you must download the `matterport_skybox_images`. If you wish to use depth outputs then also download `undistorted_depth_images` and `undistorted_camera_parameters`.
 download Matterport3D dataset from https://niessner.github.io/Matterport/
 get download_mp.py
 ```bash
-conda create -n mp3d python=2.7
-conda activate mp3d
-mkdir ./Matterport3D_dataset
-python ./HC-VLN_simulator/download_mp.py -o ./Matterport3D_dataset --type matterport_skybox_images undistorted_camera_parameters  undistorted_depth_images
-find ./Matterport3D_dataset/v1/scans -name '*.zip' -exec unzip -o '{}' -d ./data/v1/scans \;
-conda deactivate
+mkdir $HC3D_SIMULATOR_DTAT_PATH/MP3D_dataset
+python2 download_mp.py -o $HC3D_SIMULATOR_DTAT_PATH/MP3D_dataset --type matterport_skybox_images undistorted_camera_parameters undistorted_depth_images
+python unzip_data.py
 ```
-
-
-## 1. Create conda environment
-
+## Set environment
+Set an environment variable to the location of the **unzipped** dataset, where <PATH> is the full absolute path (not a relative path or symlink) to the directory containing the individual matterport scan directories (17DRP5sb8fy, 2t7WUuJeko7, etc):
 ```bash
-conda create --name hcvln_simulater python=3.8
-conda activate hcvln_simulater
+export HC3D_SIMULATOR_DTAT_PATH=/your/path/to/store/data && echo $HC3D_SIMULATOR_DTAT_PATH
+```
+## Dataset Preprocessing
+
+To make data loading faster and to reduce memory usage we preprocess the `matterport_skybox_images` by downscaling and combining all cube faces into a single image. While still inside the docker container, run the following script:
+```
+./scripts/downsize_skybox.py
 ```
 
-## 2. install the following packages in your environnement:
-```bash
-pip install tqdm imageio trimesh pyrender opencv-python transformers timm torch torchvision
+This will take a while depending on the number of processes used (which is a setting in the script). 
+
+After completion, the `matterport_skybox_images` subdirectories in the dataset will contain image files with filename format `<PANO_ID>_skybox_small.jpg`. By default images are downscaled by 50% and 20 processes are used.
+
+Precompute matching depth skybox images by running this script:
 ```
-## 3.concat skybox
-```bash
-python concat_skybox.py
+./scripts/depth_to_skybox.py
 ```
 
-## 4.Human motion generation
-### collacte human descriptions
-```human_motion_text.json```
-### generate human motion backbone
-get MDM repo from https://github.com/GuyTevet/motion-diffusion-model
-```bash
-cd ..
-git clone https://github.com/GuyTevet/motion-diffusion-model.git
-cd motion-diffusion-model
-```
-follow the README, after step 3 (https://github.com/GuyTevet/motion-diffusion-model#3-download-the-pretrained-models)
-run the script
-```bash
-#copy prompts file
-cp ../HC-VLN_simulator/HC-VLN_text_prompts.txt ./assets/
-#generate from human motion text prompts
-python -m sample.generate --model_path ./save/humanml_trans_enc_512/model000200000.pt --input_text ./assets/HC-VLN_text_prompts.txt --num_repetitions 3 --batch_size 145
-```
-You may also define:
-  --device id.
-  --seed to sample different prompts.
-  --motion_length (text-to-motion only) in seconds (maximum is 9.8[sec]).
+## Build Matterport3D Simulator
+see Matterport3DSimulator/README
 
-### screen human motion backbone(manual)
-
-### Render SMPL mesh
-```bash
-cp ../HC-VLN_simulator/backbone2smpl.py ./visualize
-cp ../HC-VLN_simulator/human_motion_text.json ./
-python -m visualize.backbone2smpl
-```
-
-## 5.human-environment fusion(demo)
-```bash
-python fusion.py --mode run_single
-```
-## 5.1 GUI
+## HC3D Simulator GUI
 ```bash
 python GUI.py
 ```
+## Human motion generation
+see human_motion_model/README
+## human-scene fusion
+see human-viewpoint_pair/README
+
 
 Pyrender supports three backends for offscreen rendering:
   Pyglet, the same engine that runs the viewer. This requires an active display manager, so you can’t run it on a headless server.
@@ -83,6 +57,4 @@ Pyrender supports three backends for offscreen rendering:
   EGL, which allows for GPU-accelerated rendering without a display manager.
   default is EGL
 pyrender offscreen rendering https://pyrender.readthedocs.io/en/latest/examples/offscreen.html
-
-## 6.Create simulator
 
