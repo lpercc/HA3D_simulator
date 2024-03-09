@@ -15,7 +15,7 @@ download Matterport3D dataset from https://niessner.github.io/Matterport/
 get download_mp.py
 ```bash
 mkdir $HC3D_SIMULATOR_DTAT_PATH/MP3D_dataset
-python2 download_mp.py -o $HC3D_SIMULATOR_DTAT_PATH/MP3D_dataset --type matterport_skybox_images undistorted_camera_parameters undistorted_depth_images
+python2 download_mp.py -o $HC3D_SIMULATOR_DTAT_PATH/dataset --type matterport_skybox_images undistorted_camera_parameters undistorted_depth_images
 python scripts/unzip_data.py
 ```
 ## Set environment
