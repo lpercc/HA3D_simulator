@@ -9,20 +9,20 @@ conda create --name hc3d_simulater python=3.10
 conda activate hc3d_simulater
 pip install -r requirements.txt
 ```
-## Download dataset
-To use the simulator you must first download the [Matterport3D Dataset](https://niessner.github.io/Matterport/) which is available after requesting access [here](https://niessner.github.io/Matterport/). The download script that will be provided allows for downloading of selected data types. At minimum you must download the `matterport_skybox_images`. If you wish to use depth outputs then also download `undistorted_depth_images` and `undistorted_camera_parameters`.
-download Matterport3D dataset from https://niessner.github.io/Matterport/
-get download_mp.py
-```bash
-mkdir $HC3D_SIMULATOR_DTAT_PATH/MP3D_dataset
-python2 download_mp.py -o $HC3D_SIMULATOR_DTAT_PATH/dataset --type matterport_skybox_images undistorted_camera_parameters undistorted_depth_images
-python scripts/unzip_data.py
-```
 ## Set environment
 Set an environment variable to the location of the **unzipped** dataset, where <PATH> is the full absolute path (not a relative path or symlink) to the directory containing the individual matterport scan directories (17DRP5sb8fy, 2t7WUuJeko7, etc):
 ```bash
 export HC3D_SIMULATOR_DTAT_PATH=/your/path/to/store/data && echo $HC3D_SIMULATOR_DTAT_PATH
 ```
+## Download dataset
+To use the simulator you must first download the [Matterport3D Dataset](https://niessner.github.io/Matterport/) which is available after requesting access [here](https://niessner.github.io/Matterport/). The download script that will be provided allows for downloading of selected data types. At minimum you must download the `matterport_skybox_images`. If you wish to use depth outputs then also download `undistorted_depth_images` and `undistorted_camera_parameters`.
+download Matterport3D dataset from https://niessner.github.io/Matterport/
+get download_mp.py
+```bash
+python2 download_mp.py -o $HC3D_SIMULATOR_DTAT_PATH/dataset --type matterport_skybox_images undistorted_camera_parameters undistorted_depth_images
+python scripts/unzip_data.py
+```
+
 ## Dataset Preprocessing
 
 To make data loading faster and to reduce memory usage we preprocess the `matterport_skybox_images` by downscaling and combining all cube faces into a single image. While still inside the docker container, run the following script:
