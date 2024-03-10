@@ -3,34 +3,53 @@ import trimesh
 import imageio
 import cv2
 import numpy as np
-from render.rendermdm import get_renderer, render_frames
-from utils.get_info import get_human_info, load_viewpointids
+from src.utils.get_info import get_human_info, load_viewpointids, getAllHuman, print_file_and_line_quick
 import MatterSim
 import math
-import requests
 import argparse
 import copy
 from tqdm import tqdm
-from PIL import ImageFile
-ImageFile.LOAD_TRUNCATED_IMAGES = True
 import json
-os.environ['PYOPENGL_PLATFORM'] = 'egl'
+import pickle
+
+def receiveMessage(pipe_R2S):
+    with open(pipe_R2S, 'rb') as pipe_r2s:
+        while True:
+            # 读取序列化的数据
+            serialized_data = pipe_r2s.read()
+            # 如果读取到数据，反序列化
+            if serialized_data:
+                message = pickle.loads(serialized_data)['message']
+                print(message)
+                break
+
 
 class HCSimulator(MatterSim.Simulator):
     def __init__(self):
         self.isRealTimeRender = False
+        self.state = None
+        self.states = [self.state]
         self.state_list = []
         self.state_index = -1
         self.scanId = 0
         self.viewpointId = 0
         self.WIDTH = 640
         self.HEIGHT = 480
+        self.VFOV = math.radians(60)
+        self.pipe_S2R = '/tmp/my_S2R_pipe'
+        self.pipe_R2S = '/tmp/my_R2S_pipe'
+        self.frame_num = 0
         super().__init__()
     
+    
+
     def setCameraResolution(self, WIDTH, HEIGHT):
+        self.WIDTH = WIDTH
+        self.HEIGHT = HEIGHT
         super().setCameraResolution(WIDTH, HEIGHT)
 
     def setCameraVFOV(self, VFOV):
+        self.VFOV = VFOV
         super().setCameraVFOV(VFOV)
 
     def setDiscretizedViewingAngles(self, flag):
@@ -39,7 +58,7 @@ class HCSimulator(MatterSim.Simulator):
     def setBatchSize(self, BatchSize):
         super().setBatchSize(BatchSize)
 
-    def setRealTimeRender(self,isRealTimeRender):
+    def setRealTimeRender(self, isRealTimeRender):
         self.isRealTimeRender = isRealTimeRender
         print("Real Time Rendering mode!!!")
 
@@ -47,6 +66,19 @@ class HCSimulator(MatterSim.Simulator):
         super().initialize()
         if not self.isRealTimeRender:
             self.state_index = self.state_index + viewpoint_s
+        else:
+            data = {
+                'function':'create renderer',
+                'WIDTH':self.WIDTH,
+                'HEIGHT':self.HEIGHT
+            }
+            with open(self.pipe_S2R, 'wb') as pipe:
+                # 序列化数据
+                serialized_data = pickle.dumps(data)
+                # 写入到命名管道
+                pipe.write(serialized_data)
+                print(f"Waiting {data['function']}")
+            receiveMessage(self.pipe_R2S)
 
     def newEpisode(self, scanId, viewpointId, heading, elevation):
         if not self.isRealTimeRender:
@@ -54,7 +86,38 @@ class HCSimulator(MatterSim.Simulator):
             self.viewpointId = viewpointId[0]
             self.state_index += 1
         else:
+            print("Loading episode ......")
             super().newEpisode(scanId, viewpointId, heading, elevation)
+            self.state = super().getState()[0]
+            human_list = getAllHuman(scanId[0])
+            print("over Loading")
+            data = {
+                'function':'set human',
+                'human_list':human_list,
+            }
+            with open(self.pipe_S2R, 'wb') as pipe:
+                # 序列化数据
+                serialized_data = pickle.dumps(data)
+                # 写入到命名管道
+                pipe.write(serialized_data)
+                print(f"Waiting {data['function']}")
+            receiveMessage(self.pipe_R2S)
+
+            data = {
+                'function':'set agent',
+                'VFOV':self.VFOV,
+                'location':[self.state.location.x, self.state.location.y, self.state.location.z],
+                'heading':self.state.heading,
+                'elevation':self.state.elevation
+            }
+            with open(self.pipe_S2R, 'wb') as pipe:
+                # 序列化数据
+                serialized_data = pickle.dumps(data)
+                # 写入到命名管道
+                pipe.write(serialized_data)
+                print(f"Waiting {data['function']}")
+            receiveMessage(self.pipe_R2S)
+            self.renderScene()
 
     def makeAction(self, index, heading, elevation):
         if not self.isRealTimeRender:
@@ -62,65 +125,78 @@ class HCSimulator(MatterSim.Simulator):
             self.state_index += 1
         else:
             super().makeAction(index, heading, elevation)
-    
-    def getState(self, num_frames):
+            self.state = super().getState()[0]
+            data = {
+                'function':'move agent',
+                'VFOV':self.VFOV,
+                'location':[self.state.location.x, self.state.location.y, self.state.location.z],
+                'heading':self.state.heading,
+                'elevation':self.state.elevation
+            }
+            with open(self.pipe_S2R, 'wb') as pipe:
+                # 序列化数据
+                serialized_data = pickle.dumps(data)
+                # 写入到命名管道
+                pipe.write(serialized_data)
+                print(f"Waiting {data['function']}")
+            receiveMessage(self.pipe_R2S)
+            self.renderScene()
+            
+
+    def renderScene(self):
+        self.state = HCSimState(self.state, self.isRealTimeRender)
+        #self.background = cv2.cvtColor(self.state.rgb, cv2.COLOR_BGR2RGB).astype(np.uint8)
+        self.background = self.state.rgb.astype(np.uint8)
+        self.background_depth = np.squeeze(self.state.depth, axis=-1).astype(np.uint8)
+        data = {
+            'function':'rendering scene',
+            'background':self.background,
+            'background_depth':self.background_depth,
+        }
+        with open(self.pipe_S2R, 'wb') as pipe:
+            # 序列化数据
+            serialized_data = pickle.dumps(data)
+            # 写入到命名管道
+            pipe.write(serialized_data)
+            print(f"Waiting {data['function']}")
+        receiveMessage(self.pipe_R2S)
+
+
+    def getState(self):
         if not self.isRealTimeRender:
             o_state = self.state_list[self.state_index]
             state = HCSimState(o_state,self.isRealTimeRender)
             assert self.scanId == state.scanId
             assert self.viewpointId == state.location.viewpointId
         else:
-            o_state = super().getState()[0]
-            state = HCSimState(o_state,self.isRealTimeRender)
-        
-        state.video = self.HCFusion(state, num_frames=num_frames)
-        return [state]
+            data = {
+                'function':'get rgb',
+                'frame_num':self.frame_num
+            }
+            with open(self.pipe_S2R, 'wb') as pipe_s2r:
+                # 序列化数据
+                serialized_data = pickle.dumps(data)
+                # 写入到命名管道
+                pipe_s2r.write(serialized_data)
+                #print(f"Waiting {data['function']}, frame_num {data['frame_num']}")
+            #receiveMessage(self.pipe_R2S)
+            with open(self.pipe_R2S, 'rb') as pipe_r2s:
+                while True:
+                    # 读取序列化的数据
+                    serialized_data = pipe_r2s.read()
+                    # 如果读取到数据，反序列化
+                    if serialized_data:
+                        data = pickle.loads(serialized_data)
+                        self.state.rgb = data['rgb']
+                        #print(np.sum(self.state.rgb))
+                        #print(f"SUCCESS {data['function']}, frame_num {data['frame_num']}")
+                        break
+            self.frame_num += 1
+            if self.frame_num == 120:
+                 self.frame_num = 0
+        self.states[0] = self.state
+        return self.states
 
-
-    def fill_image(self, img, num_frames=60):
-        return np.array([img]*num_frames)
-
-    def HCFusion(self, state, num_frames=60):
-        location = state.location
-        view_id = location.viewpointId
-        human_angle, human_loc, motion_path = get_human_info(os.getenv('VLN_DATA_DIR'), state.scanId, view_id)
-        #background = state.rgb
-        background = cv2.cvtColor(state.rgb, cv2.COLOR_BGR2RGB).astype(np.uint8)
-        background_depth = np.squeeze(state.depth, axis=-1).astype(np.uint8)
-        #print(f"Background shape {background.shape}, background_depth shape {background_depth.shape}")
-
-        if human_angle == None:
-            imgs_ny = self.fill_image(background, num_frames)
-            #print(imgs_ny.shape)
-            return imgs_ny
-        
-        meshes = []
-        # 从.obj文件创建mesh
-        # 获取目录下的所有.obj文件，并按照序号从大到小排序
-        obj_files = [f for f in os.listdir(motion_path) if f.endswith('.obj')]
-        #print(obj_files[0].split('frame')[1].split('.obj')[0])
-        #抽帧
-        indices = np.linspace(0, 60, num_frames, endpoint=False, dtype=int)  # dtype应改为int
-        sorted_obj_files = sorted(obj_files)
-        for obj_file in [sorted_obj_files[i] for i in indices]:  # 使用列表推导式
-            obj_file.split('.')
-            obj_path = os.path.join(motion_path,obj_file)
-            mesh = trimesh.load(obj_path)
-            meshes.append(mesh)
-
-
-        cam_loc = [location.x, location.y, location.z]
-        cam_angle = state.heading
-        cam_elevation = state.elevation
-        
-        width = background.shape[1]
-        height = background.shape[0]
-        renderer = get_renderer(width, height)
-        imgs = render_frames(meshes, background, background_depth,cam_loc, cam_angle, cam_elevation, human_loc, human_angle, renderer, view_id,color=[0, 0.8, 0.5])
-        imgs_ny = np.array(imgs, copy=False)
-        #print(imgs_ny.shape)
-        return imgs_ny
-    
     def preRenderAll(self, VIEWPOINT_SIZE):
         # Loop all the viewpoints in the simulator
         TSV_FIELDNAMES = ["scanId", "step", "rgb", "depth", "location", "heading", "elevation", "viewIndex", "navigableLocations"]
@@ -211,7 +287,6 @@ class HCSimState():
             self.elevation = o_state["elevation"]
             self.viewIndex = o_state["viewIndex"]
             self.navigableLocations = self.navigableLocations_to_object(o_state["navigableLocations"]) 
-        self.video = []
 
     def navigableLocations_to_object(self, navigableLocations):
         new_navigableLocations = []
@@ -275,10 +350,10 @@ def main(args):
     WIDTH = 800
     HEIGHT = 600
     VFOV = math.radians(60)
-
+    dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
     sim = HCSimulator()
     sim.setRealTimeRender(True)
-    sim.setDatasetPath(os.environ.get("MATTERPORT_DATA_DIR"))
+    sim.setDatasetPath(dataset_path)
     sim.setCameraResolution(WIDTH, HEIGHT)
     sim.setCameraVFOV(VFOV)
     sim.setDepthEnabled(True) # Turn on depth only after running ./scripts/depth_to_skybox.py (see README.md)
@@ -300,13 +375,13 @@ def main(args):
 
     sim.makeAction([location], [heading], [elevation])
     state = sim.getState(num_frames=60)[0]
-    
+    cv2.imwrite('test.jpg', state.rgb)
     print(state.heading, state.elevation, state.viewIndex)
     
-    frames = state.video
+    #frames = state.video
     #np.save("test_frames.npy", frames)
-    video_file = f"{state.scanId}_{state.location.viewpointId}_{state.viewIndex}_{state.heading}_{state.elevation}.mp4"
-    save_video_bgr(frames, video_file, 20)
+    #video_file = f"{state.scanId}_{state.location.viewpointId}_{state.viewIndex}_{state.heading}_{state.elevation}.mp4"
+    #save_video_bgr(frames, video_file, 20)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

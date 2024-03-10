@@ -42,16 +42,20 @@ Note that there are three rendering options, which are selected using [cmake](ht
 
 The recommended (fast) approach for training agents is using off-screen GPU rendering (EGL).
 
+## Set environment
+```bash
+vim ~/.bashrc
+export PYTHONPATH=/your/path/to/Matterport3DSimulator/build && echo $PYTHONPATH
+source ~/.bashrc
+```
+
 ## Interactive Demo
 Python demo:
 ```
+conda activate hc3d_simulater
 python src/driver/driver.py
 ```
 
-## Set environment
-```bash
-export PYTHONPATH=/your/path/to/Matterport3DSimulator/build && echo $PYTHONPATH
-```
 ## Acknowledgements
 
 We would like to thank Matterport for allowing the Matterport3D dataset to be used by the academic community. This project is supported by a Facebook ParlAI Research Award and by the [Australian Centre for Robotic Vision](https://www.roboticvision.org/).

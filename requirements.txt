@@ -3,4 +3,5 @@ imageio
 trimesh 
 pyrender 
 opencv-python
-multiprocessing
+torch
+torchvision

@@ -1,7 +1,15 @@
 import json
 import os
 import math
+import trimesh
+import inspect
 
+def print_file_and_line_quick():
+    # 快速获取当前行号
+    line_no = inspect.stack()[1][2]
+    # 快速获取当前文件名
+    file_name = __file__
+    print(f"File: {file_name}, Line: {line_no}")
 # 判断viewpoint是否能看见人物，若能则返回人物信息
 # Parameters：
 ## basic_data_dir :基础目录路径（人物信息所在目录）
@@ -44,6 +52,45 @@ def get_human_info(basic_data_dir, scan_id, agent_view_id):
             pass
 
     return human_heading, human_loc, motion_path
+
+
+def getAllHuman(scan_id):
+    human_list = []
+    human_item = {}
+    motion_dir = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"),"human_motion_meshes")
+        # 一共90个建筑场景数据
+    with open('human-viewpoint_pair/human_motion_text.json', 'r') as f:
+        human_view_data = json.load(f)
+            # 获取建筑场景所有视点信息（视点之间的关系）
+    with open('con/pos_info/{}_pos_info.json'.format(scan_id), 'r') as f:
+        pos_data = json.load(f)
+        #print(len(pos_data))
+    with open('con/con_info/{}_con_info.json'.format(scan_id), 'r') as f:
+        connection_data = json.load(f)
+    human_heading = 0
+    human_loc = []
+    motion_path = ''
+    for human_view_id in human_view_data[scan_id]:
+        human_meshes = []
+        # 人物视点编号
+        human_motion = human_view_data[scan_id][human_view_id][0]
+        human_model_id = human_view_data[scan_id][human_view_id][1]
+        human_heading = human_view_data[scan_id][human_view_id][2]
+        human_loc = [pos_data[human_view_id][0], pos_data[human_view_id][1], pos_data[human_view_id][2]]
+        motion_path = os.path.join(motion_dir, human_motion.replace(' ', '_').replace('/', '_'), f"{human_model_id}_obj")
+        obj_files = [f for f in os.listdir(motion_path) if f.endswith('.obj')]
+        sorted_obj_files = sorted(obj_files)
+        for obj_file in [sorted_obj_files[i] for i in range(120)]:  # 使用列表推导式
+            obj_file.split('.')
+            obj_path = os.path.join(motion_path,obj_file)
+            mesh = trimesh.load(obj_path)
+            human_meshes.append(mesh) 
+        human_list.append({
+            'heading':human_heading,
+            'location':human_loc,
+            'meshes':human_meshes
+        })
+    return human_list
 
 # 计算数据集中每条路径的可见人物
 def get_human_on_path(data_dir_path):

@@ -3,17 +3,22 @@
 HC3D Simulator is for add 3D human in real-world environment
 The development of the simulator is based on：Matterport3D Simulator API, MDM
 
-## Create conda environment
-```bash
-conda create --name hc3d_simulater python=3.10
-conda activate hc3d_simulater
-pip install -r requirements.txt
-```
 ## Set environment
 Set an environment variable to the location of the **unzipped** dataset, where <PATH> is the full absolute path (not a relative path or symlink) to the directory containing the individual matterport scan directories (17DRP5sb8fy, 2t7WUuJeko7, etc):
 ```bash
-export HC3D_SIMULATOR_DTAT_PATH=/your/path/to/store/data && echo $HC3D_SIMULATOR_DTAT_PATH
+vim ~/.bashrc
+export HC3D_SIMULATOR_DTAT_PATH=/your/path/to/store/data
+source ~/.bashrc
+echo $HC3D_SIMULATOR_DTAT_PATH
 ```
+
+## Create conda environment
+```bash
+conda create --name hc3d_simulator python=3.10
+conda activate hc3d_simulator
+pip install -r requirements.txt
+```
+
 ## Download dataset
 To use the simulator you must first download the [Matterport3D Dataset](https://niessner.github.io/Matterport/) which is available after requesting access [here](https://niessner.github.io/Matterport/). The download script that will be provided allows for downloading of selected data types. At minimum you must download the `matterport_skybox_images`. If you wish to use depth outputs then also download `undistorted_depth_images` and `undistorted_camera_parameters`.
 download Matterport3D dataset from https://niessner.github.io/Matterport/
