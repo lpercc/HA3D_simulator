@@ -4,8 +4,8 @@ import numpy as np
 from src.render.renderer import get_renderer
 import cv2
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
-pipe_S2R = '/tmp/my_S2R_pipe'
-pipe_R2S = '/tmp/my_R2S_pipe'
+pipe_S2R = './pipe/my_S2R_pipe'
+pipe_R2S = './pipe/my_R2S_pipe'
 
 def sendMessage(pipe_R2S, message):
     with open(pipe_R2S, 'wb') as pipe_r2s:
@@ -62,7 +62,7 @@ with open(pipe_S2R, 'rb') as pipe_s2r:
                 sendMessage(pipe_R2S,message)               
             elif function == 'rendering scene':
                 background = data['background']
-                background_depth = data['background_depth'] * 0.25 * 0.4
+                background_depth = data['background_depth']
                 message = f"SUCCESS {function}: {np.sum(background)},{background.shape}"
                 print(message)
                 sendMessage(pipe_R2S,message)

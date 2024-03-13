@@ -36,8 +36,8 @@ class HCSimulator(MatterSim.Simulator):
         self.WIDTH = 640
         self.HEIGHT = 480
         self.VFOV = math.radians(60)
-        self.pipe_S2R = '/tmp/my_S2R_pipe'
-        self.pipe_R2S = '/tmp/my_R2S_pipe'
+        self.pipe_S2R = './pipe/my_S2R_pipe'
+        self.pipe_R2S = './pipe/my_R2S_pipe'
         self.frame_num = 0
         super().__init__()
     
@@ -148,7 +148,7 @@ class HCSimulator(MatterSim.Simulator):
         self.state = HCSimState(self.state, self.isRealTimeRender)
         #self.background = cv2.cvtColor(self.state.rgb, cv2.COLOR_BGR2RGB).astype(np.uint8)
         self.background = self.state.rgb.astype(np.uint8)
-        self.background_depth = np.squeeze(self.state.depth, axis=-1).astype(np.uint8)
+        self.background_depth = np.squeeze(self.state.depth, axis=-1)
         data = {
             'function':'rendering scene',
             'background':self.background,
@@ -193,7 +193,7 @@ class HCSimulator(MatterSim.Simulator):
                         #print(f"SUCCESS {data['function']}, frame_num {data['frame_num']}")
                         break
             self.frame_num += 1
-            if self.frame_num == 120:
+            if self.frame_num == 60:
                  self.frame_num = 0
         self.states[0] = self.state
         return self.states

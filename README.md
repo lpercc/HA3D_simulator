@@ -48,9 +48,20 @@ Precompute matching depth skybox images by running this script:
 see Matterport3DSimulator/README
 
 ## HC3D Simulator GUI
+create pipe
+```bash
+mkfifo ./pipe/my_S2R_pipe
+mkfifo ./pipe/my_R2S_pipe
+```
+run renderer
+```bash
+python HC3DRender.py
+```
+Open another terminal and run HC3D Simulator GUI
 ```bash
 python GUI.py
 ```
+
 ## Human motion generation
 see human_motion_model/README
 ## human-scene fusion

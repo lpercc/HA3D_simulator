@@ -1,7 +1,7 @@
 import sys
 import os
 import json
-from ui.form1 import Ui_Form
+from ui.form import Ui_Form
 from PyQt5.QtWidgets import *
 from PyQt5.QtMultimedia import *
 from PyQt5.QtGui import *
@@ -10,6 +10,7 @@ from PyQt5.QtChart import *
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtCore import Qt
 from src.utils.get_info import *
+from src.utils.drawImage import drawCentering
 import math
 import numpy as np
 import random
@@ -244,6 +245,7 @@ class myMainWindow(Ui_Form,QMainWindow):
     def updateAgentState(self):
         self.agentState = self.sim.getState()[0]
         rgb = np.array(self.agentState.rgb, copy=False)
+        drawCentering(rgb, 20)
         # 将 NumPy 数组转换为 QImage 对象
         height, width, channel = rgb.shape
         bytesPerLine = 3 * width

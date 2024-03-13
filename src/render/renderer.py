@@ -32,6 +32,7 @@ class Renderer:
             viewport_height=self.resolution[1],
             point_size=0.5
         )
+        self.aspectRatio = self.resolution[0]/self.resolution[1]
         # set the scene
         self.scene = pyrender.Scene(bg_color=bg_color, ambient_light=(0.4, 0.4, 0.4))
         # set light
@@ -149,7 +150,7 @@ class Renderer:
     def newHumans(self, human_list, color=[1, 0.2, 0]):
         self.human_list = []
         material = pyrender.MetallicRoughnessMaterial(
-            metallicFactor=0.7,
+            metallicFactor=0.5,
             alphaMode='OPAQUE',
             baseColorFactor=(color[0], color[1], color[2], 1.0)
         )
@@ -184,7 +185,7 @@ class Renderer:
         light_pose = np.eye(4)
         light_pose[:3, 3] = [dx, dy, dz]
         self.light_node1 = self.scene.add(self.light, pose=light_pose.copy())
-        camera = pyrender.PerspectiveCamera(yfov=vfov, aspectRatio=1)
+        camera = pyrender.PerspectiveCamera(yfov=vfov, aspectRatio=self.aspectRatio)
         #cam_nodes = []
         rotation_matrix_heading = tf.rotation_matrix(heading, [0, -1, 0])
         rotation_matrix_elevation = tf.rotation_matrix(elevation, [1, 0, 0])
@@ -207,7 +208,7 @@ class Renderer:
         light_pose = np.eye(4)
         light_pose[:3, 3] = [dx, dy, dz]
         self.light_node1 = self.scene.add(self.light, pose=light_pose.copy())
-        camera = pyrender.PerspectiveCamera(yfov=vfov, aspectRatio=1)
+        camera = pyrender.PerspectiveCamera(yfov=vfov, aspectRatio=self.aspectRatio)
         #cam_nodes = []
         rotation_matrix_heading = tf.rotation_matrix(heading, [0, -1, 0])
         rotation_matrix_elevation = tf.rotation_matrix(elevation, [1, 0, 0])
@@ -227,7 +228,8 @@ class Renderer:
         for mesh_node in mesh_node_list:
             self.scene.remove_node(mesh_node)
         rgb = image
-        human_depth = d_img
+        human_depth = d_img * 4000
+        #print(human_depth.dtype, np.max(human_depth))
         mask = (human_depth <= background_depth) & (human_depth != 0)
         # 扩展掩码到三个通道，以匹配rgb和background的形状
         mask_3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
