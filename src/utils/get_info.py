@@ -101,7 +101,7 @@ def get_human_on_path(data_dir_path):
     for scan in human_view_data:
         human_count = human_count + len(scan)
     #print(f"human count:{human_count}")
-    r2r_data = read_R2R_data(data_dir_path)
+    r2r_data = read_VLN_data(data_dir_path)
 
     new_r2r_data = []
 
@@ -234,7 +234,7 @@ def compute_distance(viewpointId1, viewpointId2, pos_data):
     return math.sqrt(squared_sum)
 
 # 读取R2R数据
-def read_R2R_data(file_path):
+def read_VLN_data(file_path):
     with open(file_path, 'r') as f:
         r2r_data= json.load(f)
     r2r_data_path_num = len(r2r_data)
@@ -257,6 +257,19 @@ def get_visible_points(path, connection_data):
         pass
         #print(connection_data[path_point])
     return path_visible_points
+
+# 获取路径周围的点（可到达的点）
+def get_unobstructed_points(path, connection_data):
+    path_unobstructed_points = []
+    try:
+        for path_point in path:
+            unobstructed_points = connection_data[path_point]['unobstructed']
+            for point in unobstructed_points:
+                if point not in path_unobstructed_points:
+                    path_unobstructed_points.append(point)
+    except KeyError:
+        pass
+    return path_unobstructed_points
 
 #计算可以看见人物的viewpoint总数
 def count_points_seen_human():
@@ -283,7 +296,7 @@ def count_common_elements(list1, list2):
 
 # 获取path上的关键点，抵达目标的必经点
 def get_crux_on_path(data_file):
-    data = read_R2R_data(data_file)
+    data = read_VLN_data(data_file)
     #遍历每条路径
     for j,data_item in enumerate(data):
         scan_id = data_item["scan"]
@@ -336,6 +349,34 @@ def count_human_of_region():
                 region[human_region] = 1
     print(region)
     print(len(region))
+
+# 计算agent前进的下一个点
+def forwardViewpointIdx(navigableLocations):
+    fieldAngle = math.radians(10)
+    minDistance = 10
+    nextViewpointIdx = 0
+    for idx, loc in enumerate(navigableLocations[1:]):
+        if abs(loc.rel_heading)<=fieldAngle and abs(loc.rel_elevation)<=fieldAngle and loc.rel_distance<minDistance:
+            minDistance = loc.rel_distance
+            nextViewpointIdx = idx+1
+    return nextViewpointIdx
+
+def readScanIDList(file_path):
+    scanIDList = []
+    with open(file_path) as f:
+        scanIDList = [scan.strip() for scan in f.readlines()]
+    return scanIDList
+
+# 获取建筑场景所有视点之间的关系
+def read_connection_data(file_path): 
+    with open(file_path, 'r') as f:
+        connection_data = json.load(f)
+    return connection_data
+
+def read_position_data(file_path):
+    with open(file_path, 'r') as f:
+        position_data = json.load(f)
+    return position_data
 
 if __name__ == '__main__':
     #count_points_seen_human()

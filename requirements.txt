@@ -5,3 +5,5 @@ pyrender
 opencv-python
 torch
 torchvision
+PyQt5
+PyQtChart

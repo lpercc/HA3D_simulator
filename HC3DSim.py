@@ -89,20 +89,21 @@ class HCSimulator(MatterSim.Simulator):
             print("Loading episode ......")
             super().newEpisode(scanId, viewpointId, heading, elevation)
             self.state = super().getState()[0]
-            human_list = getAllHuman(scanId[0])
+            if self.scanId != scanId:
+                self.scanId = scanId
+                human_list = getAllHuman(scanId[0])
+                data = {
+                    'function':'set human',
+                    'human_list':human_list,
+                }
+                with open(self.pipe_S2R, 'wb') as pipe:
+                    # 序列化数据
+                    serialized_data = pickle.dumps(data)
+                    # 写入到命名管道
+                    pipe.write(serialized_data)
+                    print(f"Waiting {data['function']}")
+                receiveMessage(self.pipe_R2S)
             print("over Loading")
-            data = {
-                'function':'set human',
-                'human_list':human_list,
-            }
-            with open(self.pipe_S2R, 'wb') as pipe:
-                # 序列化数据
-                serialized_data = pickle.dumps(data)
-                # 写入到命名管道
-                pipe.write(serialized_data)
-                print(f"Waiting {data['function']}")
-            receiveMessage(self.pipe_R2S)
-
             data = {
                 'function':'set agent',
                 'VFOV':self.VFOV,

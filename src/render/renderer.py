@@ -169,6 +169,9 @@ class Renderer:
             self.human_list.append(meshes)
 
     def newAgent(self, vfov, location, heading, elevation):
+        if  self.cam_node is not None:
+            self.scene.remove_node(self.cam_node)
+            self.scene.remove_node(self.light_node1)
         cam_loc = (location[0], location[2], -location[1])
         dx, dy, dz = cam_loc # 例如，平移沿x轴，沿y轴，沿z轴
         translation_matrix = np.array([
