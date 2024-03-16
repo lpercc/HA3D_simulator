@@ -410,7 +410,7 @@
         <item>
          <widget class="QLabel" name="label_9">
           <property name="text">
-           <string>Dataset Lable</string>
+           <string>Dataset Label</string>
           </property>
          </widget>
         </item>
@@ -424,9 +424,9 @@
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="checkBoxUpdataPath">
+           <widget class="QCheckBox" name="checkBoxUpgradePath">
             <property name="text">
-             <string>Updata Path</string>
+             <string>Upgrade Path</string>
             </property>
            </widget>
           </item>

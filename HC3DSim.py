@@ -28,6 +28,7 @@ class HCSimulator(MatterSim.Simulator):
     def __init__(self):
         self.isRealTimeRender = False
         self.state = None
+        self.humanState = {}
         self.states = [self.state]
         self.state_list = []
         self.state_index = -1
@@ -40,8 +41,6 @@ class HCSimulator(MatterSim.Simulator):
         self.pipe_R2S = './pipe/my_R2S_pipe'
         self.frame_num = 0
         super().__init__()
-    
-    
 
     def setCameraResolution(self, WIDTH, HEIGHT):
         self.WIDTH = WIDTH
@@ -142,7 +141,6 @@ class HCSimulator(MatterSim.Simulator):
                 print(f"Waiting {data['function']}")
             receiveMessage(self.pipe_R2S)
             self.renderScene()
-            
 
     def renderScene(self):
         self.state = HCSimState(self.state, self.isRealTimeRender)
@@ -162,8 +160,10 @@ class HCSimulator(MatterSim.Simulator):
             print(f"Waiting {data['function']}")
         receiveMessage(self.pipe_R2S)
 
-
     def getState(self):
+        self.frame_num += 1
+        if self.frame_num == 60:
+            self.frame_num = 0
         if not self.isRealTimeRender:
             o_state = self.state_list[self.state_index]
             state = HCSimState(o_state,self.isRealTimeRender)
@@ -171,7 +171,7 @@ class HCSimulator(MatterSim.Simulator):
             assert self.viewpointId == state.location.viewpointId
         else:
             data = {
-                'function':'get rgb',
+                'function':'get state',
                 'frame_num':self.frame_num
             }
             with open(self.pipe_S2R, 'wb') as pipe_s2r:
@@ -188,15 +188,49 @@ class HCSimulator(MatterSim.Simulator):
                     # 如果读取到数据，反序列化
                     if serialized_data:
                         data = pickle.loads(serialized_data)
-                        self.state.rgb = data['rgb']
+                        self.state.rgb = data['rgb']                        
                         #print(np.sum(self.state.rgb))
                         #print(f"SUCCESS {data['function']}, frame_num {data['frame_num']}")
                         break
-            self.frame_num += 1
-            if self.frame_num == 60:
-                 self.frame_num = 0
         self.states[0] = self.state
         return self.states
+    
+    def getHumanState(self):
+        data = {
+            'function':'get human state',
+            'frame_num':self.frame_num
+        }
+        with open(self.pipe_S2R, 'wb') as pipe_s2r:
+            # 序列化数据
+            serialized_data = pickle.dumps(data)
+            # 写入到命名管道
+            pipe_s2r.write(serialized_data)
+            #print(f"Waiting {data['function']}, frame_num {data['frame_num']}")
+        #receiveMessage(self.pipe_R2S)
+        with open(self.pipe_R2S, 'rb') as pipe_r2s:
+            while True:
+                # 读取序列化的数据
+                serialized_data = pipe_r2s.read()
+                # 如果读取到数据，反序列化
+                if serialized_data:
+                    data = pickle.loads(serialized_data)
+                    humanState = data['human_state']
+                    #print(np.sum(self.state.rgb))
+                    #print(f"SUCCESS {data['function']}, frame_num {data['frame_num']}")
+                    break
+        return humanState  
+
+    def getStepState(self,framesPerStep=16):
+        agentState = None
+        agentViewFrames = []
+        humanState = None
+        for i in range(framesPerStep):
+            agentState = self.getState()[0]
+            agentViewFrames.append(agentState.rgb)
+        humanState = self.getHumanState()
+        return agentState, np.array(agentViewFrames, copy=False), humanState
+
+
 
     def preRenderAll(self, VIEWPOINT_SIZE):
         # Loop all the viewpoints in the simulator

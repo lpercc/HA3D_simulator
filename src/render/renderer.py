@@ -38,6 +38,7 @@ class Renderer:
         # set light
         self.light = pyrender.PointLight(color=[1.0, 1.0, 1.0], intensity=4)
         self.human_list = []
+        self.human_location = []
         self.cam_node = None
         self.light_node1 = None
     def render(self, mesh, background, background_depth, cam_loc, cam_angle, human_angle=None, mesh_filename=None, color=[1.0, 1.0, 0.9]):
@@ -149,6 +150,7 @@ class Renderer:
     
     def newHumans(self, human_list, color=[1, 0.2, 0]):
         self.human_list = []
+        self.human_location = []
         material = pyrender.MetallicRoughnessMaterial(
             metallicFactor=0.5,
             alphaMode='OPAQUE',
@@ -158,16 +160,28 @@ class Renderer:
         for human in bar:
             location = human['location']
             meshes = []
-            human_loc = (location[0], location[2]-1.36, -location[1])
+            human_location = []
+            human_start_loc = (location[0], location[2]-1.36, -location[1])
             theta_angle = (np.pi / 180 * float(human['heading']))
             matrix = get_rotation(theta=theta_angle)
+            min = 1
+            o_index = 0
+            # find O point of human mesh
+            for index, item in enumerate(human['meshes'][0].vertices):
+                sum = (item[0]**2)+(item[1]**2)+(item[2]**2)
+                if sum < min:
+                    min = sum
+                    o_index = index
             for mesh in human['meshes']:
                 mesh.vertices = np.einsum("ij,ki->kj", matrix, mesh.vertices)
                 #human平移
-                mesh.vertices = mesh.vertices + human_loc
+                mesh.vertices = mesh.vertices + human_start_loc
+                mesh_location = mesh.vertices[o_index]
+                human_location.append((mesh_location[0], -mesh_location[2], mesh_location[1]+1.36))
                 mesh = pyrender.Mesh.from_trimesh(mesh, material=material)
                 meshes.append(mesh)
             self.human_list.append(meshes)
+            self.human_location.append(human_location)
 
     def newAgent(self, vfov, location, heading, elevation):
         if  self.cam_node is not None:
@@ -224,6 +238,7 @@ class Renderer:
         if self.wireframe:
             render_flags = RenderFlags.ALL_WIREFRAME
         image, d_img = self.renderer.render(self.scene)
+        #print(self.scene.get_pose(mesh_node_list[0])[0:3,3])
         #print(image.shape)
         for mesh_node in mesh_node_list:
             self.scene.remove_node(mesh_node)
@@ -240,6 +255,11 @@ class Renderer:
         image = output_img.astype(np.uint8)
         return image,human_depth
 
+    def getHumanLocation(self, frame_num):
+        human_location = []
+        for i in self.human_location:
+            human_location.append(i[frame_num])
+        return human_location
 
 
 def get_renderer(width, height):

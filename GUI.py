@@ -230,7 +230,8 @@ class myMainWindow(Ui_Form,QMainWindow):
         elif event.key() == Qt.Key_F:
             forwardIdx = forwardViewpointIdx(self.agentState.navigableLocations)
             sim.makeAction([forwardIdx], [0], [0])           
-            print(f"Forward {forwardIdx}")  #
+            #print(f"Forward {forwardIdx}")  #
+            #print(sim.getHumanState())
             if forwardIdx != 0 and self.isPathTracking:
                 self.updateAgentState()
                 if self.agentState.location.viewpointId not in self.pathItem["path"]:

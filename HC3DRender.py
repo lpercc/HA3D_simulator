@@ -66,7 +66,7 @@ with open(pipe_S2R, 'rb') as pipe_s2r:
                 message = f"SUCCESS {function}: {np.sum(background)},{background.shape}"
                 print(message)
                 sendMessage(pipe_R2S,message)
-            elif function == 'get rgb':
+            elif function == 'get state':
                 frame_num = data['frame_num']
                 rgb,_ = renderer.render_agent(frame_num, background, background_depth)
                 message = f"SUCCESS {function}: frame_num {frame_num}"
@@ -74,12 +74,24 @@ with open(pipe_S2R, 'rb') as pipe_s2r:
                 #sendMessage(pipe_R2S,message) 
                 with open(pipe_R2S, 'wb') as pipe_r2s:
                     data = {
-                        'function': 'get rgb',
+                        'function': 'get state',
                         'frame_num': frame_num,
                         'rgb': rgb
                     }
                     serialized_data = pickle.dumps(data)
                     pipe_r2s.write(serialized_data)
+            elif function == 'get human state':
+                frame_num = data['frame_num']
+                human_loc = renderer.getHumanLocation(frame_num)
+                message = f"SUCCESS {function}: frame_num {frame_num}"
+                with open(pipe_R2S, 'wb') as pipe_r2s:
+                    data = {
+                        'function': 'get human state',
+                        'frame_num': frame_num,
+                        'human_state': human_loc
+                    }
+                    serialized_data = pickle.dumps(data)
+                    pipe_r2s.write(serialized_data)   
             else:
                 print(data)
 print("Render Process Message: FINISH")
