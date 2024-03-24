@@ -3,6 +3,8 @@ import os
 import math
 import trimesh
 import inspect
+from tqdm import tqdm 
+import numpy as np
 
 def print_file_and_line_quick():
     # 快速获取当前行号
@@ -53,8 +55,8 @@ def get_human_info(basic_data_dir, scan_id, agent_view_id):
 
     return human_heading, human_loc, motion_path
 
-
-def getAllHuman(scan_id):
+## get human mesh data of building
+def getHumanOfScan(scan_id):
     human_list = []
     human_item = {}
     motion_dir = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"),"human_motion_meshes")
@@ -91,6 +93,55 @@ def getAllHuman(scan_id):
             'meshes':human_meshes
         })
     return human_list
+
+def get_rotation(theta=np.pi):
+    import src.utils.rotation_conversions as geometry
+    import torch
+    axis = torch.tensor([0, 1, 0], dtype=torch.float)
+    axisangle = theta*axis
+    matrix = geometry.axis_angle_to_matrix(axisangle)
+    return matrix.numpy()
+
+def getHumanLocations(scan_id):
+    human_location = []
+    human_list = getHumanOfScan(scan_id)
+    for human in human_list:
+        location = human['location']
+        a_human_location = []
+        human_start_loc = (location[0], location[2]-1.36, -location[1])
+        theta_angle = (np.pi / 180 * float(human['heading']))
+        matrix = get_rotation(theta=theta_angle)
+        min = 1
+        o_index = 0
+        # find O point of human mesh
+        for index, item in enumerate(human['meshes'][0].vertices):
+            sum = (item[0]**2)+(item[1]**2)+(item[2]**2)
+            if sum < min:
+                min = sum
+                o_index = index
+        for mesh in human['meshes']:
+            mesh.vertices = np.einsum("ij,ki->kj", matrix, mesh.vertices)
+            #human平移
+            mesh.vertices = mesh.vertices + human_start_loc
+            mesh_location = mesh.vertices[o_index]
+            a_human_location.append((mesh_location[0], -mesh_location[2], mesh_location[1]+1.36))
+        human_location.append(a_human_location)
+    return human_location
+
+## get human all locations of each building
+def getAllHumanLocations(scanIDs=[]):
+    allHumanLocations = dict()
+    with open("connectivity/scans.txt") as f:
+        if len(scanIDs) != 0:
+            scans = scanIDs
+        else:
+            scans = [scan.strip() for scan in f.readlines()]
+        bar  = tqdm(scans, desc='Loading Human meshes')
+        for scan in bar:
+            # get all human locations in the scan building 
+            humanLocationOfScan = getHumanLocations(scan)
+            allHumanLocations[scan] = humanLocationOfScan
+    return allHumanLocations
 
 # 计算数据集中每条路径的可见人物
 def get_human_on_path(data_dir_path):

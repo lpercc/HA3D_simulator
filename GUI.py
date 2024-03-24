@@ -511,7 +511,7 @@ if __name__ == '__main__':
     import cv2
     sim = HC3DSim.HCSimulator()
     #sim.setRenderingEnabled(False)
-    sim.setRealTimeRender(True)
+    sim.setRenderingEnabled(True)
     sim.setDatasetPath(simulatorDataPath)
     sim.setCameraResolution(WIDTH, HEIGHT)
     sim.setCameraVFOV(math.radians(VFOV))
