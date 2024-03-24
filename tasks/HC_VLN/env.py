@@ -180,7 +180,8 @@ class R2RBatch():
                 if Distance > 1.5 and abs(loc.rel_heading-relHeading) < 2*math.pi/3.0 and abs(loc.rel_heading-relHeading) > math.pi/3.0:
                     nextViewpointId = loc.viewpointId
                     break
-            
+                else:
+                    nextViewpointId = path[1]
         else:
             nextViewpointId = path[1]    
         # Can we see the next viewpoint?
