@@ -143,3 +143,26 @@ def timeSince(since, percent):
     es = s / (percent)
     rs = es - s
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
+
+def relHumanAngle(humanLocations, agentLocation, agentHeading, agentElevation):
+    nearestHuman = []
+    minDistance = 10
+    for humanLocation in humanLocations:
+        distance = np.linalg.norm(np.array(humanLocation) - np.array(agentLocation))
+        if distance < minDistance:
+            minDistance = distance
+            nearestHuman = humanLocation
+    heading_angle, elevation_angle = horizontal_and_elevation_angles(agentLocation, nearestHuman)
+    return heading_angle-agentHeading, elevation_angle-agentElevation, minDistance
+
+def horizontal_and_elevation_angles(point1, point2):
+    """
+    计算两个3D坐标之间的相对水平夹角和仰角（俯仰角）
+    :param point1: 第一个3D坐标
+    :param point2: 第二个3D坐标
+    :return: 相对水平夹角和仰角的弧度表示
+    """
+    vector = np.array(point2) - np.array(point1)
+    horizontal_angle = np.arctan2(vector[0], vector[1])
+    elevation_angle = np.arctan2(vector[2], np.linalg.norm(vector[:2]))
+    return horizontal_angle, elevation_angle

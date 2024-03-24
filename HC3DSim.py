@@ -333,6 +333,12 @@ def main(args):
         for humanLocation in state.humanState:
             print(f"Human Location:{humanLocation}")
     
+    states = sim.getState()
+    for state in states:
+        print(f"scanID:{state.scanId}")
+        for humanLocation in state.humanState:
+            print(f"Human Location:{humanLocation}")
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     args = parser.parse_args()

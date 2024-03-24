@@ -11,7 +11,7 @@ import json
 import random
 import networkx as nx
 
-from utils import load_datasets, load_nav_graphs
+from utils import load_datasets, load_nav_graphs, relHumanAngle
 
 csv.field_size_limit(sys.maxsize)
 
@@ -159,10 +159,30 @@ class R2RBatch():
         # human Location of one building
         # state.humanState:[[x1, y1, z1], [x2, y2, z2], ...]
         humanLocations = state.humanState
+        # compute the nearest human relative heading and elevation
+        relHeading, relElevation, minDistance = relHumanAngle(humanLocations, 
+                                                              [state.location.x, state.location.y, state.location.z], 
+                                                              state.heading,
+                                                              state.elevation)
+
         if state.location.viewpointId == goalViewpointId:
             return (0, 0, 0) # do nothing
         path = self.paths[state.scanId][state.location.viewpointId][goalViewpointId]
-        nextViewpointId = path[1]
+        
+
+        # find next Viewpoint to avoid human
+        if minDistance < 1.5 and abs(relHeading)<math.pi/6.0 and abs(relElevation)<math.pi/6.0:
+            for loc in state.navigableLocations:
+                _, _, Distance = relHumanAngle(humanLocations, 
+                                                    [loc.x, loc.y, loc.z], 
+                                                    loc.rel_heading,
+                                                    loc.rel_elevation)
+                if Distance > 1.5 and abs(loc.rel_heading-relHeading) < 2*math.pi/3.0 and abs(loc.rel_heading-relHeading) > math.pi/3.0:
+                    nextViewpointId = loc.viewpointId
+                    break
+            
+        else:
+            nextViewpointId = path[1]    
         # Can we see the next viewpoint?
         for i,loc in enumerate(state.navigableLocations):
             if loc.viewpointId == nextViewpointId:
