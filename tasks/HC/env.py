@@ -3,7 +3,7 @@
 import sys
 sys.path.append('build')
 sys.path.append('./')
-import MatterSim
+import HC3DSim
 import csv
 import numpy as np
 import math
@@ -52,7 +52,7 @@ class EnvBatch():
         
         self.batch_size = batch_size
         dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
-        self.sim = MatterSim.Simulator()
+        self.sim = HC3DSim.HCSimulator()
         self.sim.setRenderingEnabled(self.renderingFlag)
         self.sim.setDiscretizedViewingAngles(True)
         self.sim.setBatchSize(self.batch_size)
@@ -73,9 +73,10 @@ class EnvBatch():
         feature_states = []
         if self.renderingFlag:
             state, frames = self.sim.getStepState(FPS)
-            assert frames.shape == (FPS, self.image_w, self.image_h, 3)
+            assert frames.shape == (FPS, self.image_h, self.image_w, 3)
             self.extractor.load_video(frames)
-            feature = self.extractor.extract_features()
+            feature = self.extractor.extract_features().squeeze()
+            #print(feature.shape)
             feature_states.append((feature, state))
         else:
             for state in self.sim.getState():
@@ -225,7 +226,7 @@ class HCBatch():
             return (0, 0,-1) # Look down
         # Otherwise decide which way to turn
         pos = [state.location.x, state.location.y, state.location.z]
-        target_rel = self.graphs[state.scanId].node[nextViewpointId]['position'] - pos
+        target_rel = self.graphs[state.scanId].nodes[nextViewpointId]['position'] - pos
         target_heading = math.pi/2.0 - math.atan2(target_rel[1], target_rel[0]) # convert to rel to y axis
         if target_heading < 0:
             target_heading += 2.0*math.pi

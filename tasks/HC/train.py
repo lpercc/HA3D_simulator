@@ -29,7 +29,7 @@ IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet.tsv'
 MAX_INPUT_LENGTH = 80
 
 features = None#IMAGENET_FEATURES
-batch_size = 100
+batch_size = 1
 max_episode_len = 20
 word_embedding_size = 256
 action_embedding_size = 32

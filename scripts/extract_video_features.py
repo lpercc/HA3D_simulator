@@ -129,9 +129,9 @@ def build_tsv(args):
                 if ix == 0:
                     sim.newEpisode([scanId], [viewpointId], [0], [math.radians(-30)])
                 elif ix % 12 == 0:
-                    sim.makeAction([ix], [1.0], [1.0])
+                    sim.makeAction([0], [1.0], [1.0])
                 else:
-                    sim.makeAction([ix], [1.0], [0])
+                    sim.makeAction([0], [1.0], [0])
 
                 state = sim.getState(FPS)[0]
                 assert state.viewIndex == ix

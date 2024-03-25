@@ -153,7 +153,7 @@ def timeSince(since, percent):
 
 def relHumanAngle(humanLocations, agentLocation, agentHeading, agentElevation):
     nearestHuman = []
-    minDistance = 10
+    minDistance = 1000
     for humanLocation in humanLocations:
         distance = np.linalg.norm(np.array(humanLocation) - np.array(agentLocation))
         if distance < minDistance:

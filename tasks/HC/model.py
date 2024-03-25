@@ -93,7 +93,7 @@ class SoftDotAttention(nn.Module):
         attn = torch.bmm(context, target).squeeze(2)  # batch x seq_len
         if mask is not None:
             # -Inf masking prior to the softmax 
-            attn.data.masked_fill_(mask, -float('inf'))              
+            attn.data.masked_fill_(mask.bool(), -float('inf'))             
         attn = self.sm(attn)
         attn3 = attn.view(attn.size(0), 1, attn.size(1))  # batch x 1 x seq_len
 
@@ -130,7 +130,9 @@ class AttnDecoderLSTM(nn.Module):
         ctx_mask: batch x seq_len - indices to be masked
         '''
         action_embeds = self.embedding(action)   # (batch, 1, embedding_size)
-        action_embeds = action_embeds.squeeze()
+        #print(action_embeds.shape, feature.shape)
+        action_embeds = action_embeds.squeeze(1)
+        #print(action_embeds.shape, feature.shape)
         concat_input = torch.cat((action_embeds, feature), 1) # (batch, embedding_size+feature_size)
         drop = self.drop(concat_input)
         h_1,c_1 = self.lstm(drop, (h_0,c_0))
