@@ -15,7 +15,7 @@ def receiveMessage(pipe_R2S):
             # 如果读取到数据，反序列化
             if serialized_data:
                 message = pickle.loads(serialized_data)['message']
-                print(message)
+                #print(message)
                 break
 
 
@@ -24,7 +24,7 @@ class HCSimulator(MatterSim.Simulator):
         self.isRealTimeRender = False
         self.state = None
         self.allHumanLocations = {}
-        self.state_list = []
+        self.states = []
         self.state_index = -1
         self.scanId = 0
         self.viewpointId = 0
@@ -67,13 +67,14 @@ class HCSimulator(MatterSim.Simulator):
                 serialized_data = pickle.dumps(data)
                 # 写入到命名管道
                 pipe.write(serialized_data)
-                print(f"Waiting {data['function']}")
+                #print(f"Waiting {data['function']}")
             receiveMessage(self.pipe_R2S)
 
     def newEpisode(self, scanId, viewpointId, heading, elevation):
+        # one building one batch
         super().newEpisode(scanId, viewpointId, heading, elevation)
         if self.isRealTimeRender:
-            print("Loading episode ......")
+            #print("Loading episode ......")
             self.state = super().getState()[0]
             if self.scanId != scanId:
                 self.scanId = scanId
@@ -87,9 +88,9 @@ class HCSimulator(MatterSim.Simulator):
                     serialized_data = pickle.dumps(data)
                     # 写入到命名管道
                     pipe.write(serialized_data)
-                    print(f"Waiting {data['function']}")
+                    #print(f"Waiting {data['function']}")
                 receiveMessage(self.pipe_R2S)
-            print("over Loading")
+            #print("over Loading")
             data = {
                 'function':'set agent',
                 'VFOV':self.VFOV,
@@ -102,7 +103,7 @@ class HCSimulator(MatterSim.Simulator):
                 serialized_data = pickle.dumps(data)
                 # 写入到命名管道
                 pipe.write(serialized_data)
-                print(f"Waiting {data['function']}")
+                #print(f"Waiting {data['function']}")
             receiveMessage(self.pipe_R2S)
             self.renderScene()
 
@@ -122,7 +123,7 @@ class HCSimulator(MatterSim.Simulator):
                 serialized_data = pickle.dumps(data)
                 # 写入到命名管道
                 pipe.write(serialized_data)
-                print(f"Waiting {data['function']}")
+                #print(f"Waiting {data['function']}")
             receiveMessage(self.pipe_R2S)
             self.renderScene()
 
@@ -141,7 +142,7 @@ class HCSimulator(MatterSim.Simulator):
             serialized_data = pickle.dumps(data)
             # 写入到命名管道
             pipe.write(serialized_data)
-            print(f"Waiting {data['function']}")
+            #print(f"Waiting {data['function']}")
         receiveMessage(self.pipe_R2S)
 
     def getState(self, framesPerStep=16):
@@ -217,12 +218,11 @@ class HCSimulator(MatterSim.Simulator):
     def getStepState(self,framesPerStep=16):
         agentState = None
         agentViewFrames = []
-        humanState = None
         for i in range(framesPerStep):
-            agentState = self.getState()[0]
+            state = self.getState()[0]
             agentViewFrames.append(agentState.rgb)
-        humanState = self.getHumanState()
-        return agentState, np.array(agentViewFrames, copy=False), humanState
+        state.humanState = self.getHumanState()
+        return state, np.array(agentViewFrames, copy=False)
 
 
 class HCSimState():
@@ -264,7 +264,6 @@ def state_to_dic(state):
     #dic["rgb"] = state.rgb
     #imageio.imwrite('output.png', np.array(state.rgb, copy=False))
     dic["depth"] = np.array(state.depth, copy=False)
-    dic["depth"] = state.depth
     dic["location"] = location_type_dic(state.location)
     dic["heading"] = state.heading
     dic["elevation"] = state.elevation

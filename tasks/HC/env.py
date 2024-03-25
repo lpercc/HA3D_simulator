@@ -2,17 +2,21 @@
 
 import sys
 sys.path.append('build')
+sys.path.append('./')
 import MatterSim
 import csv
 import numpy as np
 import math
 import base64
-import json
+import os
 import random
 import networkx as nx
-
+from scripts.video_feature_loader import TimmExtractor
+import torch
 from utils import load_datasets, load_nav_graphs, relHumanAngle
 
+MODEL_NAME = "resnet152.a1_in1k"
+FPS = 16
 csv.field_size_limit(sys.maxsize)
 
 
@@ -21,7 +25,7 @@ class EnvBatch():
         using discretized viewpoints and pretrained features '''
 
     def __init__(self, feature_store=None, batch_size=100):
-        if feature_store:
+        if feature_store is not None :
             print('Loading image features from %s' % feature_store)
             tsv_fieldnames = ['scanId', 'viewpointId', 'image_w','image_h', 'vfov', 'features']
             self.features = {}
@@ -34,19 +38,28 @@ class EnvBatch():
                     long_id = self._make_id(item['scanId'], item['viewpointId'])
                     self.features[long_id] = np.frombuffer(base64.b64decode(item['features']),
                             dtype=np.float32).reshape((36, 2048))
+            self.renderingFlag = False
         else:
-            print('Image features not provided')
+            print('Image features Extractor Timm')
             self.features = None
             self.image_w = 640
             self.image_h = 480
             self.vfov = 60
+            self.renderingFlag = True
+            batch_size = 1
+            device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+            self.extractor = TimmExtractor(model_name=MODEL_NAME, fps=FPS, device=device)
+        
         self.batch_size = batch_size
+        dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
         self.sim = MatterSim.Simulator()
-        self.sim.setRenderingEnabled(False)
+        self.sim.setRenderingEnabled(self.renderingFlag)
         self.sim.setDiscretizedViewingAngles(True)
         self.sim.setBatchSize(self.batch_size)
+        self.sim.setDatasetPath(dataset_path)
         self.sim.setCameraResolution(self.image_w, self.image_h)
         self.sim.setCameraVFOV(math.radians(self.vfov))
+        self.sim.setDepthEnabled(True)
         self.sim.initialize()
 
     def _make_id(self, scanId, viewpointId):
@@ -58,13 +71,20 @@ class EnvBatch():
     def getStates(self):
         ''' Get list of states augmented with precomputed image features. rgb field will be empty. '''
         feature_states = []
-        for state in self.sim.getState():
-            long_id = self._make_id(state.scanId, state.location.viewpointId)
-            if self.features:
-                feature = self.features[long_id][state.viewIndex,:]
-                feature_states.append((feature, state))
-            else:
-                feature_states.append((None, state))
+        if self.renderingFlag:
+            state, frames = self.sim.getStepState(FPS)
+            assert frames.shape == (FPS, self.image_w, self.image_h, 3)
+            self.extractor.load_video(frames)
+            feature = self.extractor.extract_features()
+            feature_states.append((feature, state))
+        else:
+            for state in self.sim.getState():
+                long_id = self._make_id(state.scanId, state.location.viewpointId)
+                if self.features:
+                    feature = self.features[long_id][state.viewIndex,:]
+                    feature_states.append((feature, state))
+                else:
+                    feature_states.append((None, state))
         return feature_states
 
     def makeActions(self, actions):
@@ -101,7 +121,7 @@ class EnvBatch():
         self.makeActions(actions)
 
 
-class R2RBatch():
+class HCBatch():
     ''' Implements the Room to Room navigation task, using discretized viewpoints and pretrained features '''
 
     def __init__(self, feature_store, batch_size=100, seed=10, splits=['train'], tokenizer=None):
@@ -121,12 +141,12 @@ class R2RBatch():
         self.scans = set(self.scans)
         self.splits = splits
         self.seed = seed
-        random.seed(self.seed)
-        random.shuffle(self.data)
+        #random.seed(self.seed)
+        #random.shuffle(self.data)
         self.ix = 0
         self.batch_size = batch_size
         self._load_nav_graphs()
-        print('R2RBatch loaded with %d instructions, using splits: %s' % (len(self.data), ",".join(splits)))
+        print('HCBatch loaded with %d instructions, using splits: %s' % (len(self.data), ",".join(splits)))
 
     def _load_nav_graphs(self):
         ''' Load connectivity graph for each scan, useful for reasoning about shortest paths '''

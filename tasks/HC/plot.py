@@ -13,8 +13,8 @@ logs = {
   'seq2seq_teacher_imagenet_log.csv': 'Teacher-forcing'
 }
 
-RESULT_DIR = 'tasks/R2R/results/'
-PLOT_DIR = 'tasks/R2R/plots/'
+RESULT_DIR = 'tasks/HC/results/'
+PLOT_DIR = 'tasks/HC/plots/'
 
 def plot_training_curves():
     ''' Plot the validation loss, navigation error and success rate during training. '''
@@ -26,7 +26,7 @@ def plot_training_curves():
 
     dfs = {}
     for log in logs:
-        dfs[log] = pd.read_csv('tasks/R2R/plots/'+log)
+        dfs[log] = pd.read_csv('tasks/HC/plots/'+log)
 
     plots = [
         ('Loss', 'loss',['val_seen loss', 'val_unseen loss', 'train loss']),

@@ -14,11 +14,11 @@ from torch.autograd import Variable
 from torch import optim
 import torch.nn.functional as F
 
-from env import R2RBatch
+from env import HCBatch
 from utils import padding_idx
 
 class BaseAgent(object):
-    ''' Base class for an R2R agent to generate and save trajectories. '''
+    ''' Base class for an HC agent to generate and save trajectories. '''
 
     def __init__(self, env, results_path):
         self.env = env
