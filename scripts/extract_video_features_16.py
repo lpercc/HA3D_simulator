@@ -175,15 +175,15 @@ def build_tsv(args):
                 allVideo.append(video)
 
             allVideo = np.array(allVideo).reshape(-1, HEIGHT, WIDTH, 3)
-            print(allVideo.shape)
+            #print(allVideo.shape)
             assert allVideo.shape == (VIDEO_LEN*VIEWPOINT_SIZE, HEIGHT, WIDTH, 3)
             extractor.load_video(allVideo)
             allFeature = extractor.extract_features(keep_T=True)
-            print(allFeature.shape)
+            #print(allFeature.shape)
             assert allFeature.shape == (VIDEO_LEN*VIEWPOINT_SIZE, FEATURE_SIZE)
             for ix in range(VIEWPOINT_SIZE):
                 feature = allFeature[ix:(ix+1)*VIDEO_LEN]
-                print(feature.shape)
+                #print(feature.shape)
                 assert feature.shape == (VIDEO_LEN, FEATURE_SIZE)
                 features1[ix, :, :] = feature
                 for i in range(int(VIDEO_LEN/FPS)):
