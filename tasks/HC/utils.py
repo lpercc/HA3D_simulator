@@ -173,3 +173,65 @@ def horizontal_and_elevation_angles(point1, point2):
     horizontal_angle = np.arctan2(vector[0], vector[1])
     elevation_angle = np.arctan2(vector[2], np.linalg.norm(vector[:2]))
     return horizontal_angle, elevation_angle
+
+def check_agent_status(traj, max_steps, ended):
+    """
+    Check the status of the agent based on the trajectory, maximum steps, and ended flag.
+
+    Args:
+        traj (list): List of episodes containing the agent's trajectory.
+        max_steps (int): Maximum number of steps allowed for each episode.
+        ended (list): List of boolean values indicating whether each episode has ended.
+
+    Returns:
+        None
+
+    Prints a table displaying various status information about the agent, including the number of episodes,
+    episode length, whether navigation was terminated early, the number of terminations, whether the agent
+    still has steps to go, and the number of agents still going.
+    """
+    print(f'{"=" * 10}Checking agent status...{"=" * 10}')
+    table = PrettyTable() #TODO: Add PrettyTable exception
+    table.field_names = ['Description', 'Status']
+    table.add_row(['Number of episodes', len(traj)])
+    table.add_row(['Episode Length', max_steps])
+    
+    # Whether terminate navigaton early or not 
+    terminate = False
+    terminate_count = 0 
+    
+    # Whether agent still has steps to go
+    still_go = False
+    still_go_count = 0
+    for i, ep in enumerate(traj):
+        if len(traj[i]['unique_path']) < 6:
+            terminate = True
+            terminate_count += 1
+            
+        if not ended[i]:
+            still_go = True
+            still_go_count += 1
+            
+    
+    table.add_row(['Terminate Navigation Early', terminate])
+    table.add_row(['Number of Terminations', terminate_count])
+    
+    table.add_row(['Agent Still Has Steps to Go', still_go])
+    table.add_row(['Number of Agents Still Going', still_go_count])
+    
+    print(table)
+    
+    
+def calculate_rewards(trajs, ended, max_steps, scan_id, path_id, reward_type='sparse',): 
+    # 需要当前的 Scan ID, 以及目前所在的最短 Path
+    # Scan 用于判断目前人的状态
+    # We need to know distance 
+    # 目标的 Path ID 用于对比 Grounding Truth 的 Rewards 
+    # 还需要下一步的观察值
+    # TODO: 设计两种不同的 Reward 模式, 一个应该是稀疏的 (只与终点有关), 另一个是稠密的 (与当前位置有关)
+    
+    batch_size = len(trajs)
+    rewards = np.zeros((batch_size, max_steps))
+    
+    raise NotImplementedError
+        

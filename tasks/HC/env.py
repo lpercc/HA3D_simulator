@@ -15,6 +15,8 @@ from scripts.video_feature_loader import TimmExtractor
 import torch
 from utils import load_datasets, load_nav_graphs, relHumanAngle
 
+from tqdm import tqdm 
+
 MODEL_NAME = "resnet152.a1_in1k"
 FPS = 16
 csv.field_size_limit(sys.maxsize)
@@ -125,23 +127,36 @@ class EnvBatch():
 class HCBatch():
     ''' Implements the Room to Room navigation task, using discretized viewpoints and pretrained features '''
 
-    def __init__(self, feature_store, batch_size=100, seed=10, splits=['train'], tokenizer=None):
+    def __init__(self, feature_store, batch_size=100, seed=10, splits=['train'], tokenizer=None, text_embedding_model=None, device='cpu'):
         self.env = EnvBatch(feature_store=feature_store, batch_size=batch_size)
         self.data = []
         self.scans = []
-        for item in load_datasets(splits):
+        
+        # tqdm bar 
+        bar = tqdm(load_datasets(splits))
+        for item in bar: #TODO: change load datasets to load from pickle word embedding file simultaneously
             # Split multiple instructions into separate entries
+            bar.set_description(f"Loading {item['scan']}, Use text_embedding_model? {text_embedding_model}") # use for check if we load same scam multiple times
             for j,instr in enumerate(item['instructions']):
                 self.scans.append(item['scan'])
                 new_item = dict(item)
                 new_item['instr_id'] = '%s_%d' % (item['path_id'], j)
                 new_item['instructions'] = instr
-                if tokenizer:
+                if tokenizer and not text_embedding_model: # 
                     new_item['instr_encoding'] = tokenizer.encode_sentence(instr)
+                elif tokenizer and text_embedding_model:
+                    with torch.no_grad(): 
+                        inputs = tokenizer(instr, return_tensors="pt")
+                        inputs = inputs.to(device)
+                        text_embedding_model = text_embedding_model.to(device)
+                        outputs = text_embedding_model(**inputs)
+                        new_item['instr_encoding'] = inputs['input_ids'].squeeze(0).cpu().numpy()
+                        new_item['instr_embedding'] = outputs[0][:, 0, :].squeeze(0).cpu().numpy()
                 self.data.append(new_item)
         self.scans = set(self.scans)
         self.splits = splits
         self.seed = seed
+        # TODO: remember to shuffle data
         #random.seed(self.seed)
         #random.shuffle(self.data)
         self.ix = 0
@@ -175,6 +190,21 @@ class HCBatch():
             You must still call reset() for a new episode. '''
         self.ix = 0
 
+    def _shortest_path_action(self, state, goalViewpointId):
+        ''' Determine next action on the shortest path to goal, for supervised training.
+
+        Args:
+            state (State): The current state of the environment.
+            goalViewpointId (str): The ID of the goal viewpoint.
+
+        Returns:
+            tuple: A tuple representing the next action to take. The tuple contains three values:
+                - The change in x-coordinate (int)
+                - The change in y-coordinate (int)
+                - The change in z-coordinate (int)
+        '''
+
+        # Rest of the code...
     def _shortest_path_action(self, state, goalViewpointId):
         ''' Determine next action on the shortest path to goal, for supervised training. '''
         # human Location of one building
@@ -255,6 +285,11 @@ class HCBatch():
             })
             if 'instr_encoding' in item:
                 obs[-1]['instr_encoding'] = item['instr_encoding']
+            if 'instr_embedding' in item:
+                obs[-1]['instr_embedding'] = item['instr_embedding']
+                obs[-1]['state_features'] = np.concatenate([feature, item['instr_embedding']]) # 2048 + 768 = 2816 feature size
+            # add distance bewteen agent and goal viewpoint 
+            obs[-1]['distance'] = self.distances[state.scanId][state.location.viewpointId][item['path'][-1]]
         return obs
 
     def reset(self):
