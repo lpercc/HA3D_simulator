@@ -33,7 +33,7 @@ with open(pipe_S2R, 'rb') as pipe_s2r:
             elif function == 'set human':
                 human_list = data['human_list']
                 renderer.newHumans(human_list)
-                message = f"SUCCESS {function}: {len(human_list)} humans."
+                message = f"SUCCESS {function}: {len(human_list)} humans of Scan {data['scanID']}."
                 print(message)
                 sendMessage(pipe_R2S,message)
             elif function == 'set agent':

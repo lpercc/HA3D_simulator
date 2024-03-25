@@ -17,7 +17,7 @@ build the simulator code:
 ```
 mkdir build && cd build
 cmake -DEGL_RENDERING=ON ..
-make
+    make
 cd ../
 ```
 The main requirements are:
@@ -45,14 +45,15 @@ The recommended (fast) approach for training agents is using off-screen GPU rend
 ## Set environment
 ```bash
 vim ~/.bashrc
-export PYTHONPATH=/your/path/to/Matterport3DSimulator/build && echo $PYTHONPATH
+export PYTHONPATH=/your/path/to/Matterport3DSimulator/build
 source ~/.bashrc
+echo $PYTHONPATH
 ```
 
 ## Interactive Demo
 Python demo:
 ```
-conda activate hc3d_simulater
+conda activate hc3d_simulator
 python src/driver/driver.py
 ```
 

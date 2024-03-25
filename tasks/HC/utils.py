@@ -10,7 +10,7 @@ import math
 from collections import Counter
 import numpy as np
 import networkx as nx
-
+import random
 
 # padding, unknown word, end of sentence
 base_vocab = ['<PAD>', '<UNK>', '<EOS>']
@@ -45,12 +45,19 @@ def load_nav_graphs(scans):
 
 
 def load_datasets(splits):
+
+    
     data = []
     for split in splits:
         assert split in ['train', 'val_seen', 'val_unseen', 'test']
-        with open('tasks/R2R/data/R2R_%s.json' % split) as f:
+        with open('tasks/HC/data/HC_%s.json' % split) as f:
             data += json.load(f)
-    return data
+    random.seed(10)
+    random.shuffle(data)
+    # 按照每个字典中 'scan' 键的值对数据进行排序
+    sorted_data = sorted(data, key=lambda x: x['scan'])
+    
+    return sorted_data
 
 
 class Tokenizer(object):
@@ -146,7 +153,7 @@ def timeSince(since, percent):
 
 def relHumanAngle(humanLocations, agentLocation, agentHeading, agentElevation):
     nearestHuman = []
-    minDistance = 10
+    minDistance = 1000
     for humanLocation in humanLocations:
         distance = np.linalg.norm(np.array(humanLocation) - np.array(agentLocation))
         if distance < minDistance:

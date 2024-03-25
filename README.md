@@ -11,7 +11,9 @@ export HC3D_SIMULATOR_DTAT_PATH=/your/path/to/store/data
 source ~/.bashrc
 echo $HC3D_SIMULATOR_DTAT_PATH
 ```
-
+/your/path/to/store/data
+--data
+--human_motion_meshes
 ## Create conda environment
 ```bash
 conda create --name hc3d_simulator python=3.10
@@ -47,7 +49,7 @@ Precompute matching depth skybox images by running this script:
 ## Build Matterport3D Simulator
 see Matterport3DSimulator/README
 
-## HC3D Simulator GUI
+## HC3D Simulator
 create pipe
 ```bash
 mkfifo ./pipe/my_S2R_pipe

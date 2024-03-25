@@ -15,7 +15,7 @@ def receiveMessage(pipe_R2S):
             # 如果读取到数据，反序列化
             if serialized_data:
                 message = pickle.loads(serialized_data)['message']
-                print(message)
+                #print(message)
                 break
 
 
@@ -24,7 +24,7 @@ class HCSimulator(MatterSim.Simulator):
         self.isRealTimeRender = False
         self.state = None
         self.allHumanLocations = {}
-        self.state_list = []
+        self.states = []
         self.state_index = -1
         self.scanId = 0
         self.viewpointId = 0
@@ -67,13 +67,14 @@ class HCSimulator(MatterSim.Simulator):
                 serialized_data = pickle.dumps(data)
                 # 写入到命名管道
                 pipe.write(serialized_data)
-                print(f"Waiting {data['function']}")
+                #print(f"Waiting {data['function']}")
             receiveMessage(self.pipe_R2S)
 
     def newEpisode(self, scanId, viewpointId, heading, elevation):
+        # one building one batch
         super().newEpisode(scanId, viewpointId, heading, elevation)
         if self.isRealTimeRender:
-            print("Loading episode ......")
+            #print("Loading episode ......")
             self.state = super().getState()[0]
             if self.scanId != scanId:
                 self.scanId = scanId
@@ -81,15 +82,16 @@ class HCSimulator(MatterSim.Simulator):
                 data = {
                     'function':'set human',
                     'human_list':human_list,
+                    'scanID':self.scanId
                 }
                 with open(self.pipe_S2R, 'wb') as pipe:
                     # 序列化数据
                     serialized_data = pickle.dumps(data)
                     # 写入到命名管道
                     pipe.write(serialized_data)
-                    print(f"Waiting {data['function']}")
+                    #print(f"Waiting {data['function']}")
                 receiveMessage(self.pipe_R2S)
-            print("over Loading")
+            #print("over Loading")
             data = {
                 'function':'set agent',
                 'VFOV':self.VFOV,
@@ -102,7 +104,7 @@ class HCSimulator(MatterSim.Simulator):
                 serialized_data = pickle.dumps(data)
                 # 写入到命名管道
                 pipe.write(serialized_data)
-                print(f"Waiting {data['function']}")
+                #print(f"Waiting {data['function']}")
             receiveMessage(self.pipe_R2S)
             self.renderScene()
 
@@ -122,7 +124,7 @@ class HCSimulator(MatterSim.Simulator):
                 serialized_data = pickle.dumps(data)
                 # 写入到命名管道
                 pipe.write(serialized_data)
-                print(f"Waiting {data['function']}")
+                #print(f"Waiting {data['function']}")
             receiveMessage(self.pipe_R2S)
             self.renderScene()
 
@@ -141,7 +143,7 @@ class HCSimulator(MatterSim.Simulator):
             serialized_data = pickle.dumps(data)
             # 写入到命名管道
             pipe.write(serialized_data)
-            print(f"Waiting {data['function']}")
+            #print(f"Waiting {data['function']}")
         receiveMessage(self.pipe_R2S)
 
     def getState(self, framesPerStep=16):
@@ -170,7 +172,7 @@ class HCSimulator(MatterSim.Simulator):
                         #print(np.sum(self.state.rgb))
                         #print(f"SUCCESS {data['function']}, frame_num {data['frame_num']}")
                         break
-            #self.state.humanState = self.getHumanState(self.state.scanId)
+            self.state.humanState = self.getHumanState(self.state.scanId)
             states.append(self.state)
         
         else:
@@ -179,7 +181,7 @@ class HCSimulator(MatterSim.Simulator):
                 state = HCSimState(state)
                 state.humanState = self.getHumanState(state.scanId)
                 states.append(state)
-        if self.frame_num >= 60:
+        if self.frame_num >= 80:
             self.frame_num = 0
 
         return states
@@ -215,14 +217,12 @@ class HCSimulator(MatterSim.Simulator):
         return humanStates  
 
     def getStepState(self,framesPerStep=16):
-        agentState = None
         agentViewFrames = []
-        humanState = None
         for i in range(framesPerStep):
-            agentState = self.getState()[0]
-            agentViewFrames.append(agentState.rgb)
-        humanState = self.getHumanState()
-        return agentState, np.array(agentViewFrames, copy=False), humanState
+            state = self.getState()[0]
+            agentViewFrames.append(state.rgb)
+        #state.humanState = self.getHumanState()
+        return state, np.array(agentViewFrames, copy=False)
 
 
 class HCSimState():
@@ -264,7 +264,6 @@ def state_to_dic(state):
     #dic["rgb"] = state.rgb
     #imageio.imwrite('output.png', np.array(state.rgb, copy=False))
     dic["depth"] = np.array(state.depth, copy=False)
-    dic["depth"] = state.depth
     dic["location"] = location_type_dic(state.location)
     dic["heading"] = state.heading
     dic["elevation"] = state.elevation
@@ -304,7 +303,7 @@ def main(args):
     batch_size = 1
     dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
     sim = HCSimulator()
-    sim.setRenderingEnabled(False)
+    sim.setRenderingEnabled(True)
     sim.setBatchSize(batch_size)
     sim.setDatasetPath(dataset_path)
     sim.setCameraResolution(WIDTH, HEIGHT)
@@ -312,32 +311,31 @@ def main(args):
     sim.setDepthEnabled(True) # Turn on depth only after running ./scripts/depth_to_skybox.py (see README.md)
     sim.initialize()
     #sim.newEpisode(['2t7WUuJeko7'], ['1e6b606b44df4a6086c0f97e826d4d15'], [0], [0])
-    #sim.newEpisode(['1LXtFkjw3qL'], ['0b22fa63d0f54a529c525afbf2e8bb25'], [0], [0])
-    scanIds = ['2n8kARJN3HM', '1LXtFkjw3qL']
-    viewpointIds = ['840cd9be95274178b83c956386943c99', '0b22fa63d0f54a529c525afbf2e8bb25']
-    sim.newEpisode(scanIds[:batch_size], viewpointIds[:batch_size], [0]*batch_size, [0]*batch_size)
+    sim.newEpisode(['1LXtFkjw3qL'], ['0b22fa63d0f54a529c525afbf2e8bb25'], [0], [0])
+    #scanIds = ['2n8kARJN3HM', '1LXtFkjw3qL']
+    #viewpointIds = ['840cd9be95274178b83c956386943c99', '0b22fa63d0f54a529c525afbf2e8bb25']
+    #sim.newEpisode(scanIds[:batch_size], viewpointIds[:batch_size], [0]*batch_size, [0]*batch_size)
 
-    heading = 4.765598775598298
+    heading = 0
     elevation = 0
-    location = 0
+    location = 1
 
     print('\nPython Demo')
     print('Use arrow keys to move the camera.')
     print('Use number keys (not numpad) to move to nearby viewpoints indicated in the RGB view.')
     print('Depth outputs are turned off by default - check driver.py:L20 to enable.\n')
 
-    #sim.makeAction([location], [heading], [elevation])
+    sim.makeAction([location], [heading], [elevation])
     states = sim.getState()
     for state in states:
+        assert np.sum(state.rgb) > 0
+        assert np.sum(state.depth) > 0
+        import cv2
+        cv2.imwrite("sim_test.png",state.rgb)
         print(f"scanID:{state.scanId}")
         for humanLocation in state.humanState:
             print(f"Human Location:{humanLocation}")
-    
-    states = sim.getState()
-    for state in states:
-        print(f"scanID:{state.scanId}")
-        for humanLocation in state.humanState:
-            print(f"Human Location:{humanLocation}")
+
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

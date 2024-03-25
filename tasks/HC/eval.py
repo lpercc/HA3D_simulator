@@ -9,7 +9,7 @@ import numpy as np
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-from env import R2RBatch
+from env import HCBatch
 from utils import load_datasets, load_nav_graphs
 from agent import BaseAgent, StopAgent, RandomAgent, ShortestAgent
 
@@ -106,12 +106,12 @@ class Evaluation(object):
         return score_summary, self.scores
 
 
-RESULT_DIR = 'tasks/R2R/results/'
+RESULT_DIR = 'tasks/HC/results/'
 
 def eval_simple_agents():
     ''' Run simple baselines on each split. '''
     for split in ['train', 'val_seen', 'val_unseen']:
-        env = R2RBatch(None, batch_size=1, splits=[split])
+        env = HCBatch(None, batch_size=1, splits=[split])
         ev = Evaluation([split])
 
         for agent_type in ['Stop', 'Shortest', 'Random']:

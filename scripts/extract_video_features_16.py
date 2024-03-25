@@ -7,7 +7,8 @@
 
 import sys
 from tqdm import tqdm
-import dynamicMatterSim
+sys.path.append('./')
+import HC3DSim
 import numpy as np
 import json
 import math
@@ -40,9 +41,10 @@ FEATURE_SIZE = 2048 # FEATURE SIZE will change corresponding to certain model
 MODEL_NAME = "resnet152.a1_in1k"
 #WEIDHTS_KEY = "IMAGENET1K_V1"
 FPS = 16
+VIDEO_LEN = 80
 #FPS = 1
 #OUTFILE = "img_features/ResNet-152-imagenet_60.tsv"
-OUTFILE = f"img_features/ResNet-152-imagenet_{FPS}.tsv"
+OUTFILE = f"ResNet-152-imagenet_{VIDEO_LEN}_{FPS}.tsv"
 #OUTFILE = "img_features/ResNet-152-imagenet_1.tsv"
 GRAPHS = "connectivity/"
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -84,29 +86,27 @@ def build_tsv(args):
     # Set up the simulator
     viewpoint_s = int(args.viewpoint_s)
     viewpoint_e = int(args.viewpoint_e)
-    sim = dynamicMatterSim.HC_Simulator(remote=False)
+    dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+    sim = HC3DSim.HCSimulator()
+    sim.setRenderingEnabled(True)
     sim.setDatasetPath(os.environ.get("MATTERPORT_DATA_DIR"))
     sim.setDepthEnabled(True)
+    sim.setDatasetPath(dataset_path)
     sim.setCameraResolution(WIDTH, HEIGHT)
     sim.setCameraVFOV(math.radians(VFOV))
     sim.setDiscretizedViewingAngles(True)
     sim.setBatchSize(1)
-    sim.initialize(viewpoint_s*VIEWPOINT_SIZE)
-    #提前渲染所有背景
-    sim.preRenderAll(VIEWPOINT_SIZE)
-    #停止渲染
-    sim.setRenderingEnabled(False)
-    #return
+    sim.initialize()
  
     # set up device, will we use this?
     device = 'cuda:'+args.gpu if torch.cuda.is_available() else 'cpu'
     
     # init a extractor
     # here we use a resnet 152 B as feature extractor, the output feature will be (2048,) 
-    extractor = TimmExtractor(model_name=MODEL_NAME, fps=FPS, device=device)
+    extractor = TimmExtractor(model_name=MODEL_NAME, fps=VIDEO_LEN, device=device)
 
-    tsv_path1 = f"{OUTFILE.split('.')[0]}_nomean_{viewpoint_s}-{viewpoint_e}.tsv"
-    tsv_path2 = f"{OUTFILE.split('.')[0]}_mean_{viewpoint_s}-{viewpoint_e}.tsv"
+    tsv_path1 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_nomean_{viewpoint_s}-{viewpoint_e}.tsv")
+    tsv_path2 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_mean_{viewpoint_s}-{viewpoint_e}.tsv")
     with open(tsv_path1, "a") as tsvfile1, open(tsv_path2, "a") as tsvfile2:
         writer1 = csv.DictWriter(tsvfile1, delimiter="\t", fieldnames=TSV_FIELDNAMES)
         writer2 = csv.DictWriter(tsvfile2, delimiter="\t", fieldnames=TSV_FIELDNAMES)
@@ -121,41 +121,76 @@ def build_tsv(args):
             print(all_viewpointIds[viewpoint_s+len(data1)-1])
             assert (data1[-1]["scanId"],data1[-1]["viewpointId"]) == all_viewpointIds[viewpoint_s+len(data1)-1]
         viewpointIds = all_viewpointIds[viewpoint_s+len(data1):viewpoint_e]
-        for _, (scanId, viewpointId) in enumerate(viewpointIds, start=len(data1)):
+        bar = tqdm(viewpointIds)
+        for _, (scanId, viewpointId) in enumerate(bar, start=len(data1)):
             # Loop all discretized views from this location
-            features1 = np.empty([VIEWPOINT_SIZE, FPS, FEATURE_SIZE], dtype=np.float32)
-            features2 = np.empty([VIEWPOINT_SIZE, FEATURE_SIZE], dtype=np.float32)
-            bar = tqdm(range(VIEWPOINT_SIZE))
-            for ix in bar:
+            bar.set_description(f"Processing {len(all_viewpointIds)} view point with {VIEWPOINT_SIZE} decrete view.")
+            features1 = np.empty([VIEWPOINT_SIZE, VIDEO_LEN, FEATURE_SIZE], dtype=np.float32)
+            features2 = np.empty([VIEWPOINT_SIZE, int(VIDEO_LEN/FPS), FEATURE_SIZE], dtype=np.float32)
+            
+            allVideo = []
+            for ix in range(VIEWPOINT_SIZE):
                 #print(f'ix {ix}')
-                bar.set_description()
+                
                 if ix == 0:
                     sim.newEpisode([scanId], [viewpointId], [0], [math.radians(-30)])
                 elif ix % 12 == 0:
-                    sim.makeAction([ix], [1.0], [1.0])
+                    sim.makeAction([0], [1.0], [1.0])
                 else:
-                    sim.makeAction([ix], [1.0], [0])
+                    sim.makeAction([0], [1.0], [0])
 
-                state = sim.getState(FPS)[0]
+                state, video= sim.getStepState(framesPerStep=VIDEO_LEN)
                 assert state.viewIndex == ix
 
                 # Transform and save generated image
-                video = state.video  # Pseudo code, need to correct this #TODO
-                
-                assert video.shape == (FPS, HEIGHT, WIDTH, 3)
-
+                assert video.shape == (VIDEO_LEN, HEIGHT, WIDTH, 3)
+                """
+                # 初始化一个标志变量，假设所有帧起初都是相同的
+                all_frames_same = True
+                # 遍历视频的每一帧，检查相邻帧之间是否有差异
+                for i in range(8, video.shape[0], 8):  # 从第二帧开始比较
+                    # 如果当前帧和前一帧之间有任何差异，则设置标志为 False 并退出循环
+                    if not np.array_equal(video[i], video[i-8]):
+                        all_frames_same = False
+                        break
+                if all_frames_same:
+                    extractor.load_video(video[0:2])
+                    feature = extractor.extract_features(keep_T=True)
+                    feature = feature.repeat(VIDEO_LEN/2, 0)
+                else:
+                    extractor.load_video(video)
+                    feature = extractor.extract_features(keep_T=True)
+                assert feature.shape == (VIDEO_LEN, FEATURE_SIZE)
                 # extractor should load_video first to get video 
                 # video should be a numpy array with shape (F, W, H, C)
-                extractor.load_video(video)
-                feature = extractor.extract_features(keep_T=True)
-                assert feature.shape == (FPS, FEATURE_SIZE)
+                
                 #print(f"feature shape: {feature.shape}")
                 # the output features should be a numpy adarry with size (FEATURE_SIZE, )
                 features1[ix, :, :] = feature
-                mean_feature = feature.mean(0)
-                assert mean_feature.shape == (FEATURE_SIZE,)
-                features2[ix, :] = mean_feature
-                bar.set_description(f"Processing {_}th view point with {ix} decrete view.")
+                for i in range(int(VIDEO_LEN/FPS)):
+                    mean_feature = feature[i*FPS:(i+1)*FPS-1].mean(0)
+                    assert mean_feature.shape == (FEATURE_SIZE,)
+                    features2[ix, i, :] = mean_feature
+                """
+                allVideo.append(video)
+
+            allVideo = np.array(allVideo).reshape(-1, HEIGHT, WIDTH, 3)
+            print(allVideo.shape)
+            assert allVideo.shape == (VIDEO_LEN*VIEWPOINT_SIZE, HEIGHT, WIDTH, 3)
+            extractor.load_video(allVideo)
+            allFeature = extractor.extract_features(keep_T=True)
+            print(allFeature.shape)
+            assert allFeature.shape == (VIDEO_LEN*VIEWPOINT_SIZE, FEATURE_SIZE)
+            for ix in range(VIEWPOINT_SIZE):
+                feature = allFeature[ix:(ix+1)*VIDEO_LEN]
+                print(feature.shape)
+                assert feature.shape == (VIDEO_LEN, FEATURE_SIZE)
+                features1[ix, :, :] = feature
+                for i in range(int(VIDEO_LEN/FPS)):
+                    mean_feature = feature[i*FPS:(i+1)*FPS].mean(0)
+                    assert mean_feature.shape == (FEATURE_SIZE,)
+                    features2[ix, i, :] = mean_feature
+            
 
             writer1.writerow(
                 {
@@ -194,11 +229,11 @@ def read_tsv(infile):
             if mean_flag:
                 item["features"] = np.frombuffer(
                     base64.b64decode(item["features"]), dtype=np.float32
-                ).reshape((VIEWPOINT_SIZE, FEATURE_SIZE))
+                ).reshape((VIEWPOINT_SIZE, int(VIDEO_LEN/FPS), FEATURE_SIZE))
             else:
                  item["features"] = np.frombuffer(
                     base64.b64decode(item["features"]), dtype=np.float32
-                ).reshape((VIEWPOINT_SIZE, FPS, FEATURE_SIZE))               
+                ).reshape((VIEWPOINT_SIZE, VIDEO_LEN, FEATURE_SIZE))               
             in_data.append(item)
     return in_data
 
@@ -208,10 +243,11 @@ if __name__ == "__main__":
     parser.add_argument('--gpu', default='0')
     parser.add_argument('--viewpoint_s', default=0)
     parser.add_argument('--viewpoint_e', default=10567)
+    parser.add_argument('--img_feat', default='./')
     args = parser.parse_args()
     build_tsv(args)
-    tsv_path1 = f"{OUTFILE.split('.')[0]}_nomean_{args.viewpoint_s}-{args.viewpoint_e}.tsv"
-    tsv_path2 = f"{OUTFILE.split('.')[0]}_mean_{args.viewpoint_s}-{args.viewpoint_e}.tsv"
+    tsv_path1 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_nomean_{args.viewpoint_s}-{args.viewpoint_e}.tsv")
+    tsv_path2 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_mean_{args.viewpoint_s}-{args.viewpoint_e}.tsv")
     data1 = read_tsv(tsv_path1)
     data2 = read_tsv(tsv_path1)
     assert len(data1) == len(data2)

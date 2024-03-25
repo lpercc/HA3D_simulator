@@ -1,4 +1,5 @@
 
+from env import HCBatch
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -12,23 +13,23 @@ import pandas as pd
 from collections import defaultdict
 
 from utils import read_vocab,write_vocab,build_vocab,Tokenizer,padding_idx,timeSince
-from env import R2RBatch
+
 from model import EncoderLSTM, AttnDecoderLSTM
 from agent import Seq2SeqAgent
 from eval import Evaluation
 
 
-TRAIN_VOCAB = 'tasks/R2R/data/train_vocab.txt'
-TRAINVAL_VOCAB = 'tasks/R2R/data/trainval_vocab.txt'
-RESULT_DIR = 'tasks/R2R/results/'
-SNAPSHOT_DIR = 'tasks/R2R/snapshots/'
-PLOT_DIR = 'tasks/R2R/plots/'
+TRAIN_VOCAB = 'tasks/HC/data/train_vocab.txt'
+TRAINVAL_VOCAB = 'tasks/HC/data/trainval_vocab.txt'
+RESULT_DIR = 'tasks/HC/results/'
+SNAPSHOT_DIR = 'tasks/HC/snapshots/'
+PLOT_DIR = 'tasks/HC/plots/'
 
 IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet.tsv'
 MAX_INPUT_LENGTH = 80
 
-features = IMAGENET_FEATURES
-batch_size = 100
+features = None#IMAGENET_FEATURES
+batch_size = 1
 max_episode_len = 20
 word_embedding_size = 256
 action_embedding_size = 32
@@ -119,7 +120,7 @@ def test_submission():
     # Create a batch training environment that will also preprocess text
     vocab = read_vocab(TRAINVAL_VOCAB)
     tok = Tokenizer(vocab=vocab, encoding_length=MAX_INPUT_LENGTH)
-    train_env = R2RBatch(features, batch_size=batch_size, splits=['train', 'val_seen', 'val_unseen'], tokenizer=tok)
+    train_env = HCBatch(features, batch_size=batch_size, splits=['train', 'val_seen', 'val_unseen'], tokenizer=tok)
 
     # Build models and train
     enc_hidden_size = hidden_size//2 if bidirectional else hidden_size
@@ -130,7 +131,7 @@ def test_submission():
     train(train_env, encoder, decoder, n_iters)
 
     # Generate test submission
-    test_env = R2RBatch(features, batch_size=batch_size, splits=['test'], tokenizer=tok)
+    test_env = HCBatch(features, batch_size=batch_size, splits=['test'], tokenizer=tok)
     agent = Seq2SeqAgent(test_env, "", encoder, decoder, max_episode_len)
     agent.results_path = '%s%s_%s_iter_%d.json' % (RESULT_DIR, model_prefix, 'test', 20000)
     agent.test(use_dropout=False, feedback='argmax')
@@ -144,10 +145,10 @@ def train_val():
     # Create a batch training environment that will also preprocess text
     vocab = read_vocab(TRAIN_VOCAB)
     tok = Tokenizer(vocab=vocab, encoding_length=MAX_INPUT_LENGTH)
-    train_env = R2RBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok)
+    train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok)
 
     # Creat validation environments
-    val_envs = {split: (R2RBatch(features, batch_size=batch_size, splits=[split],
+    val_envs = {split: (HCBatch(features, batch_size=batch_size, splits=[split],
                 tokenizer=tok), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
 
     # Build models and train
