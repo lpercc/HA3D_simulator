@@ -45,7 +45,7 @@ class BaseFrameExtractor(ABC):
         self.video = video
     
     def _clip(self):
-        self._load_video()
+        #self._load_video()
         # Get the original dimensions
         T, H, W, C = self.video.shape
         
@@ -75,8 +75,8 @@ class BaseFrameExtractor(ABC):
             # 使用 np.linspace 函数生成等间隔的索引
             # 使用索引从原始视频中抽取帧
             #print("Use intervals to extract frames.")
-            indices = np.linspace(0, T, self.fps, endpoint=False ,dtype=np.uint8)
-            compressed_video = self.video[indices]
+            #indices = np.linspace(0, T, self.fps, endpoint=False ,dtype=np.uint8)
+            compressed_video = self.video
         
         return compressed_video
 
