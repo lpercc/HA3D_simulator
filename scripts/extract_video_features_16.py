@@ -218,7 +218,7 @@ def read_tsv(infile):
             else:
                  item["features"] = np.frombuffer(
                     base64.b64decode(item["features"]), dtype=np.float32
-                ).reshape((VIEWPOINT_SIZE, VIDEO_LEN, FEATURE_SIZE))               
+                ).reshape((VIEWPOINT_SIZE, int(VIDEO_LEN/GAP), FEATURE_SIZE))               
             in_data.append(item)
     return in_data
 
