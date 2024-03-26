@@ -109,7 +109,7 @@ def build_tsv(args):
     
     tsv_path1 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_nomean_{viewpoint_s}-{viewpoint_e}.tsv")
     tsv_path2 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_mean_{viewpoint_s}-{viewpoint_e}.tsv")
-    with open(tsv_path1, "w") as tsvfile1, open(tsv_path2, "w") as tsvfile2:
+    with open(tsv_path1, "a") as tsvfile1, open(tsv_path2, "a") as tsvfile2:
         writer1 = csv.DictWriter(tsvfile1, delimiter="\t", fieldnames=TSV_FIELDNAMES)
         writer2 = csv.DictWriter(tsvfile2, delimiter="\t", fieldnames=TSV_FIELDNAMES)
         # Loop all the viewpoints in the simulator
