@@ -1,4 +1,6 @@
 __pycache__/
 build/
-pipe/*
+my_S2R_pipe*
+my_R2S_pipe*
 img_features/*
+ResNet-152-imagenet_*.tsv
