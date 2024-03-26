@@ -2,3 +2,7 @@ __pycache__/
 build/
 pipe/*
 img_features/*
+ResNet-152-imagenet_80_16_mean_0-10567.tsv
+ResNet-152-imagenet_80_16_mean_2500-5000.tsv
+ResNet-152-imagenet_80_16_nomean_0-10567.tsv
+ResNet-152-imagenet_80_16_nomean_2500-5000.tsv
