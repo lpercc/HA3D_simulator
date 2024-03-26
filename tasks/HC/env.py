@@ -11,7 +11,7 @@ import base64
 import os
 import random
 import networkx as nx
-from scripts.video_feature_loader import TimmExtractor
+from scripts.video_feature_loader import TimmExtractor 
 import torch
 from utils import load_datasets, load_nav_graphs, relHumanAngle
 
@@ -20,6 +20,7 @@ from tqdm import tqdm
 MODEL_NAME = "resnet152.a1_in1k"
 FPS = 16
 csv.field_size_limit(sys.maxsize)
+MODELING_ONLY = True
 
 
 class EnvBatch():
@@ -53,12 +54,13 @@ class EnvBatch():
             self.extractor = TimmExtractor(model_name=MODEL_NAME, fps=FPS, device=device)
         
         self.batch_size = batch_size
-        dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+        if not MODELING_ONLY:
+            dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+            self.sim.setDatasetPath(dataset_path)
         self.sim = HC3DSim.HCSimulator()
         self.sim.setRenderingEnabled(self.renderingFlag)
         self.sim.setDiscretizedViewingAngles(True)
         self.sim.setBatchSize(self.batch_size)
-        self.sim.setDatasetPath(dataset_path)
         self.sim.setCameraResolution(self.image_w, self.image_h)
         self.sim.setCameraVFOV(math.radians(self.vfov))
         self.sim.setDepthEnabled(True)
@@ -203,10 +205,6 @@ class HCBatch():
                 - The change in y-coordinate (int)
                 - The change in z-coordinate (int)
         '''
-
-        # Rest of the code...
-    def _shortest_path_action(self, state, goalViewpointId):
-        ''' Determine next action on the shortest path to goal, for supervised training. '''
         # human Location of one building
         # state.humanState:[[x1, y1, z1], [x2, y2, z2], ...]
         humanLocations = state.humanState

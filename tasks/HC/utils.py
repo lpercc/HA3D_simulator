@@ -222,16 +222,22 @@ def check_agent_status(traj, max_steps, ended):
     print(table)
     
     
-def calculate_rewards(trajs, ended, max_steps, scan_id, path_id, reward_type='sparse',): 
+def calculate_rewards(ob, actions, reward_type='sparse',): 
+    # Calculate rewards besed on recent ob
     # 需要当前的 Scan ID, 以及目前所在的最短 Path
     # Scan 用于判断目前人的状态
     # We need to know distance 
     # 目标的 Path ID 用于对比 Grounding Truth 的 Rewards 
     # 还需要下一步的观察值
     # TODO: 设计两种不同的 Reward 模式, 一个应该是稀疏的 (只与终点有关), 另一个是稠密的 (与当前位置有关)
+    recent_action = actions[-1]
     
-    batch_size = len(trajs)
-    rewards = np.zeros((batch_size, max_steps))
+    if reward_type == 'sparse':
+        if ob['next_location'] == ob['target_location']:
+            return 1
+        else:
+            return 0
+    
     
     raise NotImplementedError
         
