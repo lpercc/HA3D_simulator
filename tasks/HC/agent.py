@@ -81,21 +81,19 @@ class RandomAgent(BaseAgent):
             'path': [(ob['viewpoint'], ob['heading'], ob['elevation'])],
             'unique_path': [ob['viewpoint']],
             'teacher': [ob['teacher']],
-            'state_features': [ob['state_features'].tolist()],
-            'final_reward': [0.0, ], 
-            'target_reward': [0.0, ],
-            'path_reward': [0.0, ],
-            'missing_reward': [0.0, ],
-            'human_reward': [0.0, ],
+            #'state_features': [ob['state_features'].tolist()],
+            'final_reward': [], 
+            'target_reward': [],
+            'path_reward': [],
+            'missing_reward': [],
+            'human_reward': [],
         } for ob in obs]
         # self.steps = random.sample(range(-11,1), len(obs))
         self.steps = np.random.randint(-11, 1, size=len(obs))# ramdom from -11 - 0 (12 numbers) to choose the direction, because we have 12 discrete views
         ended = [False] * len(obs) # Is this enough for us to get a random walk agents?
-        last_distances = []
         for i, t in enumerate(range(max_steps)): # 30 Steps 之后所有 Agent 的状态
             actions = []
-            distances = []
-            rewards = []
+            last_distances = []
             for i,ob in enumerate(obs):
                 if self.steps[i] >= 5: # End of navigation larger than 5 steps (including the first one)
                     actions.append((0, 0, 0)) # do nothing, i.e. end
@@ -109,40 +107,36 @@ class RandomAgent(BaseAgent):
                 else:
                     actions.append((0, 1, 0))
                 # turn right until we can go forward
-                
-                
-                
-                if self.steps[i] > 0 and not ended[i]: # 真正开始 5 个 Viewpoint steps 的导航过程才计算 Rewards
-                    delta_distance = last_distances[i] - ob['distance'] if t > 0 else 0
-                    reward = calculate_rewards(ob, actions[-1], ob['distance'], reward_type='dense', test_local=True)
-                    rewards.append(reward)
 
-                distances.append(ob['distance'])
+                last_distances.append(ob['distance'])
                 
             obs = self.env.step(actions)
             
-            # Late update 
-            last_distances = distances
             # 对于 traj 来说, 真正有用的 Actions 在 steps == 0 之后的 actions, 因为在这之前都是在调整方向
-            reward_index = 0
             for i,ob in enumerate(obs):
                 if self.steps[i] >= 0 and not ended[i]:
                     traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation']))
                     traj[i]['teacher'].append(ob['teacher'])
-                    traj[i]['state_features'].append(ob['state_features'].tolist())
-                    traj[i]['final_reward'].append(rewards[0][reward_index])
-                    traj[i]['target_reward'].append(rewards[1][reward_index])
-                    traj[i]['path_reward'].append(rewards[2][reward_index])
-                    traj[i]['missing_reward'].append(rewards[3][reward_index])
-                    traj[i]['human_reward'].append(rewards[4][reward_index])
+                    #traj[i]['state_features'].append(ob['state_features'].tolist())
+                    
+                    delta_distance = ob['distance'] - last_distances[i] if t > 0 else 0
+                    reward = calculate_rewards(ob, actions[-1], delta_distance, reward_type='dense', test_local=True)
+                    traj[i]['final_reward'].append(reward[0])
+                    traj[i]['target_reward'].append(reward[1])
+                    traj[i]['path_reward'].append(reward[2])
+                    traj[i]['missing_reward'].append(reward[3])
+                    traj[i]['human_reward'].append(reward[4])
                     if ob['viewpoint'] != traj[i]['unique_path'][-1]:
                         traj[i]['unique_path'].append(ob['viewpoint'])
-                    reward_index += 1
         # Check Agent 
-        # check_agent_status(traj, max_steps, ended)
+        check_agent_status(traj, max_steps, ended)
+                        
+        # calculate all reward here , for quick test, new we use just to find the shortest path 
+        # for each step , we calculate the distances between the current viewpoint and the goal. 
         
 
         return traj
+
 
 
 class ShortestAgent(BaseAgent):

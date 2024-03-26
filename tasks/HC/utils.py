@@ -175,24 +175,9 @@ def horizontal_and_elevation_angles(point1, point2):
     return horizontal_angle, elevation_angle
 
 def check_agent_status(traj, max_steps, ended):
-    """
-    Check the status of the agent based on the trajectory, maximum steps, and ended flag.
-
-    Args:
-        traj (list): List of episodes containing the agent's trajectory.
-        max_steps (int): Maximum number of steps allowed for each episode.
-        ended (list): List of boolean values indicating whether each episode has ended.
-
-    Returns:
-        None
-
-    Prints a table displaying various status information about the agent, including the number of episodes,
-    episode length, whether navigation was terminated early, the number of terminations, whether the agent
-    still has steps to go, and the number of agents still going.
-    """
-    # TODO: Check rewards states 
+    # DONE: ADD functions to check rewards
     print(f'{"=" * 10}Checking agent status...{"=" * 10}')
-    table = PrettyTable() #TODO: Add PrettyTable exception
+    table = PrettyTable()
     table.field_names = ['Description', 'Status']
     table.add_row(['Number of episodes', len(traj)])
     table.add_row(['Episode Length', max_steps])
@@ -220,9 +205,46 @@ def check_agent_status(traj, max_steps, ended):
     table.add_row(['Agent Still Has Steps to Go', still_go])
     table.add_row(['Number of Agents Still Going', still_go_count])
     
+    final_rewards = []
+    target_rewards = []
+    path_rewards = []
+    miss_penalties = []
+    human_rewards = []
+    
+    for i in traj: 
+        final_rewards.append(i['final_reward'])
+        target_rewards.append(i['target_reward'])
+        path_rewards.append(i['path_reward'])
+        miss_penalties.append(i['missing_reward'])
+        human_rewards.append(i['human_reward'])    
+    
+    """final_rewards_array = np.array(final_rewards)
+    target_rewards_array = np.array(target_rewards)
+    path_rewards_array = np.array(path_rewards)
+    miss_penalties_array = np.array(miss_penalties)
+    human_rewards_array = np.array(human_rewards)
+    
+    plot_rewards(final_rewards, 'Final Rewards')
+    plot_rewards(target_rewards, 'Target Rewards')
+    plot_rewards(path_rewards, 'Path Rewards')
+    plot_rewards(miss_penalties, 'Miss Penalties')
+    plot_rewards(human_rewards, 'Human Rewards')"""
+    
+    # plot reward in lineplot 
     print(table)
+        
+def plot_rewards(rewards, reward_name): 
+    # DONE: plot rewards in lineplot 
+    print(f'{"=" * 10}Plotting rewards...{"=" * 10}')
     
-    
+    import matplotlib.pyplot as plt
+    plt.plot(rewards)
+    plt.xlabel('steps')
+    plt.ylabel('Rewards')
+    plt.title(f'{reward_name} in Each Episode')
+    plt.show()
+    plt.close()
+
 def calculate_rewards(ob, action, delta_distance, reward_type='dense', test_local=True): 
     # Calculate rewards besed on recent ob
     # 需要当前的 Scan ID, 以及目前所在的最短 Path
@@ -245,17 +267,17 @@ def calculate_rewards(ob, action, delta_distance, reward_type='dense', test_loca
             target_reward = - 3.0
     else: 
         # Path Fidelity Reward 
-        path_flag = - delta_distance
+        path_flag =  - delta_distance
         if path_flag > 0.0: 
             path_reward = 1.0
         elif path_flag < 0.0: 
             path_reward = -1.0
         else: 
-            path_reward = 0.0 # TODO: 这里可以考虑加入一个小的负值, 以防止 Agent 一直停留在原地
+            path_reward = - 0.1 # TODO: 这里可以考虑加入一个小的负值, 以防止 Agent 一直停留在原地
         
         # Miss the target penalty 
         last_dist = dist - delta_distance
-        if (last_dist < 1.0) and (delta_distance > 0.0): 
+        if (last_dist < 1.0) and (- delta_distance > 0.0): 
             miss_penalty =(1.0 - last_dist) * 2.0
             
     human_reward = 0.0
@@ -285,4 +307,3 @@ def calculate_rewards(ob, action, delta_distance, reward_type='dense', test_loca
     # DONE: output rewards separately
     
     return final_reward, target_reward, path_reward, miss_penalty, human_reward
-        
