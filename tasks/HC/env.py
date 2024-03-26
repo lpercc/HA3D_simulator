@@ -191,6 +191,17 @@ class HCBatch():
         ''' Reset the data index to beginning of epoch. Primarily for testing.
             You must still call reset() for a new episode. '''
         self.ix = 0
+        
+        
+    def _get_human_distance(self, state): 
+        ''' Get the distance between human and goal viewpoint. '''
+        humanLocations = state.humanState
+        # compute the nearest human relative heading and elevation
+        relHeading, relElevation, minDistance = relHumanAngle(humanLocations, 
+                                                              [state.location.x, state.location.y, state.location.z], 
+                                                              state.heading,
+                                                              state.elevation)
+        return minDistance
 
     def _shortest_path_action(self, state, goalViewpointId):
         ''' Determine next action on the shortest path to goal, for supervised training.
@@ -288,6 +299,7 @@ class HCBatch():
                 obs[-1]['state_features'] = np.concatenate([feature, item['instr_embedding']]) # 2048 + 768 = 2816 feature size
             # add distance bewteen agent and goal viewpoint 
             obs[-1]['distance'] = self.distances[state.scanId][state.location.viewpointId][item['path'][-1]]
+            obs[-1]['human_distance'] = self._get_human_distance(state)
         return obs
 
     def reset(self):

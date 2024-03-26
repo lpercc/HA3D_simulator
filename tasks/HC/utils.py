@@ -190,6 +190,7 @@ def check_agent_status(traj, max_steps, ended):
     episode length, whether navigation was terminated early, the number of terminations, whether the agent
     still has steps to go, and the number of agents still going.
     """
+    # TODO: Check rewards states 
     print(f'{"=" * 10}Checking agent status...{"=" * 10}')
     table = PrettyTable() #TODO: Add PrettyTable exception
     table.field_names = ['Description', 'Status']
@@ -222,22 +223,66 @@ def check_agent_status(traj, max_steps, ended):
     print(table)
     
     
-def calculate_rewards(ob, actions, reward_type='sparse',): 
+def calculate_rewards(ob, action, delta_distance, reward_type='dense', test_local=True): 
     # Calculate rewards besed on recent ob
     # 需要当前的 Scan ID, 以及目前所在的最短 Path
     # Scan 用于判断目前人的状态
     # We need to know distance 
     # 目标的 Path ID 用于对比 Grounding Truth 的 Rewards 
     # 还需要下一步的观察值
-    # TODO: 设计两种不同的 Reward 模式, 一个应该是稀疏的 (只与终点有关), 另一个是稠密的 (与当前位置有关)
-    recent_action = actions[-1]
+    # DONE: 设计两种不同的 Reward 模式, 一个应该是稀疏的 (只与终点有关), 另一个是稠密的 (与当前位置有关)
+    recent_action = action
+    dist = ob['distance']
     
-    if reward_type == 'sparse':
-        if ob['next_location'] == ob['target_location']:
-            return 1
+    target_reward = 0.0 
+    path_reward = 0.0
+    miss_penalty = 0.0
+    # if stop, then we give a target reward 
+    if recent_action == (0, 0, 0):
+        if dist < 3.0:
+            target_reward = 3.0
         else:
-            return 0
+            target_reward = - 3.0
+    else: 
+        # Path Fidelity Reward 
+        path_flag = - delta_distance
+        if path_flag > 0.0: 
+            path_reward = 1.0
+        elif path_flag < 0.0: 
+            path_reward = -1.0
+        else: 
+            path_reward = 0.0 # TODO: 这里可以考虑加入一个小的负值, 以防止 Agent 一直停留在原地
+        
+        # Miss the target penalty 
+        last_dist = dist - delta_distance
+        if (last_dist < 1.0) and (delta_distance > 0.0): 
+            miss_penalty =(1.0 - last_dist) * 2.0
+            
+    human_reward = 0.0
+    if not test_local:
+        # Now we calculate human related reward 
+        # TODO: there are two choices here, one is just considering the distance between human and agent, the second is that considering the avoid(action) step. 
+        # Now we calculate first one. 
+        human_distance = ob['human_distance']
+        if human_distance < 2.25: 
+            human_reward = - 2.0 
+        elif 2.25 < human_distance < 4.5: 
+            human_reward = 2.0 
+        else: 
+            human_reward = 0.0
+            
+        # for second, we calculate use the nearest viewpoint to the human location. 
+        # Now we calculate the avoid step reward
+        # # TODO: if there is a human in next step, and the action is avoid like action , then we give a reward. (We just use teacher action or use rewards that copy teacher actions in Reccurent BERT))
+        # # The avaliable_navigation is a list of MatterSim.Viewpoint objects. The attribute of each object is viewpointId, x, y, z 
+        
+        
+    if reward_type == 'sparse': 
+        final_reward = target_reward + miss_penalty
+    elif reward_type == 'dense':
+        final_reward = target_reward + path_reward + miss_penalty + human_reward
+        
+    # DONE: output rewards separately
     
-    
-    raise NotImplementedError
+    return final_reward, target_reward, path_reward, miss_penalty, human_reward
         

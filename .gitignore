@@ -2,3 +2,4 @@ __pycache__/
 build/
 pipe/*
 img_features/*
+tasks/HC/trajs/train_trajs.json.gz
