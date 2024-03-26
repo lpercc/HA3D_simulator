@@ -33,7 +33,7 @@ class HCSimulator(MatterSim.Simulator):
         self.VFOV = math.radians(60)
         self.pipe_S2R = './pipe/my_S2R_pipe'
         self.pipe_R2S = './pipe/my_R2S_pipe'
-        self.frame_num = 0
+        self.frame_num = -1
         super().__init__()
 
     def setCameraResolution(self, WIDTH, HEIGHT):
@@ -146,10 +146,10 @@ class HCSimulator(MatterSim.Simulator):
             #print(f"Waiting {data['function']}")
         receiveMessage(self.pipe_R2S)
 
-    def getState(self, framesPerStep=16):
+    def getState(self, framesPerStep=1):
         states = []
         if self.isRealTimeRender:
-            self.frame_num += 1
+            self.frame_num += framesPerStep
             data = {
                 'function':'get state',
                 'frame_num':self.frame_num
@@ -216,10 +216,10 @@ class HCSimulator(MatterSim.Simulator):
                 humanStates.append(hs[self.frame_num])
         return humanStates  
 
-    def getStepState(self,framesPerStep=16):
+    def getStepState(self,framesPerStep=16,gap=4):
         agentViewFrames = []
-        for i in range(framesPerStep):
-            state = self.getState()[0]
+        for i in range(int(framesPerStep/gap)):
+            state = self.getState(framesPerStep=gap)[0]
             agentViewFrames.append(state.rgb)
         #state.humanState = self.getHumanState()
         return state, np.array(agentViewFrames, copy=False)
