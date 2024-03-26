@@ -150,9 +150,9 @@ def build_tsv(args):
                 # 初始化一个标志变量，假设所有帧起初都是相同的
                 all_frames_same = True
                 # 遍历视频的每一帧，检查相邻帧之间是否有差异
-                for i in range(2, video.shape[0], 2):  # 从第二帧开始比较
+                for i in range(4, video.shape[0], 4):  # 从第二帧开始比较
                     # 如果当前帧和前一帧之间有任何差异，则设置标志为 False 并退出循环
-                    if not np.array_equal(video[i], video[i-2]):
+                    if not np.array_equal(video[i], video[i-4]):
                         all_frames_same = False
                         break
                 if all_frames_same:
