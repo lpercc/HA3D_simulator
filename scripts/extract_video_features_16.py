@@ -129,7 +129,6 @@ def build_tsv(args):
             features1 = np.empty([VIEWPOINT_SIZE, int(VIDEO_LEN/GAP), FEATURE_SIZE], dtype=np.float32)
             features2 = np.empty([VIEWPOINT_SIZE, int(VIDEO_LEN/FPS), FEATURE_SIZE], dtype=np.float32)
             
-            allVideo = []
             bar = tqdm(range(VIEWPOINT_SIZE))
             for ix in bar:
                 #print(f'ix {ix}')
@@ -151,9 +150,9 @@ def build_tsv(args):
                 # 初始化一个标志变量，假设所有帧起初都是相同的
                 all_frames_same = True
                 # 遍历视频的每一帧，检查相邻帧之间是否有差异
-                for i in range(8, video.shape[0], 8):  # 从第二帧开始比较
+                for i in range(2, video.shape[0], 2):  # 从第二帧开始比较
                     # 如果当前帧和前一帧之间有任何差异，则设置标志为 False 并退出循环
-                    if not np.array_equal(video[i], video[i-8]):
+                    if not np.array_equal(video[i], video[i-2]):
                         all_frames_same = False
                         break
                 if all_frames_same:
@@ -171,7 +170,7 @@ def build_tsv(args):
                 # the output features should be a numpy adarry with size (FEATURE_SIZE, )
                 features1[ix, :, :] = feature
                 for i in range(int(VIDEO_LEN/FPS)):
-                    mean_feature = feature[i*int(FPS/GAP):(i+1)*int(FPS/GAP)-1].mean(0)
+                    mean_feature = feature[i*int(FPS/GAP):(i+1)*int(FPS/GAP)].mean(0)
                     assert mean_feature.shape == (FEATURE_SIZE,)
                     features2[ix, i, :] = mean_feature
 
