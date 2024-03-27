@@ -11,13 +11,16 @@ import base64
 import os
 import random
 import networkx as nx
-from scripts.video_feature_loader import TimmExtractor
+from scripts.video_feature_loader import TimmExtractor 
 import torch
 from utils import load_datasets, load_nav_graphs, relHumanAngle
+
+from tqdm import tqdm 
 
 MODEL_NAME = "resnet152.a1_in1k"
 FPS = 16
 csv.field_size_limit(sys.maxsize)
+MODELING_ONLY = True
 
 
 class EnvBatch():
@@ -51,12 +54,13 @@ class EnvBatch():
             self.extractor = TimmExtractor(model_name=MODEL_NAME, fps=FPS, device=device)
         
         self.batch_size = batch_size
-        dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+        if not MODELING_ONLY:
+            dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+            self.sim.setDatasetPath(dataset_path)
         self.sim = HC3DSim.HCSimulator()
         self.sim.setRenderingEnabled(self.renderingFlag)
         self.sim.setDiscretizedViewingAngles(True)
         self.sim.setBatchSize(self.batch_size)
-        self.sim.setDatasetPath(dataset_path)
         self.sim.setCameraResolution(self.image_w, self.image_h)
         self.sim.setCameraVFOV(math.radians(self.vfov))
         self.sim.setDepthEnabled(True)
@@ -125,23 +129,36 @@ class EnvBatch():
 class HCBatch():
     ''' Implements the Room to Room navigation task, using discretized viewpoints and pretrained features '''
 
-    def __init__(self, feature_store, batch_size=100, seed=10, splits=['train'], tokenizer=None):
+    def __init__(self, feature_store, batch_size=100, seed=10, splits=['train'], tokenizer=None, text_embedding_model=None, device='cpu'):
         self.env = EnvBatch(feature_store=feature_store, batch_size=batch_size)
         self.data = []
         self.scans = []
-        for item in load_datasets(splits):
+        
+        # tqdm bar 
+        bar = tqdm(load_datasets(splits))
+        for item in bar: #TODO: change load datasets to load from pickle word embedding file simultaneously
             # Split multiple instructions into separate entries
+            bar.set_description(f"Loading {item['scan']}, Use text_embedding_model? {text_embedding_model}") # use for check if we load same scam multiple times
             for j,instr in enumerate(item['instructions']):
                 self.scans.append(item['scan'])
                 new_item = dict(item)
                 new_item['instr_id'] = '%s_%d' % (item['path_id'], j)
                 new_item['instructions'] = instr
-                if tokenizer:
+                if tokenizer and not text_embedding_model: # 
                     new_item['instr_encoding'] = tokenizer.encode_sentence(instr)
+                elif tokenizer and text_embedding_model:
+                    with torch.no_grad(): 
+                        inputs = tokenizer(instr, return_tensors="pt")
+                        inputs = inputs.to(device)
+                        text_embedding_model = text_embedding_model.to(device)
+                        outputs = text_embedding_model(**inputs)
+                        new_item['instr_encoding'] = inputs['input_ids'].squeeze(0).cpu().numpy()
+                        new_item['instr_embedding'] = outputs[0][:, 0, :].squeeze(0).cpu().numpy()
                 self.data.append(new_item)
         self.scans = set(self.scans)
         self.splits = splits
         self.seed = seed
+        # TODO: remember to shuffle data
         #random.seed(self.seed)
         #random.shuffle(self.data)
         self.ix = 0
@@ -174,9 +191,31 @@ class HCBatch():
         ''' Reset the data index to beginning of epoch. Primarily for testing.
             You must still call reset() for a new episode. '''
         self.ix = 0
+        
+        
+    def _get_human_distance(self, state): 
+        ''' Get the distance between human and goal viewpoint. '''
+        humanLocations = state.humanState
+        # compute the nearest human relative heading and elevation
+        relHeading, relElevation, minDistance = relHumanAngle(humanLocations, 
+                                                              [state.location.x, state.location.y, state.location.z], 
+                                                              state.heading,
+                                                              state.elevation)
+        return minDistance
 
     def _shortest_path_action(self, state, goalViewpointId):
-        ''' Determine next action on the shortest path to goal, for supervised training. '''
+        ''' Determine next action on the shortest path to goal, for supervised training.
+
+        Args:
+            state (State): The current state of the environment.
+            goalViewpointId (str): The ID of the goal viewpoint.
+
+        Returns:
+            tuple: A tuple representing the next action to take. The tuple contains three values:
+                - The change in x-coordinate (int)
+                - The change in y-coordinate (int)
+                - The change in z-coordinate (int)
+        '''
         # human Location of one building
         # state.humanState:[[x1, y1, z1], [x2, y2, z2], ...]
         humanLocations = state.humanState
@@ -255,6 +294,12 @@ class HCBatch():
             })
             if 'instr_encoding' in item:
                 obs[-1]['instr_encoding'] = item['instr_encoding']
+            if 'instr_embedding' in item:
+                obs[-1]['instr_embedding'] = item['instr_embedding']
+                obs[-1]['state_features'] = np.concatenate([feature, item['instr_embedding']]) # 2048 + 768 = 2816 feature size
+            # add distance bewteen agent and goal viewpoint 
+            obs[-1]['distance'] = self.distances[state.scanId][state.location.viewpointId][item['path'][-1]]
+            obs[-1]['human_distance'] = self._get_human_distance(state)
         return obs
 
     def reset(self):

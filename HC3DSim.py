@@ -1,3 +1,5 @@
+
+
 import MatterSim
 import os
 import imageio
@@ -51,7 +53,7 @@ class HCSimulator(MatterSim.Simulator):
         if isRealTimeRender:
             print("Real Time Rendering mode!!!")
         else:
-            scanIDs = []#['2n8kARJN3HM', '1LXtFkjw3qL']
+            scanIDs = [] # like ['2n8kARJN3HM', '1LXtFkjw3qL']
             self.allHumanLocations = getAllHumanLocations(scanIDs)
         super().setRenderingEnabled(isRealTimeRender)
 
