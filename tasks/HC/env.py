@@ -19,6 +19,8 @@ from tqdm import tqdm
 
 MODEL_NAME = "resnet152.a1_in1k"
 FPS = 16
+VIDEO_LEN = 80
+STEPS = int(VIDEO_LEN/FPS)
 csv.field_size_limit(sys.maxsize)
 MODELING_ONLY = True
 
@@ -40,7 +42,7 @@ class EnvBatch():
                     self.vfov = int(item['vfov'])
                     long_id = self._make_id(item['scanId'], item['viewpointId'])
                     self.features[long_id] = np.frombuffer(base64.b64decode(item['features']),
-                            dtype=np.float32).reshape((36, 2048))
+                            dtype=np.float32).reshape((36, STEPS, 2048))
             self.renderingFlag = False
         else:
             print('Image features Extractor Timm')
@@ -83,10 +85,10 @@ class EnvBatch():
             #print(feature.shape)
             feature_states.append((feature, state))
         else:
-            for state in self.sim.getState():
+            for state in self.sim.getState(FPS):
                 long_id = self._make_id(state.scanId, state.location.viewpointId)
                 if self.features:
-                    feature = self.features[long_id][state.viewIndex,:]
+                    feature = self.features[long_id][state.viewIndex,state.step%STEPS,:]
                     feature_states.append((feature, state))
                 else:
                     feature_states.append((None, state))

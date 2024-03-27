@@ -58,7 +58,7 @@ mkfifo ./pipe/my_R2S_pipe
 ```
 run renderer
 ```bash
-python HC3DRender.py
+python HC3DRender.py --pipeID 0
 ```
 Open another terminal and run HC3D Simulator GUI
 ```bash
