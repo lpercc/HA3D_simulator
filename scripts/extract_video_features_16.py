@@ -114,9 +114,9 @@ def build_tsv(args):
         writer2 = csv.DictWriter(tsvfile2, delimiter="\t", fieldnames=TSV_FIELDNAMES)
         # Loop all the viewpoints in the simulator
         print(f"viewpoint:{viewpoint_s}--{viewpoint_e}")
-        data1 = read_tsv(tsv_path1)
-        data2 = read_tsv(tsv_path1)
-        assert len(data1) == len(data2)
+        #data1 = read_tsv(tsv_path1)
+        data1 = read_tsv(tsv_path2)
+        #assert len(data1) == len(data2)
         all_viewpointIds = load_viewpointids()
         if len(data1) > 0:
             print(data1[-1]["scanId"], data1[-1]["viewpointId"])
@@ -234,7 +234,7 @@ if __name__ == "__main__":
     build_tsv(args)
     tsv_path1 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_nomean_{args.viewpoint_s}-{args.viewpoint_e}.tsv")
     tsv_path2 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_mean_{args.viewpoint_s}-{args.viewpoint_e}.tsv")
-    data1 = read_tsv(tsv_path1)
-    data2 = read_tsv(tsv_path1)
-    assert len(data1) == len(data2)
+    #data1 = read_tsv(tsv_path1)
+    data1 = read_tsv(tsv_path2)
+    #assert len(data1) == len(data2)
     print("Completed %d viewpoints" % len(data1))
