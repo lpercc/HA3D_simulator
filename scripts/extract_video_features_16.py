@@ -40,7 +40,7 @@ FEATURE_SIZE = 2048 # FEATURE SIZE will change corresponding to certain model
 #BATCH_SIZE = 4  # Some fraction of viewpoint size - batch size 4 equals 11GB memory
 MODEL_NAME = "resnet152.a1_in1k"
 #WEIDHTS_KEY = "IMAGENET1K_V1"
-GAP = 4
+GAP = 1
 FPS = 16
 VIDEO_LEN = 80
 #FPS = 1
@@ -88,7 +88,7 @@ def build_tsv(args):
     viewpoint_s = int(args.viewpoint_s)
     viewpoint_e = int(args.viewpoint_e)
     dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
-    sim = HC3DSim.HCSimulator()
+    sim = HC3DSim.HCSimulator(args.pipeID)
     sim.setRenderingEnabled(True)
     sim.setDatasetPath(os.environ.get("MATTERPORT_DATA_DIR"))
     sim.setDepthEnabled(True)
@@ -150,9 +150,9 @@ def build_tsv(args):
                 # 初始化一个标志变量，假设所有帧起初都是相同的
                 all_frames_same = True
                 # 遍历视频的每一帧，检查相邻帧之间是否有差异
-                for i in range(4, video.shape[0], 4):  # 从第二帧开始比较
+                for i in range(8, video.shape[0], 8):  # 从第二帧开始比较
                     # 如果当前帧和前一帧之间有任何差异，则设置标志为 False 并退出循环
-                    if not np.array_equal(video[i], video[i-4]):
+                    if not np.array_equal(video[i], video[i-8]):
                         all_frames_same = False
                         break
                 if all_frames_same:
@@ -229,6 +229,7 @@ if __name__ == "__main__":
     parser.add_argument('--viewpoint_s', default=0)
     parser.add_argument('--viewpoint_e', default=10567)
     parser.add_argument('--img_feat', default='./')
+    parser.add_argument('--pipeID', type=int, required=True, help='ID for the pipe to be created')
     args = parser.parse_args()
     build_tsv(args)
     tsv_path1 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_nomean_{args.viewpoint_s}-{args.viewpoint_e}.tsv")

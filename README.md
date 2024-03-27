@@ -52,6 +52,7 @@ see Matterport3DSimulator/README
 ## HC3D Simulator
 create pipe
 ```bash
+mkdir pipe
 mkfifo ./pipe/my_S2R_pipe
 mkfifo ./pipe/my_R2S_pipe
 ```

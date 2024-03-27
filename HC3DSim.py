@@ -20,7 +20,7 @@ def receiveMessage(pipe_R2S):
 
 
 class HCSimulator(MatterSim.Simulator):
-    def __init__(self):
+    def __init__(self, pipeID):
         self.isRealTimeRender = False
         self.state = None
         self.allHumanLocations = {}
@@ -31,8 +31,9 @@ class HCSimulator(MatterSim.Simulator):
         self.WIDTH = 640
         self.HEIGHT = 480
         self.VFOV = math.radians(60)
-        self.pipe_S2R = './pipe/my_S2R_pipe'
-        self.pipe_R2S = './pipe/my_R2S_pipe'
+        self.pipe_S2R = f'./pipe/my_S2R_pipe{pipeID}'
+        self.pipe_R2S = f'./pipe/my_R2S_pipe{pipeID}'
+        print(f"Simulator PIPE {pipeID}")
         self.frame_num = -1
         super().__init__()
 
@@ -302,7 +303,7 @@ def main(args):
     VFOV = math.radians(60)
     batch_size = 1
     dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
-    sim = HCSimulator()
+    sim = HCSimulator(1)
     sim.setRenderingEnabled(True)
     sim.setBatchSize(batch_size)
     sim.setDatasetPath(dataset_path)
