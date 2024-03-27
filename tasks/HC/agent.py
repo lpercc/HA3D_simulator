@@ -78,15 +78,16 @@ class RandomAgent(BaseAgent):
         obs = self.env.reset()
         traj = [{
             'instr_id': ob['instr_id'],
-            'path': [(ob['viewpoint'], ob['heading'], ob['elevation'])],
-            'unique_path': [ob['viewpoint']],
-            'teacher': [ob['teacher']],
-            #'state_features': [ob['state_features'].tolist()],
+            'path': [],
+            'unique_path': [(ob['viewpoint'], ob['heading'], ob['elevation'])],
+            'teacher': [],
+            'state_features': [],
             'final_reward': [], 
             'target_reward': [],
             'path_reward': [],
             'missing_reward': [],
             'human_reward': [],
+            'actions': [],
         } for ob in obs]
         # self.steps = random.sample(range(-11,1), len(obs))
         self.steps = np.random.randint(-11, 1, size=len(obs))# ramdom from -11 - 0 (12 numbers) to choose the direction, because we have 12 discrete views
@@ -109,15 +110,16 @@ class RandomAgent(BaseAgent):
                 # turn right until we can go forward
 
                 last_distances.append(ob['distance'])
-                
-            obs = self.env.step(actions)
             
             # 对于 traj 来说, 真正有用的 Actions 在 steps == 0 之后的 actions, 因为在这之前都是在调整方向
             for i,ob in enumerate(obs):
-                if self.steps[i] >= 0 and not ended[i]:
+                if ended[i]:
+                    pass #如果结束则不记录
+                elif self.steps[i] >= 0: # 如果开始了, 并且没有结束则记录
                     traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation']))
-                    traj[i]['teacher'].append(ob['teacher'])
-                    #traj[i]['state_features'].append(ob['state_features'].tolist())
+                    traj[i]['teacher'].append(get_indexed_teacher_action(ob['teacher']))
+                    traj[i]['actions'].append(get_indexed_teacher_action(actions[i]))
+                    traj[i]['state_features'].append(ob['state_features'])
                     
                     delta_distance = ob['distance'] - last_distances[i] if t > 0 else 0
                     reward = calculate_rewards(ob, actions[-1], delta_distance, reward_type='dense', test_local=True)
@@ -126,16 +128,37 @@ class RandomAgent(BaseAgent):
                     traj[i]['path_reward'].append(reward[2])
                     traj[i]['missing_reward'].append(reward[3])
                     traj[i]['human_reward'].append(reward[4])
-                    if ob['viewpoint'] != traj[i]['unique_path'][-1]:
+                    
+                    if len(traj[i]['unique_path']) == 0 or ob['viewpoint'] != traj[i]['unique_path'][-1]:
                         traj[i]['unique_path'].append(ob['viewpoint'])
+                else: # 如果没有开始则不记录
+                    pass
+                # add ended done idx for max_steps 
+                
+
+            obs = self.env.step(actions)
         # Check Agent 
-        check_agent_status(traj, max_steps, ended)
+        #check_agent_status(traj, max_steps, ended)
                         
         # calculate all reward here , for quick test, new we use just to find the shortest path 
         # for each step , we calculate the distances between the current viewpoint and the goal. 
         
 
         return traj
+    
+def get_indexed_teacher_action(teacher_action):
+    if teacher_action == (0, 0, 0):
+        return 4 #stop
+    elif teacher_action == (0, 1, 0):
+        return 0
+    elif teacher_action == (0, -1, 0):
+        return 1
+    elif teacher_action == (0, 0, 1):
+        return 2
+    elif teacher_action == (0, 0, -1):
+        return 3
+    else:
+        return 5 #forward
 
 
 

@@ -2,7 +2,7 @@
 Author: Dylan Li dylan.h.li@outlook.com
 Date: 2024-03-17 21:42:00
 LastEditors: Dylan Li dylan.h.li@outlook.com
-LastEditTime: 2024-03-25 21:49:10
+LastEditTime: 2024-03-26 21:15:35
 FilePath: /HC3D_simulator/tasks/HC/datasets.py
 Description: 
 
@@ -22,9 +22,10 @@ from tqdm import tqdm
 from collections import defaultdict
 
 from utils import read_vocab,write_vocab,build_vocab,Tokenizer,padding_idx,timeSince, check_agent_status
-from env import HCBatch
+from env import R2RBatch
 from model import EncoderLSTM, AttnDecoderLSTM
 from agent import Seq2SeqAgent, RandomAgent
+import pickle
 from eval import Evaluation
 import json
 import gzip
@@ -32,16 +33,18 @@ import gzip
 from transformers import BartTokenizer, BartModel
 
 import sys
-module_path = '/home/dylan/projects/motion_hcl/HC3D_simulator/Matterport3DSimulator/build'
+module_path = '/home/dylan/projects/motion_hcl/Matterport3DSimulator/build'
 if module_path not in sys.path:
     sys.path.append(module_path)
     
     
 
-
-
-
-TRAJS_DIR = 'tasks/HC/trajs'
+TRAIN_VOCAB = 'tasks/R2R/data/train_vocab.txt'
+TRAINVAL_VOCAB = 'tasks/R2R/data/trainval_vocab.txt'
+RESULT_DIR = 'tasks/R2R/results/'
+SNAPSHOT_DIR = 'tasks/R2R/snapshots/'
+PLOT_DIR = 'tasks/R2R/plots/'
+TRAJS_DIR = 'tasks/R2R/trajs'
 
 IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet.tsv'
 MAX_INPUT_LENGTH = 80
@@ -57,7 +60,7 @@ dropout_ratio = 0.5
 feedback_method = 'sample' # teacher or sample
 learning_rate = 0.0001
 weight_decay = 0.0005
-n_iters = 2
+n_iters = 5
 model_prefix = 'seq2seq_%s_imagenet' % (feedback_method)
 
 
@@ -65,6 +68,11 @@ model_prefix = 'seq2seq_%s_imagenet' % (feedback_method)
 def setup():
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
+    # Check for vocabs
+    if not os.path.exists(TRAIN_VOCAB):
+        write_vocab(build_vocab(splits=['train']), TRAIN_VOCAB)
+    if not os.path.exists(TRAINVAL_VOCAB):
+        write_vocab(build_vocab(splits=['train','val_seen','val_unseen']), TRAINVAL_VOCAB)
 
 
 def train_random(train_env, n_iters, log_every=100, val_envs={}):
@@ -83,7 +91,7 @@ def train_random(train_env, n_iters, log_every=100, val_envs={}):
     
     return trajs 
         
-def train_random_run():
+def train_random_run(iter):
     ''' Train on the training set, and validate on seen and unseen splits. '''
 
     setup()
@@ -93,15 +101,15 @@ def train_random_run():
     
     tok = BartTokenizer.from_pretrained('facebook/bart-base')
     embedding_model = BartModel.from_pretrained('facebook/bart-base')
-    train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+    train_env = R2RBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
 
+    for i in range(iter):
     # Build models and train
-    trajs = train_random(train_env, n_iters)
-        
-    # save trajs as a json 
-    with open(TRAJS_DIR + '/train_trajs.json.gz', 'wt') as f:
-        for entry in trajs: 
-            f.write(json.dumps(entry) + '\n')
+        trajs = train_random(train_env, n_iters)
+            
+        # save trajs as a json 
+        with open(TRAJS_DIR + f'/train_trajs_{i}.pkl', 'wb') as f:
+            pickle.dump(trajs, f)
 
 if __name__ == '__main__':
-    train_random_run()
+    train_random_run(1)
