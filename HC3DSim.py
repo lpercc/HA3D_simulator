@@ -22,7 +22,7 @@ def receiveMessage(pipe_R2S):
 
 
 class HCSimulator(MatterSim.Simulator):
-    def __init__(self, pipeID):
+    def __init__(self, pipeID=0):
         self.isRealTimeRender = False
         self.state = None
         self.allHumanLocations = {}
@@ -305,7 +305,7 @@ def main(args):
     VFOV = math.radians(60)
     batch_size = 1
     dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
-    sim = HCSimulator(1)
+    sim = HCSimulator()
     sim.setRenderingEnabled(True)
     sim.setBatchSize(batch_size)
     sim.setDatasetPath(dataset_path)
@@ -321,7 +321,7 @@ def main(args):
 
     heading = 0
     elevation = 0
-    location = 1
+    location = 0
 
     print('\nPython Demo')
     print('Use arrow keys to move the camera.')
@@ -336,6 +336,7 @@ def main(args):
         import cv2
         cv2.imwrite("sim_test.png",state.rgb)
         print(f"scanID:{state.scanId}")
+        print(f"agent step {state.step}")
         for humanLocation in state.humanState:
             print(f"Human Location:{humanLocation}")
 
