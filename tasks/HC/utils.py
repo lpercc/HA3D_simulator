@@ -173,3 +173,137 @@ def horizontal_and_elevation_angles(point1, point2):
     horizontal_angle = np.arctan2(vector[0], vector[1])
     elevation_angle = np.arctan2(vector[2], np.linalg.norm(vector[:2]))
     return horizontal_angle, elevation_angle
+
+def check_agent_status(traj, max_steps, ended):
+    # DONE: ADD functions to check rewards
+    print(f'{"=" * 10}Checking agent status...{"=" * 10}')
+    table = PrettyTable()
+    table.field_names = ['Description', 'Status']
+    table.add_row(['Number of episodes', len(traj)])
+    table.add_row(['Episode Length', max_steps])
+    
+    # Whether terminate navigaton early or not 
+    terminate = False
+    terminate_count = 0 
+    
+    # Whether agent still has steps to go
+    still_go = False
+    still_go_count = 0
+    for i, ep in enumerate(traj):
+        if len(traj[i]['unique_path']) < 6:
+            terminate = True
+            terminate_count += 1
+            
+        if not ended[i]:
+            still_go = True
+            still_go_count += 1
+            
+    
+    table.add_row(['Terminate Navigation Early', terminate])
+    table.add_row(['Number of Terminations', terminate_count])
+    
+    table.add_row(['Agent Still Has Steps to Go', still_go])
+    table.add_row(['Number of Agents Still Going', still_go_count])
+    
+    final_rewards = []
+    target_rewards = []
+    path_rewards = []
+    miss_penalties = []
+    human_rewards = []
+    
+    for i in traj: 
+        final_rewards.append(i['final_reward'])
+        target_rewards.append(i['target_reward'])
+        path_rewards.append(i['path_reward'])
+        miss_penalties.append(i['missing_reward'])
+        human_rewards.append(i['human_reward'])    
+    
+    """final_rewards_array = np.array(final_rewards)
+    target_rewards_array = np.array(target_rewards)
+    path_rewards_array = np.array(path_rewards)
+    miss_penalties_array = np.array(miss_penalties)
+    human_rewards_array = np.array(human_rewards)
+    
+    plot_rewards(final_rewards, 'Final Rewards')
+    plot_rewards(target_rewards, 'Target Rewards')
+    plot_rewards(path_rewards, 'Path Rewards')
+    plot_rewards(miss_penalties, 'Miss Penalties')
+    plot_rewards(human_rewards, 'Human Rewards')"""
+    
+    # plot reward in lineplot 
+    print(table)
+        
+def plot_rewards(rewards, reward_name): 
+    # DONE: plot rewards in lineplot 
+    print(f'{"=" * 10}Plotting rewards...{"=" * 10}')
+    
+    import matplotlib.pyplot as plt
+    plt.plot(rewards)
+    plt.xlabel('steps')
+    plt.ylabel('Rewards')
+    plt.title(f'{reward_name} in Each Episode')
+    plt.show()
+    plt.close()
+
+def calculate_rewards(ob, action, delta_distance, reward_type='dense', test_local=True): 
+    # Calculate rewards besed on recent ob
+    # 需要当前的 Scan ID, 以及目前所在的最短 Path
+    # Scan 用于判断目前人的状态
+    # We need to know distance 
+    # 目标的 Path ID 用于对比 Grounding Truth 的 Rewards 
+    # 还需要下一步的观察值
+    # DONE: 设计两种不同的 Reward 模式, 一个应该是稀疏的 (只与终点有关), 另一个是稠密的 (与当前位置有关)
+    recent_action = action
+    dist = ob['distance']
+    
+    target_reward = 0.0 
+    path_reward = 0.0
+    miss_penalty = 0.0
+    # if stop, then we give a target reward 
+    if recent_action == (0, 0, 0):
+        if dist < 3.0:
+            target_reward = 3.0
+        else:
+            target_reward = - 3.0
+    else: 
+        # Path Fidelity Reward 
+        path_flag =  - delta_distance
+        if path_flag > 0.0: 
+            path_reward = 1.0
+        elif path_flag < 0.0: 
+            path_reward = -1.0
+        else: 
+            path_reward = - 0.1 # TODO: 这里可以考虑加入一个小的负值, 以防止 Agent 一直停留在原地
+        
+        # Miss the target penalty 
+        last_dist = dist - delta_distance
+        if (last_dist < 1.0) and (- delta_distance > 0.0): 
+            miss_penalty =(1.0 - last_dist) * 2.0
+            
+    human_reward = 0.0
+    if not test_local:
+        # Now we calculate human related reward 
+        # TODO: there are two choices here, one is just considering the distance between human and agent, the second is that considering the avoid(action) step. 
+        # Now we calculate first one. 
+        human_distance = ob['human_distance']
+        if human_distance < 2.25: 
+            human_reward = - 2.0 
+        elif 2.25 < human_distance < 4.5: 
+            human_reward = 2.0 
+        else: 
+            human_reward = 0.0
+            
+        # for second, we calculate use the nearest viewpoint to the human location. 
+        # Now we calculate the avoid step reward
+        # # TODO: if there is a human in next step, and the action is avoid like action , then we give a reward. (We just use teacher action or use rewards that copy teacher actions in Reccurent BERT))
+        # # The avaliable_navigation is a list of MatterSim.Viewpoint objects. The attribute of each object is viewpointId, x, y, z 
+        
+        
+    if reward_type == 'sparse': 
+        final_reward = target_reward + miss_penalty
+    elif reward_type == 'dense':
+        final_reward = target_reward + path_reward + miss_penalty + human_reward
+        
+    # DONE: output rewards separately
+    
+    return final_reward, target_reward, path_reward, miss_penalty, human_reward
