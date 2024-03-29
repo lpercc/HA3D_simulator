@@ -4,6 +4,7 @@ import sys
 import re
 import csv
 from tqdm import tqdm
+import argparse
 TSV_FIELDNAMES = ["scanId", "viewpointId", "image_w", "image_h", "vfov", "features"]
 sys.path.append('./')
 def mergeFeatures(file_name):
@@ -32,5 +33,9 @@ def read_feature(file_name):
 
 
 if __name__ == "__main__":
-    mergeFeatures("ResNet-152-imagenet_80_16_mean")
-    read_feature("ResNet-152-imagenet_80_16_mean")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--path', default = './')
+    args = parser.parse_args()
+    file_path = f"{args.path}/ResNet-152-imagenet_80_16_mean"
+    mergeFeatures(file_path)
+    read_feature(file_path)
