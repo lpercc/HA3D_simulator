@@ -11,7 +11,6 @@ import time
 import numpy as np
 import pandas as pd
 from collections import defaultdict
-
 from utils import read_vocab,write_vocab,build_vocab,Tokenizer,padding_idx,timeSince
 
 from model import EncoderLSTM, AttnDecoderLSTM
@@ -25,11 +24,11 @@ RESULT_DIR = 'tasks/HC/results/'
 SNAPSHOT_DIR = 'tasks/HC/snapshots/'
 PLOT_DIR = 'tasks/HC/plots/'
 
-IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet.tsv'
+IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet_80_16_mean.tsv'
 MAX_INPUT_LENGTH = 80
 
-features = None#IMAGENET_FEATURES
-batch_size = 1
+features = IMAGENET_FEATURES
+batch_size = 100
 max_episode_len = 20
 word_embedding_size = 256
 action_embedding_size = 32
@@ -142,14 +141,15 @@ def train_val():
     ''' Train on the training set, and validate on seen and unseen splits. '''
 
     setup()
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     # Create a batch training environment that will also preprocess text
     vocab = read_vocab(TRAIN_VOCAB)
     tok = Tokenizer(vocab=vocab, encoding_length=MAX_INPUT_LENGTH)
-    train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok)
+    train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, device=device)
 
     # Creat validation environments
     val_envs = {split: (HCBatch(features, batch_size=batch_size, splits=[split],
-                tokenizer=tok), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
+                tokenizer=tok, device=device), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
 
     # Build models and train
     enc_hidden_size = hidden_size//2 if bidirectional else hidden_size
@@ -161,5 +161,11 @@ def train_val():
 
 
 if __name__ == "__main__":
+    if not os.path.exists(os.path.dirname(RESULT_DIR)):
+        os.makedirs(os.path.dirname(RESULT_DIR))
+    if not os.path.exists(os.path.dirname(SNAPSHOT_DIR)):
+        os.makedirs(os.path.dirname(SNAPSHOT_DIR))
+    if not os.path.exists(os.path.dirname(PLOT_DIR)):
+        os.makedirs(os.path.dirname(PLOT_DIR))
     train_val()
     #test_submission()

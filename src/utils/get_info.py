@@ -130,6 +130,12 @@ def getHumanLocations(scan_id):
 
 ## get human all locations of each building
 def getAllHumanLocations(scanIDs=[]):
+    file_path = "tasks/HC/data/human_locations.json"
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as j:
+            data = json.load(j)
+            if len(data) == 90:
+                return data
     allHumanLocations = dict()
     with open("connectivity/scans.txt") as f:
         if len(scanIDs) != 0:
@@ -141,6 +147,8 @@ def getAllHumanLocations(scanIDs=[]):
             # get all human locations in the scan building 
             humanLocationOfScan = getHumanLocations(scan)
             allHumanLocations[scan] = humanLocationOfScan
+    with open("tasks/HC/data/human_locations.json", 'w') as j:
+        json.dump(allHumanLocations, j, indent=4)
     return allHumanLocations
 
 # 计算数据集中每条路径的可见人物

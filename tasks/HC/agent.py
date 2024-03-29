@@ -28,6 +28,9 @@ class BaseAgent(object):
         self.losses = [] # For learning agents
 
     def write_results(self):
+        if not os.path.exists(os.path.dirname(self.results_path)):
+            os.makedirs(os.path.dirname(self.results_path))
+
         output = [{'instr_id':k, 'trajectory': v} for k,v in self.results.items()]
         with open(self.results_path, 'w') as f:
             json.dump(output, f)

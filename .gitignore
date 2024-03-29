@@ -5,3 +5,6 @@ my_R2S_pipe*
 img_features/*
 ResNet-152-imagenet_*.tsv
 tasks/HC/trajs/train_trajs.json.gz
+plots/
+results/
+snapshots/
