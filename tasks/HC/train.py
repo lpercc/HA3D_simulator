@@ -25,11 +25,11 @@ RESULT_DIR = 'tasks/HC/results/'
 SNAPSHOT_DIR = 'tasks/HC/snapshots/'
 PLOT_DIR = 'tasks/HC/plots/'
 
-IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet.tsv'
+IMAGENET_FEATURES = './ResNet-152-imagenet_80_16_mean.tsv'
 MAX_INPUT_LENGTH = 80
 
-features = None#IMAGENET_FEATURES
-batch_size = 1
+features = IMAGENET_FEATURES
+batch_size = 100
 max_episode_len = 20
 word_embedding_size = 256
 action_embedding_size = 32
