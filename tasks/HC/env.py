@@ -135,7 +135,6 @@ class HCBatch():
         self.env = EnvBatch(feature_store=feature_store, batch_size=batch_size)
         self.data = []
         self.scans = []
-        
         # tqdm bar 
         bar = tqdm(load_datasets(splits))
         for item in bar: #TODO: change load datasets to load from pickle word embedding file simultaneously
@@ -233,17 +232,19 @@ class HCBatch():
         
 
         # find next Viewpoint to avoid human
-        if minDistance < 1.5 and abs(relHeading)<math.pi/6.0 and abs(relElevation)<math.pi/6.0:
+        if minDistance <= 2.5:
+            max_distance = 0
             for loc in state.navigableLocations:
                 _, _, Distance = relHumanAngle(humanLocations, 
                                                     [loc.x, loc.y, loc.z], 
                                                     loc.rel_heading,
                                                     loc.rel_elevation)
-                if Distance > 1.5 and abs(loc.rel_heading-relHeading) < 2*math.pi/3.0 and abs(loc.rel_heading-relHeading) > math.pi/3.0:
+                if Distance >= 2.5 and abs(loc.rel_heading-relHeading) < 2*math.pi/3.0 and abs(loc.rel_heading-relHeading) > math.pi/3.0:
                     nextViewpointId = loc.viewpointId
                     break
-                else:
-                    nextViewpointId = path[1]
+                elif Distance > max_distance:
+                    max_distance = Distance
+                    nextViewpointId = loc.viewpointId
         else:
             nextViewpointId = path[1]    
         # Can we see the next viewpoint?
@@ -251,15 +252,16 @@ class HCBatch():
             if loc.viewpointId == nextViewpointId:
                 # Look directly at the viewpoint before moving
                 if loc.rel_heading > math.pi/6.0:
-                      return (0, 1, 0) # Turn right
+                    return (0, 1, 0) # Turn right
                 elif loc.rel_heading < -math.pi/6.0:
-                      return (0,-1, 0) # Turn left
+                    return (0,-1, 0) # Turn left
                 elif loc.rel_elevation > math.pi/6.0 and state.viewIndex//12 < 2:
-                      return (0, 0, 1) # Look up
+                    return (0, 0, 1) # Look up
                 elif loc.rel_elevation < -math.pi/6.0 and state.viewIndex//12 > 0:
-                      return (0, 0,-1) # Look down
+                    return (0, 0,-1) # Look down
                 else:
-                      return (i, 0, 0) # Move
+                    self.isAvoiding = False
+                    return (i, 0, 0) # Move
         # Can't see it - first neutralize camera elevation
         if state.viewIndex//12 == 0:
             return (0, 0, 1) # Look up
