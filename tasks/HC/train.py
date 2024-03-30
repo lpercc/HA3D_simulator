@@ -100,6 +100,7 @@ def train(train_env, encoder, decoder, n_iters, log_every=100, val_envs={}):
         enc_path = '%s%s_%s_enc_iter_%d' % (SNAPSHOT_DIR, model_prefix, split_string, iter)
         dec_path = '%s%s_%s_dec_iter_%d' % (SNAPSHOT_DIR, model_prefix, split_string, iter)
         agent.save(enc_path, dec_path)
+        agent.load(enc_path, dec_path)
 
 
 def setup():

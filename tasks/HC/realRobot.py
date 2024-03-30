@@ -1,9 +1,10 @@
+import os
+HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 import argparse
 import sys
 import utils
 import numpy as np
 import random
-import json
 import torch
 import torch.nn as nn
 import torch.distributions as D
@@ -12,13 +13,16 @@ from torch import optim
 import torch.nn.functional as F
 import math
 from model import EncoderLSTM, AttnDecoderLSTM
-from video_feature_loader import TimmExtractor
-from utils import read_vocab,write_vocab,build_vocab,Tokenizer,padding_idx,timeSince
+sys.path.append(HC3D_SIMULATOR_PATH)
+from scripts.video_feature_loader import TimmExtractor
+from utils import read_vocab,Tokenizer,padding_idx
+
 MODEL_NAME = "resnet152.a1_in1k"
 FPS = 16
 FEATURE_SIZE = 2048
-INFERENCE_VOCAB = 'tasks/HC/data/inference_vocab.txt'
-
+TRAIN_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/data/train_vocab.txt')
+TRAINVAL_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/data/trainval_vocab.txt')
+MAX_INPUT_LENGTH = 80
 
 class AgentLLA():
     ''' An agent based on an LSTM seq2seq model with attention. '''
@@ -266,11 +270,11 @@ class Location():
         self.rel_distance = location["rel_distance"]
 
 
-def main():
+def main(args):
     print('start')
     instr_id = '001'
     instr = "Go ahead and stop at the water fountain."
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    device = f'cuda:0' if torch.cuda.is_available() else 'cpu'
     max_episode_len = 20
     word_embedding_size = 256
     action_embedding_size = 32
@@ -279,14 +283,14 @@ def main():
     dropout_ratio = 0.5
     enc_hidden_size = hidden_size//2 if bidirectional else hidden_size
     results_path = ''
-    encoder_path = ''
-    decoder_path = ''
-    vocab = read_vocab(INFERENCE_VOCAB)
-    tokenizer = Tokenizer(vocab=vocab, encoding_length=MAX_INPUT_LENGTH)
+    encoder_path = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/snapshots/seq2seq_sample_imagenet_train_enc_iter_20000')
+    decoder_path = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/snapshots/seq2seq_sample_imagenet_train_dec_iter_20000')
+    train_vocab = read_vocab(TRAIN_VOCAB)
+    tokenizer = Tokenizer(vocab=train_vocab, encoding_length=MAX_INPUT_LENGTH)
     extractor = TimmExtractor(model_name=MODEL_NAME, fps=FPS, device=device)
     realRobot = UnitreeRobot(instr_id, instr, tokenizer, extractor)
     
-    encoder = EncoderLSTM(len(vocab), word_embedding_size, enc_hidden_size, padding_idx,
+    encoder = EncoderLSTM(len(train_vocab), word_embedding_size, enc_hidden_size, padding_idx,
                 dropout_ratio, bidirectional=bidirectional).cuda()
     decoder = AttnDecoderLSTM(AgentLLA.n_inputs(), AgentLLA.n_outputs(),
                 action_embedding_size, hidden_size, dropout_ratio).cuda()
@@ -297,6 +301,6 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--GPU', type=int, default=0, help='ID for the cuda')
+    parser.add_argument('--gpu', type=int, default=0, help='ID for the cuda')
     args = parser.parse_args
     main(args)

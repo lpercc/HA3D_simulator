@@ -271,7 +271,7 @@ def calculate_rewards(ob, action, delta_distance, reward_type='dense', test_loca
         if path_flag > 0.0: 
             path_reward = 1.0
         elif path_flag < 0.0: 
-            path_reward = -1.0
+            path_reward = -1.0 
         else: 
             path_reward = - 0.1 # TODO: 这里可以考虑加入一个小的负值, 以防止 Agent 一直停留在原地
         
