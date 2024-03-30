@@ -188,7 +188,10 @@ class HCSimulator(MatterSim.Simulator):
                                                     state.heading,
                                                     state.elevation)
 
-                state.isCrushed = minDistance <= 1
+                if minDistance <= 1:
+                    state.isCrushed = 1
+                else:
+                    state.isCrushed = 0
                 states.append(state)
         if self.frame_num >= 80:
             self.frame_num = 0
@@ -246,7 +249,7 @@ class HCSimState():
         self.elevation = o_state.elevation
         self.viewIndex = o_state.viewIndex
         self.navigableLocations = o_state.navigableLocations
-        self.isCrushed = False
+        self.isCrushed = 0
 
     def navigableLocations_to_object(self, navigableLocations):
         new_navigableLocations = []

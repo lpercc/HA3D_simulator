@@ -128,6 +128,7 @@ class Evaluation(object):
                 self._score_item(item['instr_id'], item['trajectory'])
         num_successes = len([i for i in self.scores['nav_errors'] if i < self.error_margin])
         if NEW_DATA:
+            print(f"NEW_DATA")
             total_hits_rate = float(sum(self.scores['total_hits']))/float(len(self.scores['total_hits'])) # 新的 Metric, hits rate, 总共撞击的次数 / 总的运行次数
             hits_rate = float(sum(self.scores['hit']))/float(len(self.scores['hit'])) # 新的 Metric, hits rate, 总共撞击的次数 / 总的运行次数
     
@@ -222,9 +223,10 @@ def eval_simple_agents():
 def eval_seq2seq():
     ''' Eval sequence to sequence models on val splits (iteration selected from training error) '''
     outfiles = [
-        RESULT_DIR + 'seq2seq_teacher_imagenet_%s_iter_5000.json',
-        RESULT_DIR + 'seq2seq_sample_imagenet_%s_iter_20000.json'
+        RESULT_DIR + 'seq2seq_teacher_imagenet_%s_iter_100.json',
+        RESULT_DIR + 'seq2seq_sample_imagenet_%s_iter_200.json'
     ]
+    print('eval_seq2seq')
     for outfile in outfiles:
         for split in ['val_seen', 'val_unseen']:
             ev = Evaluation([split])
@@ -234,4 +236,5 @@ def eval_seq2seq():
 
 
 if __name__ == '__main__':
-    eval_simple_agents()
+    #eval_simple_agents()
+    eval_seq2seq()
