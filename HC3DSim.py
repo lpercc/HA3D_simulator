@@ -36,7 +36,8 @@ class HCSimulator(MatterSim.Simulator):
         self.pipe_S2R = f'./pipe/my_S2R_pipe{pipeID}'
         self.pipe_R2S = f'./pipe/my_R2S_pipe{pipeID}'
         print(f"Simulator PIPE {pipeID}")
-        self.frame_num = -1
+        self.frame_num = 0
+        self.framesPerStep = 16
         super().__init__()
 
     def setCameraResolution(self, WIDTH, HEIGHT):
@@ -112,6 +113,7 @@ class HCSimulator(MatterSim.Simulator):
             self.renderScene()
 
     def makeAction(self, index, heading, elevation):
+        self.frame_num += self.framesPerStep
         super().makeAction(index, heading, elevation)
         if self.isRealTimeRender:
             self.state = super().getState()[0]
@@ -130,7 +132,8 @@ class HCSimulator(MatterSim.Simulator):
                 #print(f"Waiting {data['function']}")
             receiveMessage(self.pipe_R2S)
             self.renderScene()
-
+        if self.frame_num >= 80:
+            self.frame_num = 0
     def renderScene(self):
         self.state = HCSimState(self.state)
         #self.background = cv2.cvtColor(self.state.rgb, cv2.COLOR_BGR2RGB).astype(np.uint8)
@@ -151,8 +154,8 @@ class HCSimulator(MatterSim.Simulator):
 
     def getState(self, framesPerStep=1):
         states = []
+        self.framesPerStep = framesPerStep
         if self.isRealTimeRender:
-            self.frame_num += framesPerStep
             data = {
                 'function':'get state',
                 'frame_num':self.frame_num
@@ -177,9 +180,7 @@ class HCSimulator(MatterSim.Simulator):
                         break
             self.state.humanState = self.getHumanState(self.state.scanId)
             states.append(self.state)
-        
         else:
-            self.frame_num += framesPerStep
             for state in super().getState():
                 state = HCSimState(state)
                 humanLocations = self.getHumanState(state.scanId)
@@ -193,8 +194,6 @@ class HCSimulator(MatterSim.Simulator):
                 else:
                     state.isCrushed = 0
                 states.append(state)
-        if self.frame_num >= 80:
-            self.frame_num = 0
 
         return states
 
@@ -231,6 +230,7 @@ class HCSimulator(MatterSim.Simulator):
     def getStepState(self,framesPerStep=16,gap=4):
         agentViewFrames = []
         for i in range(int(framesPerStep/gap)):
+            self.makeAction(0, 0, 0)
             state = self.getState(framesPerStep=gap)[0]
             agentViewFrames.append(state.rgb)
         #state.humanState = self.getHumanState()
