@@ -51,28 +51,20 @@ class Evaluation(object):
                 near_d = d
         return near_id
     
-    def _get_human_distance(self, gt, scan, path, isolate_point=None):
-        ''' 计算当前路径上, 与人的距离, 如果小于2m, 则计为 1, 否则计为 0 
+    def _get_human_distance(self, gt, path):
+        ''' 计算当前路径上, 与人碰撞的次数, 则计为 1, 否则计为 0 
         path id 是当前 eval 的 path
         path 是之前的 trajectory. 
         '''
         hits = []
-        human_point_list = self._get_human_list(scan)
         flag = 0
-        for i, obs in enumerate(path): 
-            viewpoint_id = obs[0]
-            if isolate_point and viewpoint_id in isolate_point: # 判断是否有一定经过的点
-                continue
-            for human_id in human_point_list:
-                if human_id not in self.distances[scan][viewpoint_id].keys():
-                    continue
-                #print('scan', scan, 'viewpoint_id', viewpoint_id, 'human_id', human_id)
-                if self.distances[scan][viewpoint_id][human_id] < 3:
-                    hits.append(1)
-                    if i != 0 and i != len(path) - 1:
-                        flag = 1
-                else:
-                    hits.append(0)
+        for i, ob in enumerate(path): 
+            if ob[3]:
+                hits.append(1)
+                flag = 1
+            else:
+                hits.append(0)
+
         penalty = 0           
         for human in gt['human']:
             if human['human_rel_pos'] == 'Beginning' or human['human_rel_pos'] == 'End':
@@ -91,7 +83,7 @@ class Evaluation(object):
     def _score_item(self, instr_id, path):
         ''' Calculate error based on the final position in trajectory, and also 
             the closest position (oracle stopping rule).
-            The path contains [view_id, angle, vofv] '''
+            The path contains [view_id, angle, vofv, isCrashed] '''
         gt = self.gt[instr_id.split('_')[-2]] # 拥有这个 path id 的 item
         start = gt['path'][0]
         assert start == path[0][0], 'Result trajectories should include the start position'
@@ -101,7 +93,7 @@ class Evaluation(object):
         
         
         if NEW_DATA:
-            hits, hit, penalty = self._get_human_distance(gt, gt['scan'], path, gt['crux_points'])
+            hits, hit, penalty = self._get_human_distance(gt, path)
             total_hits = sum(hits) - penalty
             self.scores['total_hits'].append(total_hits)
             self.scores['hit'].append(hit)

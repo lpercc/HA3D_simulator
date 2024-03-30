@@ -4,7 +4,7 @@ import MatterSim
 import os
 import imageio
 import numpy as np
-from src.utils.get_info import getHumanOfScan, print_file_and_line_quick, getAllHumanLocations
+from src.utils.get_info import getHumanOfScan, relHumanAngle, getAllHumanLocations
 import math
 import argparse
 import pickle
@@ -182,7 +182,13 @@ class HCSimulator(MatterSim.Simulator):
             self.frame_num += framesPerStep
             for state in super().getState():
                 state = HCSimState(state)
-                state.humanState = self.getHumanState(state.scanId)
+                humanLocations = self.getHumanState(state.scanId)
+                relHeading, relElevation, minDistance = relHumanAngle(humanLocations, 
+                                                    [state.location.x, state.location.y, state.location.z], 
+                                                    state.heading,
+                                                    state.elevation)
+
+                state.isCrushed = minDistance <= 1
                 states.append(state)
         if self.frame_num >= 80:
             self.frame_num = 0
@@ -240,7 +246,7 @@ class HCSimState():
         self.elevation = o_state.elevation
         self.viewIndex = o_state.viewIndex
         self.navigableLocations = o_state.navigableLocations
-        self.humanState = {}
+        self.isCrushed = False
 
     def navigableLocations_to_object(self, navigableLocations):
         new_navigableLocations = []

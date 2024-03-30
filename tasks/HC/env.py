@@ -219,7 +219,7 @@ class HCBatch():
         '''
         # human Location of one building
         # state.humanState:[[x1, y1, z1], [x2, y2, z2], ...]
-        humanLocations = state.humanState
+        humanLocations = self.env.getHumanState(state.scanId)
         # compute the nearest human relative heading and elevation
         relHeading, relElevation, minDistance = relHumanAngle(humanLocations, 
                                                               [state.location.x, state.location.y, state.location.z], 
@@ -294,6 +294,7 @@ class HCBatch():
                 'step' : state.step,
                 'navigableLocations' : state.navigableLocations,
                 'instructions' : item['instructions'],
+                'isCrashed' : state.isCrushed,
                 'teacher' : self._shortest_path_action(state, item['path'][-1]),
             })
             if 'instr_encoding' in item:
