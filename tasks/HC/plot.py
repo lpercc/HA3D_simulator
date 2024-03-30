@@ -7,14 +7,14 @@ import matplotlib as mpl
 from eval import Evaluation
 mpl.use('Agg')
 import matplotlib.pyplot as plt
-
+import os
 logs = {
   'seq2seq_sample_imagenet_log.csv': 'Student-forcing',
   'seq2seq_teacher_imagenet_log.csv': 'Teacher-forcing'
 }
-
-RESULT_DIR = 'tasks/HC/results/'
-PLOT_DIR = 'tasks/HC/plots/'
+HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
+RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/results/')
+PLOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/plots/')
 
 def plot_training_curves():
     ''' Plot the validation loss, navigation error and success rate during training. '''
@@ -26,7 +26,7 @@ def plot_training_curves():
 
     dfs = {}
     for log in logs:
-        dfs[log] = pd.read_csv('tasks/HC/plots/'+log)
+        dfs[log] = pd.read_csv(os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/plots/'+log))
 
     plots = [
         ('Loss', 'loss',['val_seen loss', 'val_unseen loss', 'train loss']),

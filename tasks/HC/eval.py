@@ -13,7 +13,8 @@ from env import HCBatch
 from utils import load_datasets, load_nav_graphs
 from agent import BaseAgent
 sys.path.append('./')
-HUMAN_VIEWPOINT = './human-viewpoint_pair/human_motion_text.json'
+HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
+HUMAN_VIEWPOINT = os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_pair/human_motion_text.json')
 NEW_DATA = True
 
 
@@ -201,7 +202,7 @@ class Evaluation(object):
         return bleu_score, precisions
 
 
-RESULT_DIR = 'tasks/HC/results/'
+RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/results/')
 
 def eval_simple_agents():
     ''' Run simple baselines on each split. '''

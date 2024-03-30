@@ -8,7 +8,7 @@ from src.utils.get_info import getHumanOfScan, relHumanAngle, getAllHumanLocatio
 import math
 import argparse
 import pickle
-
+HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 def receiveMessage(pipe_R2S):
     with open(pipe_R2S, 'rb') as pipe_r2s:
         while True:
@@ -33,8 +33,8 @@ class HCSimulator(MatterSim.Simulator):
         self.WIDTH = 640
         self.HEIGHT = 480
         self.VFOV = math.radians(60)
-        self.pipe_S2R = f'./pipe/my_S2R_pipe{pipeID}'
-        self.pipe_R2S = f'./pipe/my_R2S_pipe{pipeID}'
+        self.pipe_S2R = os.path.join(HC3D_SIMULATOR_PATH, f'./pipe/my_S2R_pipe{pipeID}')
+        self.pipe_R2S = os.path.join(HC3D_SIMULATOR_PATH, f'./pipe/my_R2S_pipe{pipeID}')
         print(f"Simulator PIPE {pipeID}")
         self.frame_num = 0
         self.framesPerStep = 16

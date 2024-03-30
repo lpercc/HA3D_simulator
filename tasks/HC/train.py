@@ -16,15 +16,15 @@ from utils import read_vocab,write_vocab,build_vocab,Tokenizer,padding_idx,timeS
 from model import EncoderLSTM, AttnDecoderLSTM
 from agent import Seq2SeqAgent
 from eval import Evaluation
+HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 
+TRAIN_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/data/train_vocab.txt')
+TRAINVAL_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/data/trainval_vocab.txt')
+RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/results/')
+SNAPSHOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/snapshots/')
+PLOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/plots/')
 
-TRAIN_VOCAB = 'tasks/HC/data/train_vocab.txt'
-TRAINVAL_VOCAB = 'tasks/HC/data/trainval_vocab.txt'
-RESULT_DIR = 'tasks/HC/results/'
-SNAPSHOT_DIR = 'tasks/HC/snapshots/'
-PLOT_DIR = 'tasks/HC/plots/'
-
-IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet_80_16_mean.tsv'
+IMAGENET_FEATURES = os.path.join(HC3D_SIMULATOR_PATH, 'img_features/ResNet-152-imagenet_80_16_mean.tsv')
 MAX_INPUT_LENGTH = 80
 
 features = IMAGENET_FEATURES

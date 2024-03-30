@@ -11,7 +11,7 @@ from collections import Counter
 import numpy as np
 import networkx as nx
 import random
-
+HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 # padding, unknown word, end of sentence
 base_vocab = ['<PAD>', '<UNK>', '<EOS>']
 padding_idx = base_vocab.index('<PAD>')
@@ -27,7 +27,7 @@ def load_nav_graphs(scans):
 
     graphs = {}
     for scan in scans:
-        with open('connectivity/%s_connectivity.json' % scan) as f:
+        with open(os.path.join(HC3D_SIMULATOR_PATH, 'connectivity/%s_connectivity.json' % scan)) as f:
             G = nx.Graph()
             positions = {}
             data = json.load(f)
@@ -50,7 +50,7 @@ def load_datasets(splits):
     data = []
     for split in splits:
         assert split in ['train', 'val_seen', 'val_unseen', 'test']
-        with open('tasks/HC/data/HC_%s.json' % split) as f:
+        with open(os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/data/HC_%s.json' % split)) as f:
             data += json.load(f)
     random.seed(10)
     random.shuffle(data)
