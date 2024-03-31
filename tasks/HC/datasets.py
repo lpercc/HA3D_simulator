@@ -2,7 +2,7 @@
 Author: Dylan Li dylan.h.li@outlook.com
 Date: 2024-03-17 21:42:00
 LastEditors: Dylan Li dylan.h.li@outlook.com
-LastEditTime: 2024-03-26 21:15:35
+LastEditTime: 2024-03-30 22:46:08
 FilePath: /HC3D_simulator/tasks/HC/datasets.py
 Description: 
 
@@ -96,7 +96,6 @@ def train_random_run(iter):
 
     setup()
     # Create a batch training environment that will also preprocess text
-    
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     tok = BartTokenizer.from_pretrained('facebook/bart-base')
