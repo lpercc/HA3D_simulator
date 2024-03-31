@@ -11,6 +11,7 @@ from collections import Counter
 import numpy as np
 import networkx as nx
 import random
+
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 # padding, unknown word, end of sentence
 base_vocab = ['<PAD>', '<UNK>', '<EOS>']
@@ -174,7 +175,8 @@ def horizontal_and_elevation_angles(point1, point2):
     elevation_angle = np.arctan2(vector[2], np.linalg.norm(vector[:2]))
     return horizontal_angle, elevation_angle
 
-def check_agent_status(traj, max_steps, ended):
+def check_agent_status(traj, max_steps=30, ended=True):
+    # TODO: use this function to check all trajs agent status
     # DONE: ADD functions to check rewards
     print(f'{"=" * 10}Checking agent status...{"=" * 10}')
     table = PrettyTable()
@@ -237,7 +239,6 @@ def plot_rewards(rewards, reward_name):
     # DONE: plot rewards in lineplot 
     print(f'{"=" * 10}Plotting rewards...{"=" * 10}')
     
-    import matplotlib.pyplot as plt
     plt.plot(rewards)
     plt.xlabel('steps')
     plt.ylabel('Rewards')
@@ -245,7 +246,11 @@ def plot_rewards(rewards, reward_name):
     plt.show()
     plt.close()
 
-def calculate_rewards(ob, action, delta_distance, reward_type='dense', test_local=True): 
+def calculate_rewards(ob, action, delta_distance, reward_type='dense', test_local=False): 
+    '''While use DT, we need to design a good return to go reward, in this cause, we consider that the agent only get positive reward when it reach the target? For other reward, we only give a negative rewards. 
+    - delta_distance: the distance between the agent's current location and the lsat location. Typically, it is negative if agent go closer to the target.
+    
+    '''
     # Calculate rewards besed on recent ob
     # 需要当前的 Scan ID, 以及目前所在的最短 Path
     # Scan 用于判断目前人的状态
@@ -269,7 +274,7 @@ def calculate_rewards(ob, action, delta_distance, reward_type='dense', test_loca
         # Path Fidelity Reward 
         path_flag =  - delta_distance
         if path_flag > 0.0: 
-            path_reward = 1.0
+            path_reward = 0.0
         elif path_flag < 0.0: 
             path_reward = -1.0 
         else: 
@@ -277,25 +282,23 @@ def calculate_rewards(ob, action, delta_distance, reward_type='dense', test_loca
         
         # Miss the target penalty 
         last_dist = dist - delta_distance
-        if (last_dist < 1.0) and (- delta_distance > 0.0): 
-            miss_penalty =(1.0 - last_dist) * 2.0
+        if (last_dist < 1.0) and (- delta_distance > 0.0):  # NOTE: last_dist < 1.0 means that the agent is close to the target, and - delta_distance > 0.0 means that the agent is moving away the target
+            miss_penalty = (last_dist - 1.0) * 2.0
             
     human_reward = 0.0
     if not test_local:
         # Now we calculate human related reward 
         # TODO: there are two choices here, one is just considering the distance between human and agent, the second is that considering the avoid(action) step. 
         # Now we calculate first one. 
-        human_distance = ob['human_distance']
-        if human_distance < 2.25: 
+        crashed = ob['crashed']
+        if crashed: 
             human_reward = - 2.0 
-        elif 2.25 < human_distance < 4.5: 
-            human_reward = 2.0 
         else: 
             human_reward = 0.0
             
         # for second, we calculate use the nearest viewpoint to the human location. 
         # Now we calculate the avoid step reward
-        # # TODO: if there is a human in next step, and the action is avoid like action , then we give a reward. (We just use teacher action or use rewards that copy teacher actions in Reccurent BERT))
+        # # XXX: if there is a human in next step, and the action is avoid like action , then we give a reward. (We just use teacher action or use rewards that copy teacher actions in Reccurent BERT))
         # # The avaliable_navigation is a list of MatterSim.Viewpoint objects. The attribute of each object is viewpointId, x, y, z 
         
         

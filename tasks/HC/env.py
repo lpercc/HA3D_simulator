@@ -143,7 +143,7 @@ class HCBatch():
         bar = tqdm(load_datasets(splits))
         for item in bar: #TODO: change load datasets to load from pickle word embedding file simultaneously
             # Split multiple instructions into separate entries
-            bar.set_description(f"Loading {item['scan']}, Use text_embedding_model? {text_embedding_model}") # use for check if we load same scam multiple times
+            bar.set_description(f"Loading {item['scan']}, Use text_embedding_model? {text_embedding_model != None}") # use for check if we load same scam multiple times
             for j,instr in enumerate(item['instructions']):
                 self.scans.append(item['scan'])
                 new_item = dict(item)
@@ -335,7 +335,7 @@ class HCBatch():
                 'step' : state.step,
                 'navigableLocations' : state.navigableLocations,
                 'instructions' : item['instructions'],
-                'isCrashed' : state.isCrushed,
+                'isCrashed' : state.isCrushed, # in the simulator, if the agent is crashed, it will be reset to the start point. Threshold is 1.0m.
                 'teacher' : self._shortest_path_action_avoid_human(state, item['path'][-1]),
             })
             if 'instr_encoding' in item:
@@ -345,7 +345,7 @@ class HCBatch():
                 obs[-1]['state_features'] = np.concatenate([feature, item['instr_embedding']]) # 2048 + 768 = 2816 feature size
             # add distance bewteen agent and goal viewpoint 
             obs[-1]['distance'] = self.distances[state.scanId][state.location.viewpointId][item['path'][-1]]
-            #obs[-1]['human_distance'] = self._get_human_distance(state)
+            #obs[-1]['human_distance'] = self._get_human_distance(state) # NOTE: add isCrashed here, so we do not need check human distance
         return obs
 
     def reset(self):

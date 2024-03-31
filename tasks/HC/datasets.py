@@ -22,7 +22,7 @@ from tqdm import tqdm
 from collections import defaultdict
 
 from utils import read_vocab,write_vocab,build_vocab,Tokenizer,padding_idx,timeSince, check_agent_status
-from env import R2RBatch
+from env import HCBatch
 from model import EncoderLSTM, AttnDecoderLSTM
 from agent import Seq2SeqAgent, RandomAgent
 import pickle
@@ -39,14 +39,14 @@ if module_path not in sys.path:
     
     
 
-TRAIN_VOCAB = 'tasks/R2R/data/train_vocab.txt'
-TRAINVAL_VOCAB = 'tasks/R2R/data/trainval_vocab.txt'
-RESULT_DIR = 'tasks/R2R/results/'
-SNAPSHOT_DIR = 'tasks/R2R/snapshots/'
-PLOT_DIR = 'tasks/R2R/plots/'
-TRAJS_DIR = 'tasks/R2R/trajs'
+TRAIN_VOCAB = 'tasks/HC/data/train_vocab.txt'
+TRAINVAL_VOCAB = 'tasks/HC/data/trainval_vocab.txt'
+RESULT_DIR = 'tasks/HC/results/'
+SNAPSHOT_DIR = 'tasks/HC/snapshots/'
+PLOT_DIR = 'tasks/HC/plots/'
+TRAJS_DIR = 'tasks/HC/trajs'
 
-IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet.tsv'
+IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet_80_16_mean.tsv'
 MAX_INPUT_LENGTH = 80
 
 features = IMAGENET_FEATURES
@@ -60,7 +60,7 @@ dropout_ratio = 0.5
 feedback_method = 'sample' # teacher or sample
 learning_rate = 0.0001
 weight_decay = 0.0005
-n_iters = 5
+n_iters = 100 # the total trajectory number of the training process will be n_iters * batch_size
 model_prefix = 'seq2seq_%s_imagenet' % (feedback_method)
 
 
@@ -101,7 +101,7 @@ def train_random_run(iter):
     
     tok = BartTokenizer.from_pretrained('facebook/bart-base')
     embedding_model = BartModel.from_pretrained('facebook/bart-base')
-    train_env = R2RBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+    train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
 
     for i in range(iter):
     # Build models and train
