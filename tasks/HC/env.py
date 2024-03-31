@@ -19,6 +19,8 @@ from tqdm import tqdm
 
 MODEL_NAME = "resnet152.a1_in1k"
 FPS = 16
+VIDEO_LEN = 80
+STEPS = int(VIDEO_LEN/FPS)
 csv.field_size_limit(sys.maxsize)
 MODELING_ONLY = True
 
@@ -40,7 +42,7 @@ class EnvBatch():
                     self.vfov = int(item['vfov'])
                     long_id = self._make_id(item['scanId'], item['viewpointId'])
                     self.features[long_id] = np.frombuffer(base64.b64decode(item['features']),
-                            dtype=np.float32).reshape((36, 2048))
+                            dtype=np.float32).reshape((36, STEPS, 2048))
             self.renderingFlag = False
         else:
             print('Image features Extractor Timm')
@@ -83,10 +85,10 @@ class EnvBatch():
             #print(feature.shape)
             feature_states.append((feature, state))
         else:
-            for state in self.sim.getState():
+            for state in self.sim.getState(FPS):
                 long_id = self._make_id(state.scanId, state.location.viewpointId)
                 if self.features:
-                    feature = self.features[long_id][state.viewIndex,:]
+                    feature = self.features[long_id][state.viewIndex,state.step%STEPS,:]
                     feature_states.append((feature, state))
                 else:
                     feature_states.append((None, state))
@@ -125,6 +127,10 @@ class EnvBatch():
                 sys.exit("Invalid simple action");
         self.makeActions(actions)
 
+    def getHumanLocations(self, scanID):
+        return self.sim.getHumanState(scanID)
+
+
 
 class HCBatch():
     ''' Implements the Room to Room navigation task, using discretized viewpoints and pretrained features '''
@@ -133,7 +139,6 @@ class HCBatch():
         self.env = EnvBatch(feature_store=feature_store, batch_size=batch_size)
         self.data = []
         self.scans = []
-        
         # tqdm bar 
         bar = tqdm(load_datasets(splits))
         for item in bar: #TODO: change load datasets to load from pickle word embedding file simultaneously
@@ -195,7 +200,7 @@ class HCBatch():
         
     def _get_human_distance(self, state): 
         ''' Get the distance between human and goal viewpoint. '''
-        humanLocations = state.humanState
+        humanLocations = self.env.getHumanLocations(state.scanId)
         # compute the nearest human relative heading and elevation
         relHeading, relElevation, minDistance = relHumanAngle(humanLocations, 
                                                               [state.location.x, state.location.y, state.location.z], 
@@ -204,46 +209,11 @@ class HCBatch():
         return minDistance
 
     def _shortest_path_action(self, state, goalViewpointId):
-        ''' Determine next action on the shortest path to goal, for supervised training.
-
-        Args:
-            state (State): The current state of the environment.
-            goalViewpointId (str): The ID of the goal viewpoint.
-
-        Returns:
-            tuple: A tuple representing the next action to take. The tuple contains three values:
-                - The change in x-coordinate (int)
-                - The change in y-coordinate (int)
-                - The change in z-coordinate (int)
-        '''
-        # human Location of one building
-        # state.humanState:[[x1, y1, z1], [x2, y2, z2], ...]
-        humanLocations = state.humanState
-        # compute the nearest human relative heading and elevation
-        relHeading, relElevation, minDistance = relHumanAngle(humanLocations, 
-                                                              [state.location.x, state.location.y, state.location.z], 
-                                                              state.heading,
-                                                              state.elevation)
-
+        ''' Determine next action on the shortest path to goal, for supervised training. '''
         if state.location.viewpointId == goalViewpointId:
             return (0, 0, 0) # do nothing
         path = self.paths[state.scanId][state.location.viewpointId][goalViewpointId]
-        
-
-        # find next Viewpoint to avoid human
-        if minDistance < 1.5 and abs(relHeading)<math.pi/6.0 and abs(relElevation)<math.pi/6.0:
-            for loc in state.navigableLocations:
-                _, _, Distance = relHumanAngle(humanLocations, 
-                                                    [loc.x, loc.y, loc.z], 
-                                                    loc.rel_heading,
-                                                    loc.rel_elevation)
-                if Distance > 1.5 and abs(loc.rel_heading-relHeading) < 2*math.pi/3.0 and abs(loc.rel_heading-relHeading) > math.pi/3.0:
-                    nextViewpointId = loc.viewpointId
-                    break
-                else:
-                    nextViewpointId = path[1]
-        else:
-            nextViewpointId = path[1]    
+        nextViewpointId = path[1]
         # Can we see the next viewpoint?
         for i,loc in enumerate(state.navigableLocations):
             if loc.viewpointId == nextViewpointId:
@@ -258,6 +228,81 @@ class HCBatch():
                       return (0, 0,-1) # Look down
                 else:
                       return (i, 0, 0) # Move
+        # Can't see it - first neutralize camera elevation
+        if state.viewIndex//12 == 0:
+            return (0, 0, 1) # Look up
+        elif state.viewIndex//12 == 2:
+            return (0, 0,-1) # Look down
+        # Otherwise decide which way to turn
+        pos = [state.location.x, state.location.y, state.location.z]
+        target_rel = self.graphs[state.scanId].nodes[nextViewpointId]['position'] - pos
+        target_heading = math.pi/2.0 - math.atan2(target_rel[1], target_rel[0]) # convert to rel to y axis
+        if target_heading < 0:
+            target_heading += 2.0*math.pi
+        if state.heading > target_heading and state.heading - target_heading < math.pi:
+            return (0,-1, 0) # Turn left
+        if target_heading > state.heading and target_heading - state.heading > math.pi:
+            return (0,-1, 0) # Turn left
+        return (0, 1, 0) # Turn right
+
+    def _shortest_path_action_avoid_human(self, state, goalViewpointId):
+        ''' Determine next action on the shortest path to goal, for supervised training.
+
+        Args:
+            state (State): The current state of the environment.
+            goalViewpointId (str): The ID of the goal viewpoint.
+
+        Returns:
+            tuple: A tuple representing the next action to take. The tuple contains three values:
+                - The change in x-coordinate (int)
+                - The change in y-coordinate (int)
+                - The change in z-coordinate (int)
+        '''
+        # human Location of one building
+        # state.humanState:[[x1, y1, z1], [x2, y2, z2], ...]
+        humanLocations = self.env.getHumanLocations(state.scanId)
+        # compute the nearest human relative heading and elevation
+        relHeading, relElevation, minDistance = relHumanAngle(humanLocations, 
+                                                              [state.location.x, state.location.y, state.location.z], 
+                                                              state.heading,
+                                                              state.elevation)
+
+        if state.location.viewpointId == goalViewpointId:
+            return (0, 0, 0) # do nothing
+        path = self.paths[state.scanId][state.location.viewpointId][goalViewpointId]
+        
+
+        # find next Viewpoint to avoid human
+        if minDistance <= 2.5:
+            max_distance = 0
+            for loc in state.navigableLocations:
+                _, _, Distance = relHumanAngle(humanLocations, 
+                                                    [loc.x, loc.y, loc.z], 
+                                                    loc.rel_heading,
+                                                    loc.rel_elevation)
+                if Distance >= 2.5 and abs(loc.rel_heading-relHeading) < 2*math.pi/3.0 and abs(loc.rel_heading-relHeading) > math.pi/3.0:
+                    nextViewpointId = loc.viewpointId
+                    break
+                elif Distance > max_distance:
+                    max_distance = Distance
+                    nextViewpointId = loc.viewpointId
+        else:
+            nextViewpointId = path[1]    
+        # Can we see the next viewpoint?
+        for i,loc in enumerate(state.navigableLocations):
+            if loc.viewpointId == nextViewpointId:
+                # Look directly at the viewpoint before moving
+                if loc.rel_heading > math.pi/6.0:
+                    return (0, 1, 0) # Turn right
+                elif loc.rel_heading < -math.pi/6.0:
+                    return (0,-1, 0) # Turn left
+                elif loc.rel_elevation > math.pi/6.0 and state.viewIndex//12 < 2:
+                    return (0, 0, 1) # Look up
+                elif loc.rel_elevation < -math.pi/6.0 and state.viewIndex//12 > 0:
+                    return (0, 0,-1) # Look down
+                else:
+                    self.isAvoiding = False
+                    return (i, 0, 0) # Move
         # Can't see it - first neutralize camera elevation
         if state.viewIndex//12 == 0:
             return (0, 0, 1) # Look up
@@ -290,7 +335,8 @@ class HCBatch():
                 'step' : state.step,
                 'navigableLocations' : state.navigableLocations,
                 'instructions' : item['instructions'],
-                'teacher' : self._shortest_path_action(state, item['path'][-1]),
+                'isCrashed' : state.isCrushed,
+                'teacher' : self._shortest_path_action_avoid_human(state, item['path'][-1]),
             })
             if 'instr_encoding' in item:
                 obs[-1]['instr_encoding'] = item['instr_encoding']
@@ -299,7 +345,7 @@ class HCBatch():
                 obs[-1]['state_features'] = np.concatenate([feature, item['instr_embedding']]) # 2048 + 768 = 2816 feature size
             # add distance bewteen agent and goal viewpoint 
             obs[-1]['distance'] = self.distances[state.scanId][state.location.viewpointId][item['path'][-1]]
-            obs[-1]['human_distance'] = self._get_human_distance(state)
+            #obs[-1]['human_distance'] = self._get_human_distance(state)
         return obs
 
     def reset(self):

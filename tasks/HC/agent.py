@@ -28,6 +28,9 @@ class BaseAgent(object):
         self.losses = [] # For learning agents
 
     def write_results(self):
+        if not os.path.exists(os.path.dirname(self.results_path)):
+            os.makedirs(os.path.dirname(self.results_path))
+
         output = [{'instr_id':k, 'trajectory': v} for k,v in self.results.items()]
         with open(self.results_path, 'w') as f:
             json.dump(output, f)
@@ -280,7 +283,7 @@ class Seq2SeqAgent(BaseAgent):
         # Record starting point
         traj = [{
             'instr_id': ob['instr_id'],
-            'path': [(ob['viewpoint'], ob['heading'], ob['elevation'])]
+            'path': [(ob['viewpoint'], ob['heading'], ob['elevation'], ob['isCrashed'])]
         } for ob in perm_obs]
 
         # Forward through encoder, giving initial hidden state and memory cell for decoder
@@ -333,7 +336,7 @@ class Seq2SeqAgent(BaseAgent):
             # Save trajectory output
             for i,ob in enumerate(perm_obs):
                 if not ended[i]:
-                    traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation']))
+                    traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation'], ob['isCrashed']))
 
             # Early exit if all ended
             if ended.all():

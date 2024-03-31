@@ -4,11 +4,11 @@ import MatterSim
 import os
 import imageio
 import numpy as np
-from src.utils.get_info import getHumanOfScan, print_file_and_line_quick, getAllHumanLocations
+from src.utils.get_info import getHumanOfScan, relHumanAngle, getAllHumanLocations
 import math
 import argparse
 import pickle
-
+HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 def receiveMessage(pipe_R2S):
     with open(pipe_R2S, 'rb') as pipe_r2s:
         while True:
@@ -22,7 +22,7 @@ def receiveMessage(pipe_R2S):
 
 
 class HCSimulator(MatterSim.Simulator):
-    def __init__(self):
+    def __init__(self, pipeID=0):
         self.isRealTimeRender = False
         self.state = None
         self.allHumanLocations = {}
@@ -33,9 +33,11 @@ class HCSimulator(MatterSim.Simulator):
         self.WIDTH = 640
         self.HEIGHT = 480
         self.VFOV = math.radians(60)
-        self.pipe_S2R = './pipe/my_S2R_pipe'
-        self.pipe_R2S = './pipe/my_R2S_pipe'
+        self.pipe_S2R = os.path.join(HC3D_SIMULATOR_PATH, f'pipe/my_S2R_pipe{pipeID}')
+        self.pipe_R2S = os.path.join(HC3D_SIMULATOR_PATH, f'pipe/my_R2S_pipe{pipeID}')
+        print(f"Simulator PIPE {pipeID}")
         self.frame_num = 0
+        self.framesPerStep = 16
         super().__init__()
 
     def setCameraResolution(self, WIDTH, HEIGHT):
@@ -111,6 +113,7 @@ class HCSimulator(MatterSim.Simulator):
             self.renderScene()
 
     def makeAction(self, index, heading, elevation):
+        self.frame_num += self.framesPerStep
         super().makeAction(index, heading, elevation)
         if self.isRealTimeRender:
             self.state = super().getState()[0]
@@ -129,7 +132,8 @@ class HCSimulator(MatterSim.Simulator):
                 #print(f"Waiting {data['function']}")
             receiveMessage(self.pipe_R2S)
             self.renderScene()
-
+        if self.frame_num >= 80:
+            self.frame_num = 0
     def renderScene(self):
         self.state = HCSimState(self.state)
         #self.background = cv2.cvtColor(self.state.rgb, cv2.COLOR_BGR2RGB).astype(np.uint8)
@@ -148,10 +152,10 @@ class HCSimulator(MatterSim.Simulator):
             #print(f"Waiting {data['function']}")
         receiveMessage(self.pipe_R2S)
 
-    def getState(self, framesPerStep=16):
+    def getState(self, framesPerStep=1):
         states = []
+        self.framesPerStep = framesPerStep
         if self.isRealTimeRender:
-            self.frame_num += 1
             data = {
                 'function':'get state',
                 'frame_num':self.frame_num
@@ -176,15 +180,20 @@ class HCSimulator(MatterSim.Simulator):
                         break
             self.state.humanState = self.getHumanState(self.state.scanId)
             states.append(self.state)
-        
         else:
-            self.frame_num += framesPerStep
             for state in super().getState():
                 state = HCSimState(state)
-                state.humanState = self.getHumanState(state.scanId)
+                humanLocations = self.getHumanState(state.scanId)
+                relHeading, relElevation, minDistance = relHumanAngle(humanLocations, 
+                                                    [state.location.x, state.location.y, state.location.z], 
+                                                    state.heading,
+                                                    state.elevation)
+
+                if minDistance <= 1:
+                    state.isCrushed = 1
+                else:
+                    state.isCrushed = 0
                 states.append(state)
-        if self.frame_num >= 80:
-            self.frame_num = 0
 
         return states
 
@@ -218,10 +227,11 @@ class HCSimulator(MatterSim.Simulator):
                 humanStates.append(hs[self.frame_num])
         return humanStates  
 
-    def getStepState(self,framesPerStep=16):
+    def getStepState(self,framesPerStep=16,gap=4):
         agentViewFrames = []
-        for i in range(framesPerStep):
-            state = self.getState()[0]
+        for i in range(int(framesPerStep/gap)):
+            self.makeAction(0, 0, 0)
+            state = self.getState(framesPerStep=gap)[0]
             agentViewFrames.append(state.rgb)
         #state.humanState = self.getHumanState()
         return state, np.array(agentViewFrames, copy=False)
@@ -239,7 +249,7 @@ class HCSimState():
         self.elevation = o_state.elevation
         self.viewIndex = o_state.viewIndex
         self.navigableLocations = o_state.navigableLocations
-        self.humanState = {}
+        self.isCrushed = 0
 
     def navigableLocations_to_object(self, navigableLocations):
         new_navigableLocations = []
@@ -320,7 +330,7 @@ def main(args):
 
     heading = 0
     elevation = 0
-    location = 1
+    location = 0
 
     print('\nPython Demo')
     print('Use arrow keys to move the camera.')
@@ -335,6 +345,7 @@ def main(args):
         import cv2
         cv2.imwrite("sim_test.png",state.rgb)
         print(f"scanID:{state.scanId}")
+        print(f"agent step {state.step}")
         for humanLocation in state.humanState:
             print(f"Human Location:{humanLocation}")
 
