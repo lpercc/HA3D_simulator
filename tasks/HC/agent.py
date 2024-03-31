@@ -154,6 +154,7 @@ class RandomAgent(BaseAgent):
         return traj
     
 def get_indexed_teacher_action(teacher_action):
+    # TODO: change name and move to utils
     if teacher_action == (0, 0, 0):
         return 4 #stop
     elif teacher_action == (0, 1, 0): # turn right 
@@ -193,11 +194,60 @@ class ShortestAgent(BaseAgent):
         return traj
     
 class DecisionTransformerAgent(BaseAgent):
-    
-    def __init__(self, env, results_path):
+    # For now, the agent can't pick which forward move to make - just the one in the middle
+    model_actions = ['left', 'right', 'up', 'down', 'forward', '<end>', '<start>', '<ignore>']
+    env_actions = [
+      (0,-1, 0), # left
+      (0, 1, 0), # right
+      (0, 0, 1), # up
+      (0, 0,-1), # down
+      (1, 0, 0), # forward
+      (0, 0, 0), # <end>
+      (0, 0, 0), # <start>
+      (0, 0, 0)  # <ignore>
+    ]
+    def __init__(self, env, results_path, model):
         super().__init__(env, results_path)
+        self.model = model # init our DT here. trained model.
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
-        raise NotImplementedError
+        
+    def _variable_from_obs(self, obs):
+        ''' Extracts the feature tensor from a list of observations. 
+        - obs[np.array]: a list of observations.
+        '''
+        
+        states = []
+        rewards = []
+        
+        for ob in obs: 
+            state = ob['state_features']
+            reward = ob['final_reward']
+            
+            states.append(state)
+            rewards.append(reward)
+            
+        states = torch.tensor(states, dtype=torch.float32).reshape(len(obs), -1) # (batch_size, feature_size)
+        rewards = torch.tensor(rewards, dtype=torch.float32).reshape(len(obs), -1) # (batch_size, 1)
+        target_returns = torch.ones(len(obs), 1) * 3.0 # set the target return to 3.0, because we have sparse positive reward
+            
+        return states, rewards, target_returns
+    
+    def rollout(self):
+        
+        obs = np.array(self.env.reset())
+        states, rewards, target_returns = self._variable_from_obs(obs)
+        batch_size = len(obs)
+        
+        for _, step in enumerate(range(30)): # 30 steps
+            # place data on the correct device
+            states = states.to(self.device)
+            rewards = rewards.to(self.device)
+            target_returns = target_returns.to(self.device) #TODO: 这个 Target return 不一定设置为 3.0, 可以设置为其他值
+            
+
+
+        
     
 
 class Seq2SeqAgent(BaseAgent):

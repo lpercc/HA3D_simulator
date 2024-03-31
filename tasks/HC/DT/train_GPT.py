@@ -29,12 +29,13 @@ import gzip
 #import blosc
 import argparse
 from tqdm import tqdm
+from dataclasses import dataclass
 
 
-parser = argparse.ArgumentParser()
+'''parser = argparse.ArgumentParser()
 parser.add_argument('--seed', type=int, default=123)
 parser.add_argument('--context_length', type=int, default=30)
-parser.add_argument('--epochs', type=int, default=1)
+parser.add_argument('--epochs', type=int, default=5)
 parser.add_argument('--model_type', type=str, default='reward_conditioned')
 parser.add_argument('--game', type=str, default='Breakout')
 parser.add_argument('--batch_size', type=int, default=32)
@@ -42,9 +43,22 @@ parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--trajectories_per_buffer', type=int, default=10, help='Number of trajectories to sample from each of the buffers.')
 parser.add_argument('--data_dir_prefix', type=str, default='./dqn_replay/')
 args = parser.parse_args()
+seed_everything(args.seed)'''
 
-seed_everything(args.seed)
 
+@dataclass
+class Config:
+    seed: int = 123
+    context_length: int = 30
+    epochs: int = 5
+    model_type: str = 'reward_conditioned'
+    game: str = 'Breakout'
+    batch_size: int = 32
+    trajectories_per_buffer: int = 10
+    data_dir_prefix: str = './dqn_replay/'
+
+    def __post__init__(self):
+        seed_everything(self.seed)
 class StateActionReturnDataset(Dataset):
 
     def __init__(self, data, block_size, actions, targets, done_idxs, rtgs, timesteps):        
@@ -168,7 +182,8 @@ def create_dataset(trajs):
     
     
 if __name__ == '__main__':
-    trajs = load_data('/home/dylan/projects/motion_hcl/Matterport3DSimulator/tasks/R2R/trajs')
+    args = Config(seed=123, context_length=30, epochs=5, model_type='reward_conditioned', game='Breakout', batch_size=32, trajectories_per_buffer=10, data_dir_prefix='./dqn_replay/')
+    trajs = load_data('/home/qid/minghanli/HC3D_simulator/tasks/HC/trajs')
     states, actions, targets, rtgs,  done_idxs, time_steps = create_dataset(trajs)
     dataset = StateActionReturnDataset(states, 5 * 3, actions, targets, done_idxs, rtgs, time_steps)
     
@@ -180,8 +195,8 @@ if __name__ == '__main__':
     
     # Now train the model 
     dataset = StateActionReturnDataset(states, 5 * 3, actions, targets, done_idxs, rtgs, time_steps)
-    sub_train = torch.utils.data.Subset(dataset, list(range(100)))
-    sub_test = torch.utils.data.Subset(dataset, list(range(100, 110)))
+    sub_train = torch.utils.data.Subset(dataset, list(range(10000)))
+    sub_test = torch.utils.data.Subset(dataset, list(range(9000, 10000)))
     
 
     mconf = GPT1Config(dataset.vocab_size, dataset.block_size,
@@ -202,14 +217,14 @@ if __name__ == '__main__':
     # TODO: change this 
     
     xs = []
-    for it, (x, y, target, rtg, timestep) in enumerate(sub_test):
-        x = x.to(trainer.device)
-        y = y.to(trainer.device)
-        target = target.to(trainer.device)
-        rtg = rtg.to(trainer.device)
-        timestep = timestep.to(trainer.device)
-        # TODO: Sliding Windows Prediction
-        predict_action = sample(model, x.unsqueeze(0), 5, temperature=1.0, sample=True, top_k=5, actions=y.unsqueeze(0), rtgs=rtg.unsqueeze(0), timesteps=timestep.unsqueeze(0)) #5 个上下文窗口预测未来一个 action
-        y[:, -2:-1, :] = predict_action
-        
-        
+    if predict := False:
+        for it, (x, y, target, rtg, timestep) in enumerate(sub_test):
+            x = x.to(trainer.device)
+            y = y.to(trainer.device)
+            target = target.to(trainer.device)
+            rtg = rtg.to(trainer.device)
+            timestep = timestep.to(trainer.device)
+            predict_action = sample(model, x.unsqueeze(0), 5, temperature=1.0, sample=True, top_k=5, actions=y.unsqueeze(0), rtgs=rtg.unsqueeze(0), timesteps=timestep.unsqueeze(0)) #5 个上下文窗口预测未来一个 action
+            y[:, -2:-1, :] = predict_action
+            
+       
