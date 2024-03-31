@@ -2,8 +2,8 @@
 Author: Dylan Li dylan.h.li@outlook.com
 Date: 2024-03-26 15:10:27
 LastEditors: Dylan Li dylan.h.li@outlook.com
-LastEditTime: 2024-03-26 15:28:44
-FilePath: /Matterport3DSimulator/tasks/R2R/DT/GPT_trainer.py
+LastEditTime: 2024-03-30 22:44:44
+FilePath: /HC3D_simulator/tasks/HC/DT/GPT_trainer.py
 Description: 
 
 Copyright (c) 2024 by Heng Li, All Rights Reserved. 
@@ -137,8 +137,14 @@ class Trainer:
         best_return = -float('inf')
 
         self.tokens = 0 # counter used for learning rate decay
-
+        
         for epoch in range(config.max_epochs):
 
-            test_loss = run_one_epoch('train',)
+            run_one_epoch('train',)
+            test_loss = run_one_epoch('test',)
+            print("Test Loss: ", test_loss)
             
+        self.trained_model = model 
+        
+    def get_trained_model(self):
+        return self.trained_model
