@@ -2,20 +2,20 @@
 
 import json
 import os
-import sys
-import numpy as np
 import random
+import sys
 import time
 
+import numpy as np
 import torch
-import torch.nn as nn
 import torch.distributions as D
-from torch.autograd import Variable
-from torch import optim
+import torch.nn as nn
 import torch.nn.functional as F
-
 from env import HCBatch
-from utils import padding_idx
+from torch import optim
+from torch.autograd import Variable
+from utils import calculate_rewards, check_agent_status, padding_idx
+
 
 class BaseAgent(object):
     ''' Base class for an HC agent to generate and save trajectories. '''
@@ -82,7 +82,7 @@ class RandomAgent(BaseAgent):
         traj = [{
             'instr_id': ob['instr_id'],
             'path': [],
-            'unique_path': [(ob['viewpoint'], ob['heading'], ob['elevation'])],
+            'unique_path': [ob['viewpoint']],
             'teacher': [],
             'state_features': [],
             'final_reward': [], 
@@ -91,17 +91,20 @@ class RandomAgent(BaseAgent):
             'missing_reward': [],
             'human_reward': [],
             'actions': [],
+            'crashed': [],
         } for ob in obs]
         # self.steps = random.sample(range(-11,1), len(obs))
         self.steps = np.random.randint(-11, 1, size=len(obs))# ramdom from -11 - 0 (12 numbers) to choose the direction, because we have 12 discrete views
+
         ended = [False] * len(obs) # Is this enough for us to get a random walk agents?
-        for i, t in enumerate(range(max_steps)): # 30 Steps 之后所有 Agent 的状态
+        for _, t in enumerate(range(max_steps)): # 30 Steps 之后所有 Agent 的状态
             actions = []
             last_distances = []
             for i,ob in enumerate(obs):
-                if self.steps[i] >= 5: # End of navigation larger than 5 steps (including the first one)
+                if self.steps[i] >= 5: # End of navigation larger than 5 steps (including the first one) 
                     actions.append((0, 0, 0)) # do nothing, i.e. end
                     ended[i] = True
+                    self.steps[i] += 1
                 elif self.steps[i] < 0: # 等价于随机起始一个方向, 直到 steps[i] == 0
                     actions.append((0, 1, 0)) # turn right (direction choosing)
                     self.steps[i] += 1
@@ -114,18 +117,23 @@ class RandomAgent(BaseAgent):
 
                 last_distances.append(ob['distance'])
             
-            # 对于 traj 来说, 真正有用的 Actions 在 steps == 0 之后的 actions, 因为在这之前都是在调整方向
-            for i,ob in enumerate(obs):
-                if ended[i]:
-                    pass #如果结束则不记录
-                elif self.steps[i] >= 0: # 如果开始了, 并且没有结束则记录
+                # 对于 traj 来说, 真正有用的 Actions 在 steps == 0 之后的 actions, 因为在这之前都是在调整方向
+                # only need to record once after the end of navigation
+                
+                if self.steps[i] > 6: 
+                    record_end_flag = True
+                else:
+                    record_end_flag = False
+
+                if self.steps[i] >= 0 and not record_end_flag:
                     traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation']))
                     traj[i]['teacher'].append(get_indexed_teacher_action(ob['teacher']))
                     traj[i]['actions'].append(get_indexed_teacher_action(actions[i]))
                     traj[i]['state_features'].append(ob['state_features'])
+                    traj[i]['crashed'].append(ob['isCrashed'])
                     
                     delta_distance = ob['distance'] - last_distances[i] if t > 0 else 0
-                    reward = calculate_rewards(ob, actions[-1], delta_distance, reward_type='dense', test_local=True)
+                    reward = calculate_rewards(ob, actions[i], delta_distance, reward_type='dense', test_local=True)
                     traj[i]['final_reward'].append(reward[0])
                     traj[i]['target_reward'].append(reward[1])
                     traj[i]['path_reward'].append(reward[2])
@@ -134,11 +142,7 @@ class RandomAgent(BaseAgent):
                     
                     if len(traj[i]['unique_path']) == 0 or ob['viewpoint'] != traj[i]['unique_path'][-1]:
                         traj[i]['unique_path'].append(ob['viewpoint'])
-                else: # 如果没有开始则不记录
-                    pass
-                # add ended done idx for max_steps 
-                
-
+    
             obs = self.env.step(actions)
         # Check Agent 
         #check_agent_status(traj, max_steps, ended)
@@ -150,11 +154,12 @@ class RandomAgent(BaseAgent):
         return traj
     
 def get_indexed_teacher_action(teacher_action):
+    # TODO: change name and move to utils
     if teacher_action == (0, 0, 0):
         return 4 #stop
-    elif teacher_action == (0, 1, 0):
+    elif teacher_action == (0, 1, 0): # turn right 
         return 0
-    elif teacher_action == (0, -1, 0):
+    elif teacher_action == (0, -1, 0): # turn left
         return 1
     elif teacher_action == (0, 0, 1):
         return 2
@@ -187,7 +192,63 @@ class ShortestAgent(BaseAgent):
             if ended.all():
                 break
         return traj
+    
+class DecisionTransformerAgent(BaseAgent):
+    # For now, the agent can't pick which forward move to make - just the one in the middle
+    model_actions = ['left', 'right', 'up', 'down', 'forward', '<end>', '<start>', '<ignore>']
+    env_actions = [
+      (0,-1, 0), # left
+      (0, 1, 0), # right
+      (0, 0, 1), # up
+      (0, 0,-1), # down
+      (1, 0, 0), # forward
+      (0, 0, 0), # <end>
+      (0, 0, 0), # <start>
+      (0, 0, 0)  # <ignore>
+    ]
+    def __init__(self, env, results_path, model):
+        super().__init__(env, results_path)
+        self.model = model # init our DT here. trained model.
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        
+    def _variable_from_obs(self, obs):
+        ''' Extracts the feature tensor from a list of observations. 
+        - obs[np.array]: a list of observations.
+        '''
+        
+        states = []
+        rewards = []
+        
+        for ob in obs: 
+            state = ob['state_features']
+            reward = ob['final_reward']
+            
+            states.append(state)
+            rewards.append(reward)
+            
+        states = torch.tensor(states, dtype=torch.float32).reshape(len(obs), -1) # (batch_size, feature_size)
+        rewards = torch.tensor(rewards, dtype=torch.float32).reshape(len(obs), -1) # (batch_size, 1)
+        target_returns = torch.ones(len(obs), 1) * 3.0 # set the target return to 3.0, because we have sparse positive reward
+            
+        return states, rewards, target_returns
+    
+    def rollout(self):
+        
+        obs = np.array(self.env.reset())
+        states, rewards, target_returns = self._variable_from_obs(obs)
+        batch_size = len(obs)
+        
+        for _, step in enumerate(range(30)): # 30 steps
+            # place data on the correct device
+            states = states.to(self.device)
+            rewards = rewards.to(self.device)
+            target_returns = target_returns.to(self.device) #TODO: 这个 Target return 不一定设置为 3.0, 可以设置为其他值
+            
 
+
+        
+    
 
 class Seq2SeqAgent(BaseAgent):
     ''' An agent based on an LSTM seq2seq model with attention. '''

@@ -2,8 +2,8 @@
 Author: Dylan Li dylan.h.li@outlook.com
 Date: 2024-03-26 15:10:27
 LastEditors: Dylan Li dylan.h.li@outlook.com
-LastEditTime: 2024-03-30 22:44:44
-FilePath: /HC3D_simulator/tasks/HC/DT/GPT_trainer.py
+LastEditTime: 2024-03-30 09:59:08
+FilePath: /motion_hcl/Matterport3DSimulator/tasks/R2R/DT/GPT_trainer.py
 Description: 
 
 Copyright (c) 2024 by Heng Li, All Rights Reserved. 
@@ -85,23 +85,21 @@ class Trainer:
 
             losses = []
             pbar = tqdm(enumerate(loader), total=len(loader)) if is_train else enumerate(loader)
-            for it, (x, y, r, t) in pbar:
+            for it, (x, y, y, r, t) in pbar:
 
                 # place data on the correct device
-                x = x.to(self.device)
+                x = x.to(self.device) 
                 y = y.to(self.device)
                 r = r.to(self.device)
                 t = t.to(self.device)
 
                 # forward the model
                 with torch.set_grad_enabled(is_train):
-                    # logits, loss = model(x, y, r)
                     logits, loss = model(x, y, y, r, t)
                     loss = loss.mean() # collapse all losses if they are scattered on multiple gpus
                     losses.append(loss.item())
 
                 if is_train:
-
                     # backprop and update the parameters
                     model.zero_grad()
                     loss.backward()
@@ -137,7 +135,7 @@ class Trainer:
         best_return = -float('inf')
 
         self.tokens = 0 # counter used for learning rate decay
-        
+
         for epoch in range(config.max_epochs):
 
             run_one_epoch('train',)

@@ -85,8 +85,8 @@ class AgentLLA():
             features[i,:] = ob['feature']
         return Variable(torch.from_numpy(features), requires_grad=False).cuda()
 
-    def inference(self):
-        obs = np.array(self.env.reset())
+    def inference(self, scanId, viewpointId):
+        obs = np.array(self.env.reset(scanId, viewpointId))
         batch_size = len(obs)
 
         # Reorder the language input for the encoder
@@ -117,15 +117,9 @@ class AgentLLA():
                 if len(ob['navigableLocations']) <= 1:
                     logit[i, self.model_actions.index('forward')] = -float('inf')
 
-            if self.feedback == 'argmax':
-                _,a_t = logit.max(1)        # student forcing - argmax
-                a_t = a_t.detach()
-            elif self.feedback == 'sample':
-                probs = F.softmax(logit, dim=1)
-                m = D.Categorical(probs)
-                a_t = m.sample()            # sampling an action from model
-            else:
-                sys.exit('Invalid feedback option')
+            probs = F.softmax(logit, dim=1)
+            m = D.Categorical(probs)
+            a_t = m.sample()            # sampling an action from model
 
             # Updated 'ended' list and make environment action
             for i,idx in enumerate(perm_idx):
@@ -179,13 +173,13 @@ class UnitreeRobot():
         self.instruction['instruction'] = instr
         self.instruction['instr_encoding'] = tokenizer.encode_sentence(instr)
 
-    def newEpisodes(self, scanId, viewpointId):
+    def newEpisode(self, scanId, viewpointId):
         self.step_ = 0
         self.scanId = scanId
         self.viewpointId = viewpointId
 
     def get_front_camera(self,FPS):
-        frames = np.random((FPS, 480, 640, 3))
+        frames = np.random.randint(0, 256, (FPS, 480, 640, 3), dtype='uint8')
         return frames
 
     def get_IMU():
@@ -211,8 +205,8 @@ class UnitreeRobot():
     def makeAction(self, action):
         ''' Take an action using the full state dependent action interface (with batched input).
             Every action element should be an (index, heading, elevation) tuple. '''
-        index = self.env_actions.index(action)
-        print(f"Robot action: {self.model_actions(index)}")
+        index = self.env_actions.index(action[0])
+        print(f"Robot action: {self.model_actions[index]}")
 
     def _get_obs(self):
         feature,state = self.getState()
@@ -236,7 +230,7 @@ class UnitreeRobot():
 
     def step(self, action):
         ''' Take action (same interface as makeActions) '''
-        self.step += 1
+        self.step_ += 1
         self.makeAction(action)
         return self._get_obs()
 
@@ -271,7 +265,7 @@ class Location():
 
 
 def main(args):
-    print('start')
+    
     instr_id = '001'
     instr = "Go ahead and stop at the water fountain."
     device = f'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -297,7 +291,8 @@ def main(args):
     
     agent = AgentLLA(realRobot, results_path, encoder, decoder, max_episode_len)
     agent.load(encoder_path, decoder_path)
-    agent.inference()
+    print('start inference')
+    agent.inference(scanId='9424', viewpointId='942401')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
