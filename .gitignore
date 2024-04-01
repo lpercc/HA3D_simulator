@@ -8,3 +8,4 @@ tasks/HC/trajs/train_trajs.json.gz
 plots/
 results/
 snapshots/
+sim2real/
