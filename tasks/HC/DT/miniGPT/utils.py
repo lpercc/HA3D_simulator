@@ -43,37 +43,29 @@ def top_k_logits(logits, k):
     out[out < v[:, [-1]]] = -float('Inf')
     return out
 
-@torch.no_grad()
-def sample(model, x, steps, temperature=1.0, sample=False, top_k=None, actions=None, rtgs=None, timesteps=None):
+def sample_from_logits(logits, temperature=1.0, sample=False, top_k=None):
     """
-    take a conditioning sequence of indices in x (of shape (b,t)) and predict the next token in
-    the sequence, feeding the predictions back into the model each time. Clearly the sampling
-    has quadratic complexity unlike an RNN that is only linear, and has a finite context window
-    of block_size, unlike an RNN that has an infinite context window.
+    Given a sequence of logits, predict the next token in the sequence,
+    feeding the predictions back into the model each time. This function
+    assumes that the logits are already produced by the model and are
+    passed directly to it.
     """
-    block_size = model.get_block_size()
-    model.eval()
-    
-    # x_cond = x if x.size(1) <= block_size else x[:, -block_size:] # crop context if needed
-    x_cond = x if x.size(1) <= block_size//3 else x[:, -block_size//3:] # crop context if needed
-    if actions is not None:
-        actions = actions if actions.size(1) <= block_size//3 else actions[:, -block_size//3:] # crop context if needed
-    rtgs = rtgs if rtgs.size(1) <= block_size//3 else rtgs[:, -block_size//3:] # crop context if needed
-    logits, _ = model(x_cond, actions=actions, targets=None, rtgs=rtgs, timesteps=timesteps)
-    # pluck the logits at the final step and scale by temperature
+    # Assuming logits are of shape (b, t, v) where b is batch size, t is sequence length, and v is vocabulary size
+    # We only need the last logits for the next token prediction
     logits = logits[:, -1, :] / temperature
-    # optionally crop probabilities to only the top k options
+    
+    # Optionally crop probabilities to only the top k options
     if top_k is not None:
         logits = top_k_logits(logits, top_k)
-    # apply softmax to convert to probabilities
+    
+    # Apply softmax to convert to probabilities
     probs = F.softmax(logits, dim=-1)
-    # sample from the distribution or take the most likely
+    
+    # Sample from the distribution or take the most likely
     if sample:
         ix = torch.multinomial(probs, num_samples=1)
     else:
         _, ix = torch.topk(probs, k=1, dim=-1)
-    # append to the sequence and continue
-    # x = torch.cat((x, ix), dim=1)
-    x = ix
-
-    return x
+    
+    # Return the index of the sampled token
+    return ix

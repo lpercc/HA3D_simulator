@@ -49,6 +49,8 @@ class GPT1Config(GPTConfig):
     n_layer = 12
     n_head = 12
     n_embd = 768
+    max_length = 5
+    whole_step = 30
 
 class CausalSelfAttention(nn.Module):
     """
@@ -127,10 +129,9 @@ class GPT(nn.Module):
         self.model_type = config.model_type
 
         # input embedding stem
-        self.tok_emb = nn.Embedding(config.vocab_size, config.n_embd)
+        # self.tok_emb = nn.Embedding(config.vocab_size, config.n_embd)
         # self.pos_emb = nn.Parameter(torch.zeros(1, config.block_size, config.n_embd))
-        self.pos_emb = nn.Parameter(torch.zeros(1, config.block_size + 1, config.n_embd))
-        self.global_pos_emb = nn.Parameter(torch.zeros(1, config.max_timestep+1, config.n_embd))
+        self.time_emb = nn.Embedding(config.whole_step, config.n_embd)
         self.drop = nn.Dropout(config.embd_pdrop)
 
         # transformer
@@ -194,8 +195,8 @@ class GPT(nn.Module):
                     no_decay.add(fpn)
 
         # special case the position embedding parameter in the root GPT module as not decayed
-        no_decay.add('pos_emb')
-        no_decay.add('global_pos_emb')
+        # no_decay.add('pos_emb')
+        # no_decay.add('global_pos_emb')
 
         # validate that we considered every parameter
         param_dict = {pn: p for pn, p in self.named_parameters()}
@@ -215,36 +216,76 @@ class GPT(nn.Module):
 
     # state, action, and return
     def forward(self, states, actions, targets=None, rtgs=None, timesteps=None):
-        # states: (batch, block_size, 2048 + 768)
-        # actions: (batch, block_size, 1)
-        # targets: (batch, block_size, 1)
-        # rtgs: (batch, block_size, 1)
-        # timesteps: (batch, 1, 1)
+        # TODO: The original code is wrong, need to change it to the correct version
+        # Here we do not care the input length, we only care the context length and it's initial sequence modeling task 
+        # In our setting, the block_size should be 15
+        # Final context length should be block_size
+        # states: (batch, block_size // 3, 2048 + 768) 
+        # actions: (batch, block_size // 3 , 1)
+        # targets: (batch, block_size // 3, 1)
+        # rtgs: (batch, block_size // 3, 1)
+        # timesteps: (batch, block_size // 3  , 1) , the shape of timsteps should be the same as states
 
-        state_embeddings = self.state_encoder(states.type(torch.float32)) # (batch , block_size, n_embd)
         
-        if actions is not None and self.model_type == 'reward_conditioned': 
+        assert self.model_type == 'reward_conditioned', "The model type should be reward_conditioned"
+        
+        state_embeddings = self.state_encoder(states.type(torch.float32)) # (batch , block_size // 3, n_embd)
+        rtg_embeddings = self.ret_emb(rtgs.type(torch.float32)) # (batch, block_size // 3, n_embd)
+        
+        if actions is not None and self.model_type == 'reward_conditioned':
+            action_embeddings = self.action_embeddings(actions.type(torch.long).squeeze(-1)) # (batch, block_size // 3, n_embd)
+        elif actions is None and self.model_type == 'reward_conditioned':
+            action_embeddings = torch.zeros((states.shape[0], states.shape[1], self.config.n_embd), dtype=torch.float32, device=state_embeddings.device) # (batch, block_size // 3, n_embd)
+            
+        time_embeddings = self.time_emb(timesteps.type(torch.long).squeeze(-1)) # (batch, block_size // 3, n_embd)
+            
+        # add together the embeddings
+        state_embeddings = state_embeddings + time_embeddings
+        rtg_embeddings = rtg_embeddings + time_embeddings
+        action_embeddings = action_embeddings + time_embeddings
+        
+        token_embeddings = torch.stack([rtg_embeddings, state_embeddings, action_embeddings], dim=1) # batch, block_size // 3, 3, n_embd
+        token_embeddings = token_embeddings.permute(0, 2, 1, 3).reshape(-1, 3 * state_embeddings.shape[1], self.config.n_embd) # (batch, block_size, n_embd)
+        
+        # NOTE: durring inference, we need to predict next action. Here we still use same sequence length, because we can only get prediction from the state_embeddings
+        x = self.ln_f(token_embeddings)
+        #x = self.drop(token_embeddings)
+        x = self.blocks(x)
+        x = self.ln_f(x)
+        logits = self.head(x)
+        
+        logits = logits[:, 1::3, :] # only keep predictions from state_embeddings
+        
+        # if we are given some desired targets also calculate the loss
+        loss = None
+        if targets is not None:
+            loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), targets.reshape(-1))
+        return logits, loss
+            
+        
+        '''if actions is not None and self.model_type == 'reward_conditioned': 
             rtg_embeddings = self.ret_emb(rtgs.type(torch.float32))
             action_embeddings = self.action_embeddings(actions.type(torch.long).squeeze(-1)) # (batch, block_size, n_embd)
+            # NOTE if cuda index error, please check if there is -1 in actions
 
-            token_embeddings = torch.zeros((states.shape[0], states.shape[1]*3 - int(targets is None), self.config.n_embd), dtype=torch.float32, device=state_embeddings.device) # size: (batch, block_size*3, n_embd), #NOTE: 因此真实的上下文长度上 Block Size * 3 
+            token_embeddings = torch.zeros((states.shape[0], states.shape[1]*3 - int(targets is None), self.config.n_embd), dtype=torch.float32, device=state_embeddings.device) # size: (batch, block_size*3-1, n_embd), #NOTE: 因此真实的上下文长度上 Block Size * 3 
             # NOTE: 构造连续序列
             token_embeddings[:,::3,:] = rtg_embeddings
             token_embeddings[:,1::3,:] = state_embeddings
-            token_embeddings[:,2::3,:] = action_embeddings[:,-states.shape[1] + int(targets is None):,:]
-        elif actions is None and self.model_type == 'reward_conditioned': # only happens at very first timestep of evaluation
-            rtg_embeddings = self.ret_emb(rtgs.type(torch.float32))
-
-            token_embeddings = torch.zeros((states.shape[0], states.shape[1]*2, self.config.n_embd), dtype=torch.float32, device=state_embeddings.device)
-            token_embeddings[:,::2,:] = rtg_embeddings # really just [:,0,:]
-            token_embeddings[:,1::2,:] = state_embeddings # really just [:,1,:]
-        else:
-            raise NotImplementedError()
+            if targets is None:
+                token_embeddings[:,2::3,:] = action_embeddings[:,:-1,:] # here we drop last action
+            else:
+                token_embeddings[:,2::3,:] = action_embeddings
+                
+            context_timesteps = torch.repeat_interleave(timesteps, 3, dim=1)
+            context_timesteps = context_timesteps[:, :token_embeddings.shape[1], :]
 
         batch_size = states.shape[0]
-        all_global_pos_emb = torch.repeat_interleave(self.global_pos_emb, batch_size, dim=0) # batch_size, traj_length, n_embd
-
-        position_embeddings = torch.gather(all_global_pos_emb, 1, torch.repeat_interleave(timesteps, self.config.n_embd, dim=-1)) + self.pos_emb[:, :token_embeddings.shape[1], :]
+        all_global_pos_emb = torch.repeat_interleave(self.global_pos_emb, batch_size, dim=0) # From 1, traj_length, n_embd to batch_size, traj_length, n_embd
+        # TODO: change this to use the timestep from paper.
+        
+        gather_tensor =  torch.repeat_interleave(context_timesteps, self.config.n_embd, dim=-1)
+        position_embeddings = torch.gather(all_global_pos_emb, 1, gather_tensor) + self.pos_emb[:, :token_embeddings.shape[1], :]
 
         x = self.drop(token_embeddings + position_embeddings)
         x = self.blocks(x)
@@ -267,4 +308,112 @@ class GPT(nn.Module):
         if targets is not None:
             loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), targets.reshape(-1))
 
-        return logits, loss
+        return logits, loss'''
+        
+    
+    
+    def get_action_prediction(self, states, actions, rtgs, timesteps):
+        """
+        Get action predictions from the GPT model given the input states, actions, returns-to-go (rtgs), and timesteps.
+
+        Args:
+            states (torch.Tensor): The state tensor of shape (batch_size, seq_length, state_dim).
+            actions (torch.Tensor): The action tensor of shape (batch_size, seq_length, action_dim).
+            rtgs (torch.Tensor): The returns-to-go tensor of shape (batch_size, seq_length, 1).
+            timesteps (torch.Tensor): The timestep tensor of shape (batch_size, seq_length, 1).
+
+        Returns:
+            torch.Tensor: The predicted action for the last timestep of the first batch element,
+                        of shape (action_dim,).
+        """
+        
+        # reshape the input tensors to have a batch 1 
+        states = states.reshape(1, -1, states.shape[-1])
+        actions = actions.reshape(1, -1, actions.shape[-1])
+        rtgs = rtgs.reshape(1, -1, rtgs.shape[-1])
+        timesteps = timesteps.reshape(1, -1, 1)
+        
+        # Pad the input tensors if max_length is specified 
+        if self.config.max_length is not None: 
+            # Truncate the input tensors to the max_length
+            states = states[:, -self.config.max_length:, :]
+            actions = actions[:, -self.config.max_length:, :]
+            rtgs = rtgs[:, -self.config.max_length:, :]
+            timesteps = timesteps[:, -self.config.max_length:, :]
+            
+            # Here we create a attention mask to indicate the valid positions in the padded sequences 
+            # Size of the padding tensors: (1, max_length - states.shape[1], states.shape[-1]), size of original tensors: (1, states.shape[1], states.shape[-1]), final size: (1, max_length, states.shape[-1])
+            padding_states = torch.concatenate([torch.zeros((1, self.config.max_length - states.shape[1], states.shape[-1]), dtype=torch.float32, device=states.device), states], dim=1) 
+            padding_actions = torch.concatenate([torch.zeros((1, self.config.max_length - actions.shape[1], actions.shape[-1]), dtype=torch.int64, device=actions.device), actions], dim=1)
+            padding_rtgs = torch.concatenate([torch.zeros((1, self.config.max_length - rtgs.shape[1], rtgs.shape[-1]), dtype=torch.float32, device=rtgs.device), rtgs], dim=1)
+            padding_timesteps = torch.concatenate([torch.zeros((1, self.config.max_length - timesteps.shape[1], timesteps.shape[-1]), dtype=torch.int64, device=timesteps.device), timesteps], dim=1)
+            
+            # for a padding_tensor, we have a mask value of it 
+            attention_mask = torch.cat([torch.zeros((1, self.config.max_length - states.shape[1]), dtype=torch.int64, device=states.device), torch.ones((1, states.shape[1]), dtype=torch.int64, device=states.device)], dim=1).reshape(1, 1, 1, self.config.max_length)
+            
+        else: 
+            attention_mask = None
+            
+        # now we can run the model in inference mode, no need to pass labels
+        action_preds, _ = self.forward(padding_states, padding_actions, None, padding_rtgs, padding_timesteps)
+        
+        return action_preds
+    def _top_k_logits(self, logits, k):
+        v, ix = torch.topk(logits, k)
+        out = logits.clone()
+        out[out < v[:, [-1]]] = -float('Inf')
+        return out
+
+    def sample_from_logits(self, logits, temperature=1.0, sample=False, top_k=None):
+        """
+        Given a sequence of logits, predict the next token in the sequence,
+        feeding the predictions back into the model each time. This function
+        assumes that the logits are already produced by the model and are
+        passed directly to it.
+        
+        logti: (batch, block_size // 3, vocab_size)
+        """
+        # Assuming logits are of shape (b, v) where b is batch size, and v is vocabulary size
+        # We only need the last logits for the next token prediction
+        logits = logits[:, :] / temperature # (batch, vocab_size)
+        
+        # Optionally crop probabilities to only the top k options
+        if top_k is not None:
+            logits = self._top_k_logits(logits, top_k)
+        
+        # Apply softmax to convert to probabilities
+        probs = F.softmax(logits, dim=-1)
+        
+        # Sample from the distribution or take the most likely
+        if sample:
+            ix = torch.multinomial(probs, num_samples=1)
+        else:
+            _, ix = torch.topk(probs, k=1, dim=-1)
+        
+        # Return the index of the sampled token
+        return ix
+    
+    def save(self, path): # TODO: add this to config 
+        """
+        Save the model's state_dict to a file.
+
+        Args:
+            path (str): The path where the model will be saved.
+        """
+        torch.save(self.state_dict(), path)
+    
+    @classmethod
+    def load(cls, path, config):
+        """
+        Load the model's state_dict from a file and return an instance of the model.
+
+        Args:
+            path (str): The path where the model is saved.
+            config: The configuration object for the model.
+
+        Returns:
+            GPT: An instance of the GPT model with the loaded parameters.
+        """
+        model = cls(config)
+        model.load_state_dict(torch.load(path))
+        return model

@@ -10,3 +10,5 @@ results/
 snapshots/
 tasks/HC/trajs/*
 sim2real/
+features_cache.pkl
+tasks/HC/DT/models/

@@ -126,7 +126,12 @@ class Evaluation(object):
             # Check against expected ids
             if item['instr_id'] in instr_ids:
                 instr_ids.remove(item['instr_id'])
-                self._score_item(item['instr_id'], item['trajectory'])
+                if 'trajectory' in item.keys():
+                    self._score_item(item['instr_id'], item['trajectory'])
+                elif 'path' in item.keys():
+                    self._score_item(item['instr_id'], item['path'])
+                else:
+                    assert False, 'trajectory not in item'
         num_successes = len([i for i in self.scores['nav_errors'] if i < self.error_margin])
         if NEW_DATA:
             total_hits_rate = float(sum(self.scores['total_hits']))/float(len(self.scores['total_hits'])) # 新的 Metric, hits rate, 总共撞击的次数 / 总的运行次数
