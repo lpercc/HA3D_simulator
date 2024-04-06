@@ -1,15 +1,24 @@
+
+import gzip
+import json
 import os
-import sys
+import pickle
 import time
 from collections import defaultdict
+
 import numpy as np
 import pandas as pd
 import torch
-from agent import Seq2SeqAgent
+import torch.nn as nn
+import torch.nn.functional as F
+from agent import RandomAgent, Seq2SeqAgent, DecisionTransformerAgent
 from env import HCBatch
 from eval import Evaluation
 from model import AttnDecoderLSTM, EncoderLSTM
 from torch import optim
+from torch.autograd import Variable
+from tqdm import tqdm
+from transformers import BartModel, BartTokenizer
 from utils import (
     Tokenizer,
     build_vocab,
@@ -19,6 +28,10 @@ from utils import (
     timeSince,
     write_vocab,
 )
+
+from DT.miniGPT.minGPT import GPT, GPT1Config, GPTConfig
+from dataclasses import dataclass
+from DT.miniGPT.utils import seed_everything
 
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 
@@ -39,7 +52,7 @@ action_embedding_size = 32
 hidden_size = 512
 bidirectional = False
 dropout_ratio = 0.5
-feedback_method = 'sample' # teacher or sample
+feedback_method = 'teacher' # teacher or sample
 learning_rate = 0.0001
 weight_decay = 0.0005
 n_iters = 5000 if feedback_method == 'teacher' else 20000
@@ -76,7 +89,7 @@ def train(train_env, encoder, decoder, n_iters, log_every=100, val_envs={}):
             agent.env = env
             agent.results_path = '%s%s_%s_iter_%d.json' % (RESULT_DIR, model_prefix, env_name, iter)
             # Get validation loss under the same conditions as training
-            agent.test(use_dropout=True, feedback=feedback_method, allow_cheat=True)
+            agent.test(use_dropout=True, feedback=feedback_method, allow_cheat=True) # set to test model
             val_losses = np.array(agent.losses)
             val_loss_avg = np.average(val_losses)
             data_log['%s loss' % env_name].append(val_loss_avg)
@@ -89,9 +102,7 @@ def train(train_env, encoder, decoder, n_iters, log_every=100, val_envs={}):
                 data_log['%s %s' % (env_name,metric)].append(val)
                 if metric in ['success_rate']:
                     loss_str += ', %s: %.3f' % (metric, val)
-            record_file = open(os.path.join(PLOT_DIR, f'{model_prefix}_log.txt'), 'a')
-            record_file.write(loss_str + '\n')
-            record_file.close()
+
         agent.env = train_env
 
         print('%s (%d %d%%) %s' % (timeSince(start, float(iter)/n_iters),
@@ -106,6 +117,7 @@ def train(train_env, encoder, decoder, n_iters, log_every=100, val_envs={}):
         enc_path = '%s%s_%s_enc_iter_%d' % (SNAPSHOT_DIR, model_prefix, split_string, iter)
         dec_path = '%s%s_%s_dec_iter_%d' % (SNAPSHOT_DIR, model_prefix, split_string, iter)
         agent.save(enc_path, dec_path)
+        agent.load(enc_path, dec_path)
 
 
 def setup():
@@ -155,7 +167,7 @@ def train_val():
 
     # Creat validation environments
     val_envs = {split: (HCBatch(features, batch_size=batch_size, splits=[split],
-                tokenizer=tok, device=device), Evaluation([split])) for split in ['train', 'val_seen', 'val_unseen']}
+                tokenizer=tok, device=device), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
 
     # Build models and train
     enc_hidden_size = hidden_size//2 if bidirectional else hidden_size
@@ -163,31 +175,36 @@ def train_val():
                   dropout_ratio, bidirectional=bidirectional).cuda()
     decoder = AttnDecoderLSTM(Seq2SeqAgent.n_inputs(), Seq2SeqAgent.n_outputs(),
                   action_embedding_size, hidden_size, dropout_ratio).cuda()
-    #train(train_env, encoder, decoder, n_iters, val_envs=val_envs)
-    valid_teacher(train_env, encoder, decoder, 'sLLA', val_envs=val_envs, )
+    train(train_env, encoder, decoder, n_iters, val_envs=val_envs)
+    
+    
+def eval_DT():
+
+    ''' Init a env to evaluate decision transformer'''
+    setup() 
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    tok = BartTokenizer.from_pretrained('facebook/bart-base')
+    embedding_model = BartModel.from_pretrained('facebook/bart-base')
+    #train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+    
+    # Create Validation Environments 
+    val_env = HCBatch(features, batch_size=batch_size, splits=['val_seen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+
+    # load models 
+    mconf = GPT1Config(6, 5 * 3, model_type = 'reward_conditioned', max_timestep=29)
+    model = GPT.load(os.path.join(HC3D_SIMULATOR_PATH,'tasks/HC/DT/models/modelsGPT_model_teacher_strategy_6.pth'), mconf)
+    
+    val_seen_agent = DecisionTransformerAgent(val_env, '/home/qid/minghanli/HC3D_simulator/tasks/HC/results', model)
+    
+    traj = val_seen_agent.rollout()
+    
+    # for this trajactory, we need to cut the trajectory when action is 
+    
+    # Save to json file as a result 
+    with open(os.path.join(HC3D_SIMULATOR_PATH,'tasks/HC/results/DT/DT_val_seen_result_2.json'), 'w') as f:
+        json.dump(traj, f)
         
-def valid_teacher(train_env, encoder, decoder, actionLevel, val_envs={}):
-    torch.set_grad_enabled(False)
-
-    agent = Seq2SeqAgent(train_env, "", encoder, decoder, max_episode_len)
-
-    for env_name, (env, evaluator) in val_envs.items():
-        agent.env = env
-        agent.results_path = '%s%s_%s_iter_%s.json' % (RESULT_DIR, model_prefix, env_name, actionLevel)
-        #agent.test(use_dropout=False, feedback='argmax', iters=iters)
-        agent.test_teacher(actionLevel)
-        agent.write_results()
-        #agent.write_results()
-        if env_name != '' and (not env_name.startswith('test')):
-            score_summary, _ = evaluator.score(agent.results_path)
-            loss_str = "Env name: %s" % env_name
-            for metric,val in score_summary.items():
-                loss_str += ', %s: %.4f' % (metric, val)
-            print(loss_str)
-
-            record_file = open(os.path.join(PLOT_DIR, f'teacher_{actionLevel}_valid_log.txt'), 'a')
-            record_file.write(loss_str + '\n')
-            record_file.close()
+    
 
 
 if __name__ == "__main__":
@@ -197,6 +214,10 @@ if __name__ == "__main__":
         os.makedirs(os.path.dirname(SNAPSHOT_DIR))
     if not os.path.exists(os.path.dirname(PLOT_DIR)):
         os.makedirs(os.path.dirname(PLOT_DIR))
-    #eval_DT()
-    train_val()
+    eval_DT()
+    #train_val()
     #test_submission()
+    evaluator = Evaluation(['val_seen'])
+    score_summary, _ = evaluator.score(os.path.join(HC3D_SIMULATOR_PATH,'tasks/HC/results/DT/DT_val_seen_result_2.json'))
+    print(score_summary)
+    

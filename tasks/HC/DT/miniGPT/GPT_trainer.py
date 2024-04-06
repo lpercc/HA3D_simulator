@@ -2,8 +2,8 @@
 Author: Dylan Li dylan.h.li@outlook.com
 Date: 2024-03-26 15:10:27
 LastEditors: Dylan Li dylan.h.li@outlook.com
-LastEditTime: 2024-03-30 22:44:44
-FilePath: /HC3D_simulator/tasks/HC/DT/GPT_trainer.py
+LastEditTime: 2024-03-30 09:59:08
+FilePath: /motion_hcl/Matterport3DSimulator/tasks/R2R/DT/GPT_trainer.py
 Description: 
 
 Copyright (c) 2024 by Heng Li, All Rights Reserved. 
@@ -21,8 +21,6 @@ from torch.utils.data.dataloader import DataLoader
 
 logger = logging.getLogger(__name__)
 
-from utils import sample
-from collections import deque
 import random
 import cv2
 import torch
@@ -60,7 +58,7 @@ class Trainer:
         # take over whatever gpus are on the system
         self.device = 'cpu'
         if torch.cuda.is_available():
-            self.device = torch.cuda.current_device()
+            self.device = 'cuda:2'
             self.model = self.model.to(self.device) #TODO: Add dataparallel in server 
             
     def save_checkpoint(self):
@@ -85,23 +83,21 @@ class Trainer:
 
             losses = []
             pbar = tqdm(enumerate(loader), total=len(loader)) if is_train else enumerate(loader)
-            for it, (x, y, r, t) in pbar:
+            for it, (x, y, _, r, t) in pbar: # states, actions, targets, rtgs, timesteps
 
                 # place data on the correct device
-                x = x.to(self.device)
+                x = x.to(self.device) 
                 y = y.to(self.device)
                 r = r.to(self.device)
                 t = t.to(self.device)
 
                 # forward the model
                 with torch.set_grad_enabled(is_train):
-                    # logits, loss = model(x, y, r)
                     logits, loss = model(x, y, y, r, t)
                     loss = loss.mean() # collapse all losses if they are scattered on multiple gpus
                     losses.append(loss.item())
 
                 if is_train:
-
                     # backprop and update the parameters
                     model.zero_grad()
                     loss.backward()
@@ -126,22 +122,25 @@ class Trainer:
 
                     # report progress
                     pbar.set_description(f"epoch {epoch+1} iter {it}: train loss {loss.item():.5f}. lr {lr:e}")
-
+            
             if not is_train:
                 test_loss = float(np.mean(losses))
                 logger.info("test loss: %f", test_loss)
                 return test_loss
+            else: 
+                return losses
 
         # best_loss = float('inf')
         
         best_return = -float('inf')
 
         self.tokens = 0 # counter used for learning rate decay
-        
+
         for epoch in range(config.max_epochs):
 
-            run_one_epoch('train',)
-            test_loss = run_one_epoch('test',)
+            losses = run_one_epoch('train',)
+            print("Train Loss: ", np.mean(losses))
+            test_loss = run_one_epoch('test')
             print("Test Loss: ", test_loss)
             
         self.trained_model = model 

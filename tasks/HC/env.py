@@ -1,21 +1,22 @@
 ''' Batched Room-to-Room navigation environment '''
 
 import sys
-sys.path.append('build')
-sys.path.append('./')
+import os
+HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
+sys.path.append(HC3D_SIMULATOR_PATH)
 import HC3DSim
 import csv
 import numpy as np
 import math
 import base64
-import os
 import random
 import networkx as nx
 from scripts.video_feature_loader import TimmExtractor 
 import torch
-from utils import load_datasets, load_nav_graphs, relHumanAngle
+from utils import load_datasets, load_nav_graphs, relHumanAngle, remove_close_nodes_and_find_path, horizontal_and_elevation_angles
 
 from tqdm import tqdm 
+import pickle
 
 MODEL_NAME = "resnet152.a1_in1k"
 FPS = 16
@@ -30,30 +31,49 @@ class EnvBatch():
         using discretized viewpoints and pretrained features '''
 
     def __init__(self, feature_store=None, batch_size=100):
-        if feature_store is not None :
-            print('Loading image features from %s' % feature_store)
-            tsv_fieldnames = ['scanId', 'viewpointId', 'image_w','image_h', 'vfov', 'features']
-            self.features = {}
-            with open(feature_store, "rt") as tsv_in_file:
-                reader = csv.DictReader(tsv_in_file, delimiter='\t', fieldnames = tsv_fieldnames)
-                for item in reader:
-                    self.image_h = int(item['image_h'])
-                    self.image_w = int(item['image_w'])
-                    self.vfov = int(item['vfov'])
-                    long_id = self._make_id(item['scanId'], item['viewpointId'])
-                    self.features[long_id] = np.frombuffer(base64.b64decode(item['features']),
-                            dtype=np.float32).reshape((36, STEPS, 2048))
+        self.features = {}
+        self.batch_size = batch_size
+        cache_file = 'features_cache.pkl'
+        
+        # Check if cached features exist
+        # TODO: should we load it from a tsv all the time? Too slow
+        if os.path.exists(cache_file):
+            with open(cache_file, 'rb') as f:
+                self.features = pickle.load(f)
+            print('Loaded features from cache.')
             self.renderingFlag = False
-        else:
-            print('Image features Extractor Timm')
-            self.features = None
             self.image_w = 640
             self.image_h = 480
             self.vfov = 60
-            self.renderingFlag = True
-            batch_size = 1
-            device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-            self.extractor = TimmExtractor(model_name=MODEL_NAME, fps=FPS, device=device)
+        else:
+            if feature_store is not None:
+                print('Loading image features from %s' % feature_store)
+                tsv_fieldnames = ['scanId', 'viewpointId', 'image_w','image_h', 'vfov', 'features']
+                with open(feature_store, "rt") as tsv_in_file:
+                    reader = csv.DictReader(tsv_in_file, delimiter='\t', fieldnames=tsv_fieldnames)
+                    pbar = tqdm(reader)
+                    for item in pbar:
+                        pbar.set_description(f"Loading {item['scanId']}") # use for check if we load same scam multiple times
+                        self.image_h = int(item['image_h'])
+                        self.image_w = int(item['image_w'])
+                        self.vfov = int(item['vfov'])
+                        long_id = self._make_id(item['scanId'], item['viewpointId'])
+                        self.features[long_id] = np.frombuffer(base64.b64decode(item['features']),
+                                dtype=np.float32).reshape((36, STEPS, 2048))
+                self.renderingFlag = False
+                # Save features to cache
+                with open(cache_file, 'wb') as f:
+                    pickle.dump(self.features, f)
+                print('Features cached for future use.')
+            else:
+                print('Image features Extractor Timm')
+                self.image_w = 640
+                self.image_h = 480
+                self.vfov = 60
+                self.renderingFlag = True
+                batch_size = 1
+                device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+                self.extractor = TimmExtractor(model_name=MODEL_NAME, fps=FPS, device=device)
         
         self.batch_size = batch_size
         if not MODELING_ONLY:
@@ -143,7 +163,7 @@ class HCBatch():
         bar = tqdm(load_datasets(splits))
         for item in bar: #TODO: change load datasets to load from pickle word embedding file simultaneously
             # Split multiple instructions into separate entries
-            bar.set_description(f"Loading {item['scan']}, Use text_embedding_model? {text_embedding_model}") # use for check if we load same scam multiple times
+            bar.set_description(f"Loading {item['scan']}, Use text_embedding_model? {text_embedding_model != None}") # use for check if we load same scam multiple times
             for j,instr in enumerate(item['instructions']):
                 self.scans.append(item['scan'])
                 new_item = dict(item)
@@ -160,9 +180,12 @@ class HCBatch():
                         new_item['instr_encoding'] = inputs['input_ids'].squeeze(0).cpu().numpy()
                         new_item['instr_embedding'] = outputs[0][:, 0, :].squeeze(0).cpu().numpy()
                 self.data.append(new_item)
+        
+
         self.scans = set(self.scans)
         self.splits = splits
         self.seed = seed
+        self.action_level = 'LLA'
         # TODO: remember to shuffle data
         #random.seed(self.seed)
         #random.shuffle(self.data)
@@ -197,7 +220,6 @@ class HCBatch():
             You must still call reset() for a new episode. '''
         self.ix = 0
         
-        
     def _get_human_distance(self, state): 
         ''' Get the distance between human and goal viewpoint. '''
         humanLocations = self.env.getHumanLocations(state.scanId)
@@ -207,6 +229,84 @@ class HCBatch():
                                                               state.heading,
                                                               state.elevation)
         return minDistance
+
+    def _shortest_path_action_avoid_human_sLLA(self, state, goalViewpointId): 
+        #将人附近的点从联通图中删除，再计算path
+        if state.location.viewpointId == goalViewpointId:
+            return (0, 0, 0) # do nothing
+        scanGraph = self.graphs[state.scanId]
+        humanLocations = self.env.getHumanLocations(state.scanId)
+
+        path = remove_close_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
+        nextViewpointId = path[1]
+        # Can we see the next viewpoint?
+        for i,loc in enumerate(state.navigableLocations):
+            if loc.viewpointId == nextViewpointId:
+                #print(f'sLLA {(i, loc.rel_heading, loc.rel_elevation)}')
+                return (i, loc.rel_heading, loc.rel_elevation) # Move
+        # Can't see it - first neutralize camera elevation
+        # Otherwise decide which way to turn
+        pos = [state.location.x, state.location.y, state.location.z]
+        target_heading, target_elevation = horizontal_and_elevation_angles(pos, scanGraph.nodes[nextViewpointId]['position'])
+        rel_heading = target_heading - state.heading
+        rel_elevation = target_elevation - state.elevation
+        #print(f'sLLA {(0, rel_heading, rel_elevation)}')
+        if nextViewpointId == state.location.viewpointId:
+            return (0, 0.01, 0) # Turn 
+        else:
+            return (0, rel_heading, rel_elevation)
+
+    def _shortest_path_action_avoid_human_LLA(self, state, goalViewpointId): 
+        #将人附近的点从联通图中删除，再计算path
+        if state.location.viewpointId == goalViewpointId:
+            return (0, 0, 0) # do nothing
+        scanGraph = self.graphs[state.scanId]
+        humanLocations = self.env.getHumanLocations(state.scanId)
+
+        path = remove_close_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
+        nextViewpointId = path[1]
+        # Can we see the next viewpoint?
+        for i,loc in enumerate(state.navigableLocations):
+            if loc.viewpointId == nextViewpointId:
+                # Look directly at the viewpoint before moving
+                if loc.rel_heading > math.pi/6.0:
+                      return (0, 1, 0) # Turn right
+                elif loc.rel_heading < -math.pi/6.0:
+                      return (0,-1, 0) # Turn left
+                elif loc.rel_elevation > math.pi/6.0 and state.viewIndex//12 < 2:
+                      return (0, 0, 1) # Look up
+                elif loc.rel_elevation < -math.pi/6.0 and state.viewIndex//12 > 0:
+                      return (0, 0,-1) # Look down
+                else:
+                      return (i, 0, 0) # Move
+        # Can't see it - first neutralize camera elevation
+        if state.viewIndex//12 == 0:
+            return (0, 0, 1) # Look up
+        elif state.viewIndex//12 == 2:
+            return (0, 0,-1) # Look down
+        # Otherwise decide which way to turn
+        pos = [state.location.x, state.location.y, state.location.z]
+        target_rel = scanGraph.nodes[nextViewpointId]['position'] - pos
+        target_heading = math.pi/2.0 - math.atan2(target_rel[1], target_rel[0]) # convert to rel to y axis
+        if target_heading < 0:
+            target_heading += 2.0*math.pi
+        if state.heading > target_heading and state.heading - target_heading < math.pi:
+            return (0,-1, 0) # Turn left
+        if target_heading > state.heading and target_heading - state.heading > math.pi:
+            return (0,-1, 0) # Turn left
+        return (0, 1, 0) # Turn right
+    # TODO 增加High Level Action
+    def _shortest_path_action_avoid_human_H(self, state, goalViewpointId): 
+        #将人附近的点从联通图中删除，再计算path
+        if state.location.viewpointId == goalViewpointId:
+            return goalViewpointId # do nothing
+        scanGraph = self.graphs[state.scanId]
+        humanLocations = self.env.getHumanLocations(state.scanId)
+
+        path = remove_close_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
+        assert path[0] == state.location.viewpointId
+        nextViewpointId = path[1]
+        return nextViewpointId
 
     def _shortest_path_action(self, state, goalViewpointId):
         ''' Determine next action on the shortest path to goal, for supervised training. '''
@@ -245,85 +345,20 @@ class HCBatch():
             return (0,-1, 0) # Turn left
         return (0, 1, 0) # Turn right
 
-    def _shortest_path_action_avoid_human(self, state, goalViewpointId):
-        ''' Determine next action on the shortest path to goal, for supervised training.
-
-        Args:
-            state (State): The current state of the environment.
-            goalViewpointId (str): The ID of the goal viewpoint.
-
-        Returns:
-            tuple: A tuple representing the next action to take. The tuple contains three values:
-                - The change in x-coordinate (int)
-                - The change in y-coordinate (int)
-                - The change in z-coordinate (int)
-        '''
-        # human Location of one building
-        # state.humanState:[[x1, y1, z1], [x2, y2, z2], ...]
-        humanLocations = self.env.getHumanLocations(state.scanId)
-        # compute the nearest human relative heading and elevation
-        relHeading, relElevation, minDistance = relHumanAngle(humanLocations, 
-                                                              [state.location.x, state.location.y, state.location.z], 
-                                                              state.heading,
-                                                              state.elevation)
-
-        if state.location.viewpointId == goalViewpointId:
-            return (0, 0, 0) # do nothing
-        path = self.paths[state.scanId][state.location.viewpointId][goalViewpointId]
-        
-
-        # find next Viewpoint to avoid human
-        if minDistance <= 2.5:
-            max_distance = 0
-            for loc in state.navigableLocations:
-                _, _, Distance = relHumanAngle(humanLocations, 
-                                                    [loc.x, loc.y, loc.z], 
-                                                    loc.rel_heading,
-                                                    loc.rel_elevation)
-                if Distance >= 2.5 and abs(loc.rel_heading-relHeading) < 2*math.pi/3.0 and abs(loc.rel_heading-relHeading) > math.pi/3.0:
-                    nextViewpointId = loc.viewpointId
-                    break
-                elif Distance > max_distance:
-                    max_distance = Distance
-                    nextViewpointId = loc.viewpointId
-        else:
-            nextViewpointId = path[1]    
-        # Can we see the next viewpoint?
-        for i,loc in enumerate(state.navigableLocations):
-            if loc.viewpointId == nextViewpointId:
-                # Look directly at the viewpoint before moving
-                if loc.rel_heading > math.pi/6.0:
-                    return (0, 1, 0) # Turn right
-                elif loc.rel_heading < -math.pi/6.0:
-                    return (0,-1, 0) # Turn left
-                elif loc.rel_elevation > math.pi/6.0 and state.viewIndex//12 < 2:
-                    return (0, 0, 1) # Look up
-                elif loc.rel_elevation < -math.pi/6.0 and state.viewIndex//12 > 0:
-                    return (0, 0,-1) # Look down
-                else:
-                    self.isAvoiding = False
-                    return (i, 0, 0) # Move
-        # Can't see it - first neutralize camera elevation
-        if state.viewIndex//12 == 0:
-            return (0, 0, 1) # Look up
-        elif state.viewIndex//12 == 2:
-            return (0, 0,-1) # Look down
-        # Otherwise decide which way to turn
-        pos = [state.location.x, state.location.y, state.location.z]
-        target_rel = self.graphs[state.scanId].nodes[nextViewpointId]['position'] - pos
-        target_heading = math.pi/2.0 - math.atan2(target_rel[1], target_rel[0]) # convert to rel to y axis
-        if target_heading < 0:
-            target_heading += 2.0*math.pi
-        if state.heading > target_heading and state.heading - target_heading < math.pi:
-            return (0,-1, 0) # Turn left
-        if target_heading > state.heading and target_heading - state.heading > math.pi:
-            return (0,-1, 0) # Turn left
-        return (0, 1, 0) # Turn right
+    def _set_action_level(self, level):
+        self.action_level = level
+        print(f'Action Level:{self.action_level}')
 
     def _get_obs(self):
         obs = []
         for i,(feature,state) in enumerate(self.env.getStates()):
             item = self.batch[i]
+            if self.action_level == 'LLA':
+                teacher = self._shortest_path_action_avoid_human_LLA(state, item['path'][-1])
+            elif self.action_level == 'sLLA':
+                teacher = self._shortest_path_action_avoid_human_sLLA(state, item['path'][-1])
+            elif self.action_level == 'HLA':
+                teacher = self._shortest_path_action_avoid_human_HLA(state, item['path'][-1])
             obs.append({
                 'instr_id' : item['instr_id'],
                 'scan' : state.scanId,
@@ -335,8 +370,8 @@ class HCBatch():
                 'step' : state.step,
                 'navigableLocations' : state.navigableLocations,
                 'instructions' : item['instructions'],
-                'isCrashed' : state.isCrushed,
-                'teacher' : self._shortest_path_action_avoid_human(state, item['path'][-1]),
+                'isCrashed' : state.isCrushed, # in the simulator, if the agent is crashed, it will be reset to the start point. Threshold is 1.0m.
+                'teacher' : teacher,
             })
             if 'instr_encoding' in item:
                 obs[-1]['instr_encoding'] = item['instr_encoding']
@@ -345,7 +380,7 @@ class HCBatch():
                 obs[-1]['state_features'] = np.concatenate([feature, item['instr_embedding']]) # 2048 + 768 = 2816 feature size
             # add distance bewteen agent and goal viewpoint 
             obs[-1]['distance'] = self.distances[state.scanId][state.location.viewpointId][item['path'][-1]]
-            #obs[-1]['human_distance'] = self._get_human_distance(state)
+            #obs[-1]['human_distance'] = self._get_human_distance(state) # NOTE: add isCrashed here, so we do not need check human distance
         return obs
 
     def reset(self):

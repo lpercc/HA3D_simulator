@@ -11,6 +11,7 @@ from collections import Counter
 import numpy as np
 import networkx as nx
 import random
+
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 # padding, unknown word, end of sentence
 base_vocab = ['<PAD>', '<UNK>', '<EOS>']
@@ -42,7 +43,6 @@ def load_nav_graphs(scans):
             nx.set_node_attributes(G, values=positions, name='position')
             graphs[scan] = G
     return graphs
-
 
 def load_datasets(splits):
 
@@ -123,6 +123,37 @@ def build_vocab(splits=['train'], min_count=5, start_vocab=base_vocab):
             break
     return vocab
 
+def remove_close_nodes_and_find_path(G, humanLocations, currentViewpointId, goalViewpointId):
+    # deleteAll = False 把最近的人从图中删除，deleteAll = True 把所有人从图中删除
+    def euclidean_distance(x, y):
+        return np.sqrt(np.sum((np.array(x) - np.array(y)) ** 2))
+    # 创建要删除的节点列表
+    nodes_to_remove = []
+    # 创建图的副本以避免修改原始图
+    G_copy = G.copy()
+    # 遍历每个人的位置
+    for humanLocation in humanLocations:
+        # 遍历图中的每个节点
+        for node, data in G_copy.nodes(data=True):
+            if node == currentViewpointId or node == goalViewpointId or node in nodes_to_remove:
+                # 如果节点是当前位置或目标位置，跳过不删除
+                continue
+            node_position = data['position']
+            # 计算节点与人的欧几里得距离
+            if euclidean_distance(humanLocation, node_position[:3]) < 1:
+                # 如果距离小于1，标记该节点以便稍后从图中移除
+                nodes_to_remove.append(node)
+    # 在迭代完成后移除标记的节点
+    for node in nodes_to_remove:
+        G_copy.remove_node(node)
+
+    # 尝试找到从当前位置到目标位置的最短路径
+    try:
+        path = nx.shortest_path(G_copy, source=currentViewpointId, target=goalViewpointId)
+    except nx.NetworkXNoPath:
+        # 如果没有找到路径，返回当前位置
+        path = [currentViewpointId, currentViewpointId]
+    return path
 
 def write_vocab(vocab, path):
     print('Writing vocab of size %d to %s' % (len(vocab),path))
@@ -173,8 +204,9 @@ def horizontal_and_elevation_angles(point1, point2):
     horizontal_angle = np.arctan2(vector[0], vector[1])
     elevation_angle = np.arctan2(vector[2], np.linalg.norm(vector[:2]))
     return horizontal_angle, elevation_angle
-
-def check_agent_status(traj, max_steps, ended):
+    
+def check_agent_status(traj, max_steps=30, ended=True):
+    # TODO: use this function to check all trajs agent status
     # DONE: ADD functions to check rewards
     print(f'{"=" * 10}Checking agent status...{"=" * 10}')
     table = PrettyTable()
@@ -237,7 +269,6 @@ def plot_rewards(rewards, reward_name):
     # DONE: plot rewards in lineplot 
     print(f'{"=" * 10}Plotting rewards...{"=" * 10}')
     
-    import matplotlib.pyplot as plt
     plt.plot(rewards)
     plt.xlabel('steps')
     plt.ylabel('Rewards')
@@ -245,65 +276,498 @@ def plot_rewards(rewards, reward_name):
     plt.show()
     plt.close()
 
-def calculate_rewards(ob, action, delta_distance, reward_type='dense', test_local=True): 
-    # Calculate rewards besed on recent ob
-    # 需要当前的 Scan ID, 以及目前所在的最短 Path
-    # Scan 用于判断目前人的状态
-    # We need to know distance 
-    # 目标的 Path ID 用于对比 Grounding Truth 的 Rewards 
-    # 还需要下一步的观察值
-    # DONE: 设计两种不同的 Reward 模式, 一个应该是稀疏的 (只与终点有关), 另一个是稠密的 (与当前位置有关)
-    recent_action = action
-    dist = ob['distance']
+
+class RewardCalculater():
+    """
+    A class to calculate and manage rewards for an agent based on its actions and state.
+
+    Attributes:
+        ob (dict): The current observation of the agent, containing environment and agent state.
+        action (tuple): The action taken by the agent.
+        delta_distance (float): The change in distance between the agent and the target.
+    """
+
+    def __init__(self):
+        """
+        Initializes the Reward object with default values.
+        """
+        self.ob = dict()
+        self.action = tuple()
+        self.delta_distance = float()
+        self.isCrashed_record = [False]
+        self.final_reward = {}
+        self.target_reward = {}
+        self.path_reward = {}
+        self.miss_penalty = {}
+        self.human_reward = {}
+        
+        
+    def _set_ob(self, ob, action, delta_distance):
+        """
+        Sets the current observation, action, and delta distance for the reward calculation.
+
+        Parameters:
+            ob (dict): The current observation of the agent.
+            action (tuple): The action taken by the agent.
+            delta_distance (float): The change in distance between the agent and the target.
+        """
+        self.ob = ob
+        self.action = action
+        self.delta_distance = delta_distance
+
+    def calculate(self, reward_type='dense'):
+        """
+        Calculates the reward based on the current state, action, and reward strategy.
+
+        Returns:
+            tuple: A tuple containing the final reward, target reward, path reward, miss penalty, and human reward dict.
+            such as dict final_reward = {
+                'reward_strategy_1': float,
+                'reward_strategy_2': float,
+                'reward_strategy_3': float,
+                'reward_strategy_4': float,
+                'reward_strategy_5': float
+            } 
+        """
+
+        self.reward_strategy_1(consider_human=True, reward_type=reward_type)
+        self.reward_strategy_2(consider_human=True, reward_type=reward_type)
+        self.reward_strategy_3(consider_human=True, reward_type=reward_type)
+        self.reward_strategy_4(consider_human=True, reward_type=reward_type)
+        self.reward_strategy_5(consider_human=True, reward_type=reward_type)
+        self.reward_strategy_6(consider_human=True, reward_type=reward_type)
+        self.reward_strategy_7(consider_human=True, reward_type=reward_type)
+        self.reward_strategy_8(consider_human=True, reward_type=reward_type)
+        
+        return [self.final_reward, self.target_reward, self.path_reward, self.miss_penalty, self.human_reward]
     
-    target_reward = 0.0 
-    path_reward = 0.0
-    miss_penalty = 0.0
-    # if stop, then we give a target reward 
-    if recent_action == (0, 0, 0):
-        if dist < 3.0:
-            target_reward = 3.0
+    def append_rewards(self, final_reward, target_reward, path_reward, miss_penalty, human_reward, strategy_name):
+        self.final_reward[strategy_name] = final_reward
+        self.target_reward[strategy_name] = target_reward
+        self.path_reward[strategy_name] = path_reward
+        self.miss_penalty[strategy_name] = miss_penalty
+        self.human_reward[strategy_name] = human_reward
+
+    def get_final_reward(self, target_reward, path_reward, miss_penalty, human_reward, reward_type):
+        # Determine the final reward based on the reward type
+        if reward_type == 'sparse':
+            final_reward = target_reward + human_reward
+        elif reward_type == 'dense':
+            final_reward = target_reward + path_reward + miss_penalty + human_reward
+        return final_reward
+    
+    def reward_strategy_1(self, consider_human, reward_type):
+        """
+        Description:
+        The function calculates rewards for the agent based on its current observation, the action it took,
+        the change in distance from its last location, and the type of reward it should receive.
+        It considers various factors such as reaching the target, following the path, missing the target,
+        and human interaction.
+
+        The reward calculation is performed as follows:
+        - If the agent has stopped (action is (0, 0, 0)):
+            - If the agent is close to the target (distance < 3.0), a positive reward of 3.0 is given.
+            - Otherwise, a negative reward of -3.0 is given.
+        - If the agent is moving:
+            - The path fidelity reward is calculated based on the change in distance (delta_distance).
+                - If delta_distance > 0.0, the path reward is 0.0.
+                - If delta_distance < 0.0, the path reward is -1.0. Which means the agent is moving away from the target. It encourages the agent to move towards the target.
+                - If delta_distance = 0.0, a small negative reward of -0.1 is given to discourage staying in place.
+            - The miss penalty is calculated based on the agent's distance from the target.
+                - If the agent is close to the target (last_dist < 1.0) and moving away (delta_distance > 0.0),
+                  the miss penalty is calculated as (last_dist - 1.0) * 2.0.
+        - In non-test local environment, human interaction reward is calculated.
+            - If the agent has crashed, a negative reward of -2.0 is given.
+            - Otherwise, the human reward is 0.0.
+
+        Returns:
+            tuple: A tuple containing the target reward, path reward, miss penalty, and human reward.
+        """
+        # Initialize rewards and penalties
+        target_reward = 0.0
+        path_reward = 0.0
+        miss_penalty = 0.0
+        human_reward = 0.0  # Human interaction reward is calculated in the calculate method
+
+        # Get the current distance from the observation
+        dist = self.ob['distance']
+
+        # Check if the agent has stopped
+        if self.action == (0, 0, 0):
+            if dist < 3.0:
+                target_reward = 3.0
+            else:
+                target_reward = -3.0
         else:
-            target_reward = - 3.0
-    else: 
-        # Path Fidelity Reward 
-        path_flag =  - delta_distance
-        if path_flag > 0.0: 
-            path_reward = 1.0
-        elif path_flag < 0.0: 
-            path_reward = -1.0 
-        else: 
-            path_reward = - 0.1 # TODO: 这里可以考虑加入一个小的负值, 以防止 Agent 一直停留在原地
-        
-        # Miss the target penalty 
-        last_dist = dist - delta_distance
-        if (last_dist < 1.0) and (- delta_distance > 0.0): 
-            miss_penalty =(1.0 - last_dist) * 2.0
+            # Calculate path fidelity reward
+            path_flag = - self.delta_distance
+            if path_flag > 0.0:
+                path_reward = 0.0
+            elif path_flag < 0.0:
+                path_reward = -1.0
+            else:
+                path_reward = -0.1
             
-    human_reward = 0.0
-    if not test_local:
-        # Now we calculate human related reward 
-        # TODO: there are two choices here, one is just considering the distance between human and agent, the second is that considering the avoid(action) step. 
-        # Now we calculate first one. 
-        human_distance = ob['human_distance']
-        if human_distance < 2.25: 
-            human_reward = - 2.0 
-        elif 2.25 < human_distance < 4.5: 
-            human_reward = 2.0 
-        else: 
-            human_reward = 0.0
+            # Calculate miss penalty
+            last_dist = dist - self.delta_distance
+            if (last_dist < 1.0) and (- self.delta_distance > 0.0):
+                miss_penalty = (last_dist - 1.0) * 2.0
+            # Calculate human interaction reward if not in test local environment
+        if consider_human:
+            # Check if the agent has crashed
+            crashed = self.ob['isCrashed']
+            if crashed:
+                human_reward = -2.0  # Negative reward for crashing
+            else:
+                human_reward = 0.0
+        final_reward = self.get_final_reward(target_reward, path_reward, miss_penalty, human_reward, reward_type)
+        self.append_rewards(final_reward, target_reward, path_reward, miss_penalty, human_reward, strategy_name='reward_strategy_1')
+
+    # 这个策略可以通过增加对于特定行为的正向奖励来鼓励智能体。例如，当智能体成功避开障碍物或者以较高的效率接近目标时，可以给予额外的奖励。
+    def reward_strategy_2(self, consider_human, reward_type):
+        # NOTE: All compare to reward 6 
+        # Initialize rewards and penalties
+        target_reward = 0.0
+        path_reward = 0.0
+        step_reward = 0.0
+        human_reward = 0.0  # Human interaction reward is calculated in the calculate method
+
+        # Get the current distance from the observation
+        dist = self.ob['distance']
+        epsilon = 0.1
+
+        if consider_human:
+            # Check if the agent has crashed
+            crashed = self.ob['isCrashed']
+            if crashed:
+                human_reward = -2.0  # If crashed, 2 penalty points
+            else:
+                human_reward = 6/(dist+epsilon) # 在无撞人的情况下接近终点有更高的奖励
+        
+        # Check if the agent has stopped
+        if self.action == (0, 0, 0):
+            if dist < 3.0:
+                target_reward = 3.0
+            else:
+                target_reward = -3.0
+        else:
+            # Calculate path fidelity reward
+            path_flag = - self.delta_distance
+            if path_flag > 0.0:
+                path_reward = 0 # path reward 等价于 human_reward 武装人
+            elif path_flag < 0.0:
+                path_reward = -1.0
+            else:
+                path_reward = -0.01
+
+        final_reward = self.get_final_reward(target_reward, path_reward, step_reward, human_reward, reward_type)
+        self.append_rewards(final_reward, target_reward, path_reward, step_reward, human_reward, strategy_name='reward_strategy_2')
+
+    # 在这个策略中，可以减少或移除因智能体停留在原地而给予的惩罚，或者降低这种惩罚的程度。
+    def reward_strategy_3(self, consider_human, reward_type):
+        # Initialize rewards and penalties
+        target_reward = 0.0
+        path_reward = 0.0
+        step_reward = 0.0
+        human_reward = 0.0  # Human interaction reward is calculated in the calculate method
+        epsilon = 0.1
+
+        # Get the current distance from the observation
+        dist = self.ob['distance']
+
+        # Check if the agent has stopped
+        if consider_human:
+            # Check if the agent has crashed
+            crashed = self.ob['isCrashed']
+            if crashed:
+                if self.isCrashed_record[-1]:
+                    human_reward = -4.0  # Negative reward for crashing
+                else:
+                    human_reward = -2.0  # Negative reward for crashing
+            else:
+                if self.isCrashed_record[-1]:
+                    human_reward = 12/(dist+epsilon)  # Negative reward for crashing
+                else:
+                    human_reward = 6/(dist+epsilon)
+            self.isCrashed_record.append(crashed)
+        
+        # Check if the agent has stopped
+        if self.action == (0, 0, 0):
+            if dist < 3.0:
+                target_reward = 3.0
+            else:
+                target_reward = -3.0
+        else:
+            # Calculate path fidelity reward
+            path_flag = - self.delta_distance
+            if path_flag > 0.0:
+                path_reward = 0 # 相当于 2 的扩展
+            elif path_flag < 0.0:
+                path_reward = -1.0
+            else:
+                path_reward = -0.01
+
+        final_reward = self.get_final_reward(target_reward, path_reward, step_reward, human_reward, reward_type)
+        self.append_rewards(final_reward, target_reward, path_reward, step_reward, human_reward, strategy_name='reward_strategy_3')
+
+    # 这个策略可以设计为当智能体的行动路径与某个预设的“理想”路径较为匹配时，给予额外的正向奖励。
+    def reward_strategy_4(self, consider_human, reward_type):
+        # Initialize rewards and penalties
+        target_reward = 0.0
+        path_reward = 0.0
+        step_reward = 0.0
+        human_reward = 0.0  # Human interaction reward is calculated in the calculate method
+
+        # Get the current distance from the observation
+        dist = self.ob['distance']
+        epsilon = 0.1
+
+        # Check if the agent has stopped
+        if consider_human:
+            # Check if the agent has crashed
+            crashed = self.ob['isCrashed']
+            if crashed:
+                if self.isCrashed_record[-1]:
+                    human_reward = -2.0  # Negative reward for crashing
+                else:
+                    human_reward = -4.0  # Negative reward for crashing
+            else:
+                if self.isCrashed_record[-1]:
+                    human_reward = 12/(dist + epsilon)  # Negative reward for crashing
+                else:
+                    human_reward = 6/(dist + epsilon)
+                if self.delta_distance == 0:
+                    human_reward = 0
+            self.isCrashed_record.append(crashed)
+        
+        # Check if the agent has stopped
+        if self.action == (0, 0, 0):
+            if dist < 3.0:
+                target_reward = 3.0
+            else:
+                target_reward = -3.0
+        else:
+            # Calculate path fidelity reward
+            path_flag = - self.delta_distance
+            if path_flag > 0.0:
+                path_reward = 1
+            elif path_flag < 0.0:
+                path_reward = -1.0
+            else:
+                path_reward = -0.5
+
+        final_reward = self.get_final_reward(target_reward, path_reward, step_reward, human_reward, reward_type)
+        self.append_rewards(final_reward, target_reward, path_reward, step_reward, human_reward, strategy_name='reward_strategy_4')
+
+    # 在这个策略中，当智能体需要避开人类，从而可能暂时远离目标时，可以给予一定的正向奖励。
+    def reward_strategy_5(self, consider_human, reward_type):
+        # Initialize rewards and penalties
+        target_reward = 0.0
+        path_reward = 0.0
+        step_reward = 0.0
+        human_reward = 0.0  # Human interaction reward is calculated in the calculate method
+
+        # Get the current distance from the observation
+        dist = self.ob['distance']
+        epsilon = 0.1
+
+        # Check if the agent has stopped
+        if consider_human:
+            # Check if the agent has crashed
+            crashed = self.ob['isCrashed']
+            if crashed:
+                if self.isCrashed_record[-1]:
+                    human_reward = -2.0  # Negative reward for crashing
+                else:
+                    human_reward = -4.0  # Negative reward for crashing
+            else:
+                if self.isCrashed_record[-1]:
+                    human_reward = 12/(dist + epsilon)  # Negative reward for crashing
+                else:
+                    human_reward = 6/(dist + epsilon)
+                if self.delta_distance == 0:
+                    human_reward = 0
+            self.isCrashed_record.append(crashed)
+        
+        # Check if the agent has stopped
+        if self.action == (0, 0, 0):
+            if dist < 3.0:
+                target_reward = 3.0
+            else:
+                target_reward = -3.0
+        else:
+            # Calculate path fidelity reward
+            path_flag = - self.delta_distance
+            if path_flag > 0.0:
+                path_reward = 1
+            elif path_flag < 0.0:
+                path_reward = -1.0
+            else:
+                path_reward = -0.01
             
-        # for second, we calculate use the nearest viewpoint to the human location. 
-        # Now we calculate the avoid step reward
-        # # TODO: if there is a human in next step, and the action is avoid like action , then we give a reward. (We just use teacher action or use rewards that copy teacher actions in Reccurent BERT))
-        # # The avaliable_navigation is a list of MatterSim.Viewpoint objects. The attribute of each object is viewpointId, x, y, z 
+        if self.action == (0, 0, 0):
+            step_reward = 10 - self.ob['step']
+
+        final_reward = self.get_final_reward(target_reward, path_reward, step_reward, human_reward, reward_type)
+        self.append_rewards(final_reward, target_reward, path_reward, step_reward, human_reward, strategy_name='reward_strategy_5')
+
+
+    def reward_strategy_6(self, consider_human, reward_type):
+        """
+        Description:
+        The function calculates rewards for the agent based on its current observation, the action it took,
+        the change in distance from its last location, and the type of reward it should receive.
+        It considers various factors such as reaching the target, following the path, missing the target,
+        and human interaction.
+
+        The reward calculation is performed as follows:
+        - If the agent has stopped (action is (0, 0, 0)):
+            - If the agent is close to the target (distance < 3.0), a positive reward of 3.0 is given.
+            - Otherwise, a negative reward of -3.0 is given.
+        - If the agent is moving:
+            - The path fidelity reward is calculated based on the change in distance (delta_distance).
+                - If delta_distance > 0.0, the path reward is 0.0.
+                - If delta_distance < 0.0, the path reward is -1.0. Which means the agent is moving away from the target. It encourages the agent to move towards the target.
+                - If delta_distance = 0.0, a small negative reward of -0.1 is given to discourage staying in place.
+            - The miss penalty is calculated based on the agent's distance from the target.
+                - If the agent is close to the target (last_dist < 1.0) and moving away (delta_distance > 0.0),
+                  the miss penalty is calculated as (last_dist - 1.0) * 2.0.
+        - In non-test local environment, human interaction reward is calculated.
+            - If the agent has crashed, a negative reward of -2.0 is given.
+            - Otherwise, the human reward is 0.0.
+
+        Returns:
+            tuple: A tuple containing the target reward, path reward, miss penalty, and human reward.
+        """
+        # Initialize rewards and penalties
+        target_reward = 0.0
+        path_reward = 0.0
+        miss_penalty = 0.0
+        human_reward = 0.0  # Human interaction reward is calculated in the calculate method
+
+        # Get the current distance from the observation
+        dist = self.ob['distance']
+
+        # Check if the agent has stopped
+        if self.action == (0, 0, 0):
+            if dist < 3.0:
+                target_reward = 3.0
+            else:
+                target_reward = -3.0
+        else:
+            # Calculate path fidelity reward
+            path_flag = - self.delta_distance
+            if path_flag > 0.0:
+                path_reward = 0.1
+            elif path_flag < 0.0:
+                path_reward = -1.0
+            else:
+                path_reward = -0.01
+            
+            # Calculate miss penalty
+            last_dist = dist - self.delta_distance
+            if (last_dist < 1.0) and (- self.delta_distance > 0.0):
+                miss_penalty = (last_dist - 1.0) * 2.0
+            # Calculate human interaction reward if not in test local environment
+        if consider_human:
+            # Check if the agent has crashed
+            crashed = self.ob['isCrashed']
+            if crashed:
+                human_reward = -2.0  # Negative reward for crashing
+            else:
+                human_reward = 0.0
+        final_reward = self.get_final_reward(target_reward, path_reward, miss_penalty, human_reward, reward_type)
+        self.append_rewards(final_reward, target_reward, path_reward, miss_penalty, human_reward, strategy_name='reward_strategy_6')
+
+
+    def reward_strategy_7(self, consider_human, reward_type):
+        # NOTE: All compare to reward 6 
+        # remove step reward from strategy 5
+        # Initialize rewards and penalties
+        target_reward = 0.0
+        path_reward = 0.0
+        step_reward = 0.0
+        human_reward = 0.0  # Human interaction reward is calculated in the calculate method
+
+        # Get the current distance from the observation
+        dist = self.ob['distance']
+        epsilon = 0.1
+
+        if consider_human:
+            # Check if the agent has crashed
+            crashed = self.ob['isCrashed']
+            if crashed:
+                human_reward = -1.0  # Negative reward for crashing
+            else:
+                human_reward = 6/(dist+epsilon)
         
+        # Check if the agent has stopped
+        if self.action == (0, 0, 0):
+            if dist < 3.0:
+                target_reward = 3.0
+            else:
+                target_reward = -3.0
+        else:
+            # Calculate path fidelity reward
+            path_flag = - self.delta_distance
+            if path_flag > 0.0:
+                path_reward = 1
+            elif path_flag < 0.0:
+                path_reward = -1
+            else:
+                path_reward = -0.01
+            
+
+        final_reward = self.get_final_reward(target_reward, path_reward, step_reward, human_reward, reward_type)
+        self.append_rewards(final_reward, target_reward, path_reward, step_reward, human_reward, strategy_name='reward_strategy_7')
+
+
+    def reward_strategy_8(self, consider_human, reward_type):
+        # remove step reward from strategy 5
+        # Initialize rewards and penalties
+        target_reward = 0.0
+        path_reward = 0.0
+        step_reward = 0.0
+        human_reward = 0.0  # Human interaction reward is calculated in the calculate method
+
+        # Get the current distance from the observation
+        dist = self.ob['distance']
+        epsilon = 0.1
+
+        # Check if the agent has stopped
+        if consider_human:
+            # Check if the agent has crashed
+            crashed = self.ob['isCrashed']
+            if crashed:
+                if self.isCrashed_record[-1]:
+                    human_reward = -2.0  # Negative reward for crashing
+                else:
+                    human_reward = -4.0  # Negative reward for crashing
+            else:
+                if self.isCrashed_record[-1]:
+                    human_reward = 12/(dist + epsilon)  # Negative reward for crashing
+                else:
+                    human_reward = 6/(dist + epsilon)
+                if self.delta_distance == 0:
+                    human_reward = 0
+            self.isCrashed_record.append(crashed)
         
-    if reward_type == 'sparse': 
-        final_reward = target_reward + miss_penalty
-    elif reward_type == 'dense':
-        final_reward = target_reward + path_reward + miss_penalty + human_reward
-        
-    # DONE: output rewards separately
-    
-    return final_reward, target_reward, path_reward, miss_penalty, human_reward
+        # Check if the agent has stopped
+        if self.action == (0, 0, 0):
+            if dist < 3.0:
+                target_reward = 3.0
+            else:
+                target_reward = -3.0
+        else:
+            # Calculate path fidelity reward
+            path_flag = - self.delta_distance
+            if path_flag > 0.0:
+                path_reward = 1
+            elif path_flag < 0.0:
+                path_reward = -1.0
+            else:
+                path_reward = -0.5
+
+        final_reward = self.get_final_reward(target_reward, path_reward, step_reward, human_reward, reward_type)
+        self.append_rewards(final_reward, target_reward, path_reward, step_reward, human_reward, strategy_name='reward_strategy_8')
+

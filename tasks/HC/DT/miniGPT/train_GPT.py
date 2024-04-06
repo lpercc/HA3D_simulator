@@ -19,7 +19,7 @@ import math
 from torch.utils.data import Dataset
 from minGPT import GPT, GPT1Config, GPTConfig
 from GPT_trainer import Trainer, TrainerConfig 
-from utils import sample, seed_everything
+from utils import seed_everything
 from collections import deque
 import random
 import torch
@@ -29,12 +29,13 @@ import gzip
 #import blosc
 import argparse
 from tqdm import tqdm
+from dataclasses import dataclass
 
-
-parser = argparse.ArgumentParser()
+# TODO: add all the arguments here using it.
+'''parser = argparse.ArgumentParser()
 parser.add_argument('--seed', type=int, default=123)
 parser.add_argument('--context_length', type=int, default=30)
-parser.add_argument('--epochs', type=int, default=1)
+parser.add_argument('--epochs', type=int, default=5)
 parser.add_argument('--model_type', type=str, default='reward_conditioned')
 parser.add_argument('--game', type=str, default='Breakout')
 parser.add_argument('--batch_size', type=int, default=32)
@@ -42,9 +43,19 @@ parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--trajectories_per_buffer', type=int, default=10, help='Number of trajectories to sample from each of the buffers.')
 parser.add_argument('--data_dir_prefix', type=str, default='./dqn_replay/')
 args = parser.parse_args()
+seed_everything(args.seed)'''
 
-seed_everything(args.seed)
 
+@dataclass
+class Config:
+    seed: int = 123
+    context_length: int = 30 # NOTE: do not change this, because it interacts with the block_size in the dataset and model
+    epochs: int = 5
+    model_type: str = 'reward_conditioned'
+    batch_size: int = 512
+
+    def __post__init__(self):
+        seed_everything(self.seed)
 class StateActionReturnDataset(Dataset):
 
     def __init__(self, data, block_size, actions, targets, done_idxs, rtgs, timesteps):        
@@ -91,20 +102,20 @@ class StateActionReturnDataset(Dataset):
         targets = torch.tensor(self.targets[idx:done_idx], dtype=torch.long).unsqueeze(1) # (block_size, 1)
         actions = torch.tensor(self.actions[idx:done_idx], dtype=torch.long).unsqueeze(1) # (block_size, 1)
         rtgs = torch.tensor(self.rtgs[idx:done_idx], dtype=torch.float32).unsqueeze(1) # (block_size, 1)
-        timesteps = torch.tensor(self.timesteps[idx:idx+1], dtype=torch.int64).unsqueeze(1) # (block_size, 1)
+        timesteps = torch.tensor(self.timesteps[idx:done_idx], dtype=torch.int64).unsqueeze(1) # (block_size, 1)
         
         return states, actions, targets, rtgs, timesteps
     
-def load_data(data_dir): 
+def load_data(data_dir, trajs_type): 
+    # TODO: Train as incremental learning
     trajs = []
     for i, data in enumerate(os.listdir(data_dir)):
-        with open(data_dir + f'/train_trajs_{0}.pkl', 'rb') as f: #DONE: change to support pkl 
+        with open(data_dir + f'/train_trajs_{0}_{trajs_type}.pkl', 'rb') as f: #DONE: change to support pkl 
             traj = pickle.load(f) # 
             trajs.extend(traj)
-        break #NOTE: Test with one file 
     return trajs
 
-def create_dataset(trajs):
+def create_dataset(trajs,reward_strategy):
     # This is a function to read all trajs into one big dataset. 
     states = [] 
     actions = []
@@ -114,14 +125,15 @@ def create_dataset(trajs):
     done_idxs = []
     for t in trajs: 
         states.extend(t['state_features'])
-        actions.extend(t['actions'])
+        actions.extend(t['student_actions']) #TODO： 和其对齐
         rewards.extend(t['final_reward'])
-        targets.extend(t['teacher'])
-        done_idxs.append(len(t['actions']) - 1) # -1 because the index starts from 0
+        targets.extend(t['teacher_actions'])
+        done_idxs.append(len(t['student_actions']) - 1) # -1 because the index starts from 0
         
     # Convert to numpy arrays
     states  = np.array(states)
     targets = np.array(targets)
+    rewards = [reward_dict[reward_strategy] for reward_dict in rewards]
     rewards = np.array(rewards)
     actions = np.array(actions)
     
@@ -168,8 +180,9 @@ def create_dataset(trajs):
     
     
 if __name__ == '__main__':
-    trajs = load_data('/home/dylan/projects/motion_hcl/Matterport3DSimulator/tasks/R2R/trajs')
-    states, actions, targets, rtgs,  done_idxs, time_steps = create_dataset(trajs)
+    args = Config(seed=123, context_length=30, epochs=5, model_type='reward_conditioned')
+    trajs = load_data('/home/qid/minghanli/HC3D_simulator/tasks/HC/trajs/teacher', 'teacher')
+    states, actions, targets, rtgs,  done_idxs, time_steps = create_dataset(trajs, 'reward_strategy_6')
     dataset = StateActionReturnDataset(states, 5 * 3, actions, targets, done_idxs, rtgs, time_steps)
     
     # test the dataset 
@@ -180,8 +193,8 @@ if __name__ == '__main__':
     
     # Now train the model 
     dataset = StateActionReturnDataset(states, 5 * 3, actions, targets, done_idxs, rtgs, time_steps)
-    sub_train = torch.utils.data.Subset(dataset, list(range(100)))
-    sub_test = torch.utils.data.Subset(dataset, list(range(100, 110)))
+    sub_train = torch.utils.data.Subset(dataset, list(range(len(dataset) - 1000)))
+    sub_test = torch.utils.data.Subset(dataset, list(range(len(dataset) - 1000, len(dataset))))
     
 
     mconf = GPT1Config(dataset.vocab_size, dataset.block_size,
@@ -195,21 +208,8 @@ if __name__ == '__main__':
                         num_workers=4, seed=args.seed, model_type=args.model_type, max_timestep=max(time_steps))
     trainer = Trainer(model, sub_train, sub_test, tconf)
 
-    trainer.train() 
+    trainer.train()
     
     model = trainer.get_trained_model()
-    
-    # TODO: change this 
-    
-    xs = []
-    for it, (x, y, target, rtg, timestep) in enumerate(sub_test):
-        x = x.to(trainer.device)
-        y = y.to(trainer.device)
-        target = target.to(trainer.device)
-        rtg = rtg.to(trainer.device)
-        timestep = timestep.to(trainer.device)
-        # TODO: Sliding Windows Prediction
-        predict_action = sample(model, x.unsqueeze(0), 5, temperature=1.0, sample=True, top_k=5, actions=y.unsqueeze(0), rtgs=rtg.unsqueeze(0), timesteps=timestep.unsqueeze(0)) #5 个上下文窗口预测未来一个 action
-        y[:, -2:-1, :] = predict_action
-        
-        
+    # use wandb to track model performance
+    model.save('/home/qid/minghanli/HC3D_simulator/tasks/HC/DT/models/modelsGPT_model_teacher_strategy_6.pth')
