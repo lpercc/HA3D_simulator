@@ -106,17 +106,16 @@ class StateActionReturnDataset(Dataset):
         
         return states, actions, targets, rtgs, timesteps
     
-def load_data(data_dir): 
+def load_data(data_dir, trajs_type): 
     # TODO: Train as incremental learning
     trajs = []
     for i, data in enumerate(os.listdir(data_dir)):
-        if 'teacher' not in data:
-            with open(data_dir + f'/train_trajs_{0}.pkl', 'rb') as f: #DONE: change to support pkl 
-                traj = pickle.load(f) # 
-                trajs.extend(traj)
+        with open(data_dir + f'/train_trajs_{0}_{trajs_type}.pkl', 'rb') as f: #DONE: change to support pkl 
+            traj = pickle.load(f) # 
+            trajs.extend(traj)
     return trajs
 
-def create_dataset(trajs):
+def create_dataset(trajs,reward_strategy):
     # This is a function to read all trajs into one big dataset. 
     states = [] 
     actions = []
@@ -126,14 +125,15 @@ def create_dataset(trajs):
     done_idxs = []
     for t in trajs: 
         states.extend(t['state_features'])
-        actions.extend(t['actions'])
+        actions.extend(t['student_actions']) #TODO： 和其对齐
         rewards.extend(t['final_reward'])
-        targets.extend(t['teacher'])
-        done_idxs.append(len(t['actions']) - 1) # -1 because the index starts from 0
+        targets.extend(t['teacher_actions'])
+        done_idxs.append(len(t['student_actions']) - 1) # -1 because the index starts from 0
         
     # Convert to numpy arrays
     states  = np.array(states)
     targets = np.array(targets)
+    rewards = [reward_dict[reward_strategy] for reward_dict in rewards]
     rewards = np.array(rewards)
     actions = np.array(actions)
     
@@ -181,8 +181,8 @@ def create_dataset(trajs):
     
 if __name__ == '__main__':
     args = Config(seed=123, context_length=30, epochs=5, model_type='reward_conditioned')
-    trajs = load_data('/home/qid/minghanli/HC3D_simulator/tasks/HC/trajs')
-    states, actions, targets, rtgs,  done_idxs, time_steps = create_dataset(trajs)
+    trajs = load_data('/home/qid/minghanli/HC3D_simulator/tasks/HC/trajs/teacher', 'teacher')
+    states, actions, targets, rtgs,  done_idxs, time_steps = create_dataset(trajs, 'reward_strategy_6')
     dataset = StateActionReturnDataset(states, 5 * 3, actions, targets, done_idxs, rtgs, time_steps)
     
     # test the dataset 
@@ -212,4 +212,4 @@ if __name__ == '__main__':
     
     model = trainer.get_trained_model()
     # use wandb to track model performance
-    model.save('/home/qid/minghanli/HC3D_simulator/tasks/HC/DT/models/modelsGPT_model_full_no_teacher_.pth')
+    model.save('/home/qid/minghanli/HC3D_simulator/tasks/HC/DT/models/modelsGPT_model_teacher_strategy_6.pth')

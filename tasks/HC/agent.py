@@ -60,22 +60,7 @@ class BaseAgent(object):
                     self.results[traj['instr_id']] = traj['path']
             if looped:
                 break
-    
-    def test_teacher(self):
-        self.env.reset_epoch()
-        self.losses = []
-        self.results = {}
-        # We rely on env showing the entire batch before repeating anything
-        #print('Testing %s' % self.__class__.__name__)
-        looped = False
-        while True:
-            for traj in self.teacher_rollout():
-                if traj['instr_id'] in self.results:
-                    looped = True
-                else:
-                    self.results[traj['instr_id']] = traj['path']
-            if looped:
-                break    
+
 
 
 class StopAgent(BaseAgent):
@@ -103,18 +88,18 @@ class RandomAgent(BaseAgent):
             'teacher_actions': [],
             'student_actions': [],
             'unique_path': [ob['viewpoint']],
-            'teacher': [],
             'state_features': [],
             'final_reward': [], 
+            'sparse_final_reward': [],
             'target_reward': [],
             'path_reward': [],
             'missing_reward': [],
             'human_reward': [],
-            'actions': [],
             'crashed': [],
         } for ob in obs]
         # self.steps = random.sample(range(-11,1), len(obs))
         self.steps = np.random.randint(-11, 1, size=len(obs))# ramdom from -11 - 0 (12 numbers) to choose the direction, because we have 12 discrete views
+        rwdclters = [RewardCalculater() for _ in range(len(obs))]
 
         ended = [False] * len(obs) # Is this enough for us to get a random walk agents?
         for _, t in enumerate(range(max_steps)): # 30 Steps 之后所有 Agent 的状态
@@ -154,14 +139,17 @@ class RandomAgent(BaseAgent):
                     traj[i]['crashed'].append(ob['isCrashed'])
                     
                     delta_distance = ob['distance'] - last_distances[i] if t > 0 else 0
-                    rwdclter = RewardCalculater()
+                    rwdclter = rwdclters[i]
                     rwdclter._set_ob(ob, actions[i], delta_distance)
                     reward = rwdclter.calculate()
+                    sparse_reward = rwdclter.calculate(reward_type='sparse')
                     traj[i]['final_reward'].append(reward[0])
                     traj[i]['target_reward'].append(reward[1])
                     traj[i]['path_reward'].append(reward[2])
                     traj[i]['missing_reward'].append(reward[3])
                     traj[i]['human_reward'].append(reward[4])
+                    
+                    traj[i]['sparse_final_reward'].append(sparse_reward[0])
                     
                     if len(traj[i]['unique_path']) == 0 or ob['viewpoint'] != traj[i]['unique_path'][-1]:
                         traj[i]['unique_path'].append(ob['viewpoint'])
@@ -211,6 +199,7 @@ class TeacherAgent(BaseAgent):
             'teacher': [],
             'state_features': [],
             'final_reward': [], 
+            'sparse_final_reward': [],
             'target_reward': [],
             'path_reward': [],
             'missing_reward': [],
@@ -218,14 +207,12 @@ class TeacherAgent(BaseAgent):
             'actions': [],
             'crashed': [],
         } for ob in obs]
-
+        rwdclters = [RewardCalculater() for _ in range(len(obs))]
         ended = [False] * len(obs)
         for _, t in enumerate(range(max_steps)):  # Execute steps until max_steps or all agents have ended
             actions = [ob['teacher'] for ob in obs]  # Follow the teacher's action
             last_distances = []
             for i, ob in enumerate(obs):
-                if actions[i] == (0, 0, 0):  # If the action is to stop
-                    ended[i] = True
                 last_distances.append(ob['distance'])
                 if not ended[i]:
                     traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation']))
@@ -237,17 +224,24 @@ class TeacherAgent(BaseAgent):
                     traj[i]['crashed'].append(ob['isCrashed'])
                     
                     delta_distance = ob['distance'] - last_distances[i] if t > 0 else 0
-                    rwdclter = RewardCalculater()
-                    rwdclter._set_ob(ob, actions[i], delta_distance)
-                    reward = rwdclter.calculate()
+                    rwdclters[i]._set_ob(ob, actions[i], delta_distance)
+                    reward = rwdclters[i].calculate(reward_type='dense')
+                    sparse_reward = rwdclters[i].calculate(reward_type='sparse')
                     traj[i]['final_reward'].append(reward[0])
                     traj[i]['target_reward'].append(reward[1])
                     traj[i]['path_reward'].append(reward[2])
                     traj[i]['missing_reward'].append(reward[3])
                     traj[i]['human_reward'].append(reward[4])
                     
+                    # add sparse_final_reward
+                    traj[i]['sparse_final_reward'].append(sparse_reward[0])
+                    
                     if len(traj[i]['unique_path']) == 0 or ob['viewpoint'] != traj[i]['unique_path'][-1]:
                         traj[i]['unique_path'].append(ob['viewpoint'])
+                
+                if actions[i] == (0, 0, 0):  # If the action is to stop
+                    ended[i] = True
+            
             # Early exit if all agents have ended
             if all(ended):
                 break
@@ -329,7 +323,7 @@ class DecisionTransformerAgent(BaseAgent):
             actions = np.zeros((len(obs), 1, 1)) - 1 # set first time is None for action
         else: 
             states = np.repeat(np.array(states, dtype=np.float32).reshape(len(obs), 1, -1), self.max_steps, axis=1)
-            target_returns = np.ones((len(obs), self.max_steps, 1)) * 3 # set the target return to 3.0, because we have sparse positive reward
+            target_returns = np.ones((len(obs), self.max_steps, 1)) * 4.5 # set the target return to 3.0, because we have sparse positive reward
             timesteps = np.zeros((len(obs), self.max_steps, 1), dtype=np.int64) # set the timesteps to 0
             timesteps = np.tile(np.arange(self.max_steps).reshape(1, -1, 1), (len(obs), 1, 1))
             actions = np.zeros((len(obs), self.max_steps, 1)) # set first time is zero for action,
@@ -425,14 +419,13 @@ class DecisionTransformerAgent(BaseAgent):
         
             # calculate next rewards
             next_rewards = np.zeros((batch_size, 1, 1))
-
+            rwdclters = [RewardCalculater() for _ in range(len(obs))]
             for i, ob in enumerate(obs):
                 delta_distance = ob['distance'] - last_distance[i] if step > 0 else 0
-                rwdclter = RewardCalculater()
-                rwdclter._set_ob(ob, actions[i], delta_distance)
+                rwdclter = rwdclters[i]
+                rwdclter._set_ob(ob, actions_to_env[i], delta_distance)
                 reward = rwdclter.calculate()
-                next_rewards[i][0][0] = reward['reward_strategy_1'][0]
-            
+                next_rewards[i][0][0] = reward[0]['reward_strategy_6'] # TODO: 此处和 Reward 的策略要一致, [0] is for final reward
             # updated stuffs should add to sequence 
             # # DONE: change to modify a numpy array in place instead of concatenate
             if step < self.max_steps - 1:
@@ -515,7 +508,38 @@ class Seq2SeqAgent(BaseAgent):
             features[i,:] = ob['feature']
         return Variable(torch.from_numpy(features), requires_grad=False).cuda()
 
-    def _teacher_action(self, obs, ended):
+    def _teacher_superlow_level_action(self, obs, ended):
+        ''' Extract teacher actions into variable. '''
+        a = []
+        for i,ob in enumerate(obs):
+            # Supervised teacher only moves one axis at a time
+            a.append(ob['teacher'])
+        a_tensor = torch.tensor(a, dtype=torch.float32)
+        return a_tensor.detach().cuda()
+
+    def _teacher_low_level_action(self, obs, ended):
+        ''' Extract teacher actions into variable. '''
+        a = torch.LongTensor(len(obs))
+        for i,ob in enumerate(obs):
+            # Supervised teacher only moves one axis at a time
+            ix,heading_chg,elevation_chg = ob['teacher']
+            if heading_chg > 0:
+                a[i] = self.model_actions.index('right')
+            elif heading_chg < 0:
+                a[i] = self.model_actions.index('left')
+            elif elevation_chg > 0:
+                a[i] = self.model_actions.index('up')
+            elif elevation_chg < 0:
+                a[i] = self.model_actions.index('down')
+            elif ix > 0:
+                a[i] = self.model_actions.index('forward')
+            elif ended[i]:
+                a[i] = self.model_actions.index('<ignore>')
+            else:
+                a[i] = self.model_actions.index('<end>')
+        return Variable(a, requires_grad=False).cuda()
+    
+    def _teacher_high_level_action(self, obs, ended):# TODO 这里还是Low level的代码，还没改
         ''' Extract teacher actions into variable. '''
         a = torch.LongTensor(len(obs))
         for i,ob in enumerate(obs):
@@ -537,7 +561,7 @@ class Seq2SeqAgent(BaseAgent):
                 a[i] = self.model_actions.index('<end>')
         return Variable(a, requires_grad=False).cuda()
 
-    def teacher_rollout(self):
+    def teacher_rollout(self, actionLevel):
         obs = np.array(self.env.reset())
         batch_size = len(obs)
         # Reorder the language input for the encoder
@@ -552,20 +576,28 @@ class Seq2SeqAgent(BaseAgent):
         env_action = [None] * batch_size
         for t in range(self.episode_len):
 
-            # Supervised training
-            target = self._teacher_action(perm_obs, ended)
+            if actionLevel == 'LLA':
+                # low level action
+                target = self._teacher_low_level_action(perm_obs, ended)
+                # Updated 'ended' list and make environment action
+                for i,idx in enumerate(perm_idx):
+                    action_idx = target[i].item()
+                    if action_idx == self.model_actions.index('<end>'):
+                        ended[i] = True
+                    env_action[idx] = self.env_actions[action_idx]
+            elif actionLevel == 'sLLA':
+                # super low level action
+                target = self._teacher_superlow_level_action(perm_obs, ended)
+                # Updated 'ended' list and make environment action
+                for i,idx in enumerate(perm_idx):
+                    action = tuple(target[i].cpu().numpy())
+                    if action == (0,0,0):
+                        ended[i] = True
+                    env_action[idx] = action
 
-
-            # Updated 'ended' list and make environment action
-            for i,idx in enumerate(perm_idx):
-                action_idx = target[i].item()
-                if action_idx == self.model_actions.index('<end>'):
-                    ended[i] = True
-                env_action[idx] = self.env_actions[action_idx]
 
             obs = np.array(self.env.step(env_action))
             perm_obs = obs[perm_idx]
-
             # Save trajectory output
             for i,ob in enumerate(perm_obs):
                 if not ended[i]:
@@ -611,7 +643,7 @@ class Seq2SeqAgent(BaseAgent):
                     logit[i, self.model_actions.index('forward')] = -float('inf')
 
             # Supervised training
-            target = self._teacher_action(perm_obs, ended)
+            target = self._teacher_low_level_action(perm_obs, ended)
             self.loss += self.criterion(logit, target)
 
             # Determine next model inputs
@@ -662,9 +694,23 @@ class Seq2SeqAgent(BaseAgent):
             self.decoder.eval()
         super(Seq2SeqAgent, self).test()
     
-    def test_teacher(self):
+    def test_teacher(self, actionLevel):
         ''' Evaluate once on each instruction in the current environment '''
-        super(Seq2SeqAgent, self).test_teacher()
+        self.env.reset_epoch()
+        self.env._set_action_level(actionLevel)
+        self.losses = []
+        self.results = {}
+        # We rely on env showing the entire batch before repeating anything
+        #print('Testing %s' % self.__class__.__name__)
+        looped = False
+        while True:
+            for traj in self.teacher_rollout(actionLevel):
+                if traj['instr_id'] in self.results:
+                    looped = True
+                else:
+                    self.results[traj['instr_id']] = traj['path']
+            if looped:
+                break
     
     def train(self, encoder_optimizer, decoder_optimizer, n_iters, feedback='teacher'):
         ''' Train for a given number of iterations '''

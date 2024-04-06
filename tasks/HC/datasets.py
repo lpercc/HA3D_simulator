@@ -40,7 +40,7 @@ IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet_80_16_mean.tsv'
 MAX_INPUT_LENGTH = 80
 
 features = IMAGENET_FEATURES
-batch_size = 200
+batch_size = 100
 max_episode_len = 20
 word_embedding_size = 256
 action_embedding_size = 32
@@ -50,7 +50,7 @@ dropout_ratio = 0.5
 feedback_method = 'sample' # teacher or sample
 learning_rate = 0.0001
 weight_decay = 0.0005
-n_iters = 200 # the total trajectory number of the training process will be n_iters * batch_size
+n_iters = 100 # the total trajectory number of the training process will be n_iters * batch_size
 model_prefix = 'seq2seq_%s_imagenet' % (feedback_method)
 
 
@@ -166,10 +166,10 @@ def train_run(iter, agent='random', gpu_id=0):
             trajs = train_random(train_env, n_iters)
         elif agent == 'teacher':
             trajs = train_teacher(train_env, n_iters)
-        with open(os.path.join(trajs_dir, f'train_trajs_{i}.pkl'), 'wb') as f:
+        with open(os.path.join(trajs_dir, f'train_trajs_{i}_{agent}.pkl'), 'wb') as f:
             pickle.dump(trajs, f)
 
-def run_agent(agent, gpu_id):
+def run_agent(agent, gpu_id, run):
     """
     Initiates the training process for a specified agent on a specified GPU.
 
@@ -182,14 +182,15 @@ def run_agent(agent, gpu_id):
     Returns:
     None
     """
-    train_run(10, agent=agent, gpu_id=gpu_id)
+    train_run(run, agent=agent, gpu_id=gpu_id)
 
 if __name__ == '__main__':
     # Main entry point for the script. Initializes and starts the training process for the specified agents in parallel.
-    agents = ['teacher']
+    agents = ['random', 'teacher']
+    runs = [5, 1]
     processes = []
-    for i, agent in enumerate(agents):
-        p = Process(target=run_agent, args=(agent, i))
+    for i, (agent, run) in enumerate(zip(agents, runs)):
+        p = Process(target=run_agent, args=(agent, i+1, run))
         processes.append(p)
         p.start()
     

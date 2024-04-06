@@ -192,7 +192,7 @@ def eval_DT():
 
     # load models 
     mconf = GPT1Config(6, 5 * 3, model_type = 'reward_conditioned', max_timestep=29)
-    model = GPT.load('/home/qid/minghanli/HC3D_simulator/tasks/HC/DT/models/modelsGPT_model_full_no_teacher_3.pth', mconf)
+    model = GPT.load(os.path.join(HC3D_SIMULATOR_PATH,'tasks/HC/DT/models/modelsGPT_model_teacher_strategy_6.pth'), mconf)
     
     val_seen_agent = DecisionTransformerAgent(val_env, '/home/qid/minghanli/HC3D_simulator/tasks/HC/results', model)
     
@@ -201,7 +201,7 @@ def eval_DT():
     # for this trajactory, we need to cut the trajectory when action is 
     
     # Save to json file as a result 
-    with open('/home/qid/minghanli/HC3D_simulator/tasks/HC/results/DT/DT_val_seen_result.json', 'w') as f:
+    with open(os.path.join(HC3D_SIMULATOR_PATH,'tasks/HC/results/DT/DT_val_seen_result_2.json'), 'w') as f:
         json.dump(traj, f)
         
     
@@ -218,6 +218,6 @@ if __name__ == "__main__":
     #train_val()
     #test_submission()
     evaluator = Evaluation(['val_seen'])
-    score_summary, _ = evaluator.score('/home/qid/minghanli/HC3D_simulator/tasks/HC/results/DT/DT_val_seen_result.json')
+    score_summary, _ = evaluator.score(os.path.join(HC3D_SIMULATOR_PATH,'tasks/HC/results/DT/DT_val_seen_result_2.json'))
     print(score_summary)
     

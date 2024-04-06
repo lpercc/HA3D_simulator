@@ -1,19 +1,19 @@
 ''' Batched Room-to-Room navigation environment '''
 
 import sys
-sys.path.append('build')
-sys.path.append('./')
+import os
+HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
+sys.path.append(HC3D_SIMULATOR_PATH)
 import HC3DSim
 import csv
 import numpy as np
 import math
 import base64
-import os
 import random
 import networkx as nx
 from scripts.video_feature_loader import TimmExtractor 
 import torch
-from utils import load_datasets, load_nav_graphs, relHumanAngle, remove_close_nodes_and_find_path
+from utils import load_datasets, load_nav_graphs, relHumanAngle, remove_close_nodes_and_find_path, horizontal_and_elevation_angles
 
 from tqdm import tqdm 
 import pickle
@@ -185,6 +185,7 @@ class HCBatch():
         self.scans = set(self.scans)
         self.splits = splits
         self.seed = seed
+        self.action_level = 'LLA'
         # TODO: remember to shuffle data
         #random.seed(self.seed)
         #random.shuffle(self.data)
@@ -229,8 +230,7 @@ class HCBatch():
                                                               state.elevation)
         return minDistance
 
-    def _shortest_path_action_avoid_human(self, state, goalViewpointId): 
-        #TODO 提高teacher的避人成功率，不采用shotest策略
+    def _shortest_path_action_avoid_human_sLLA(self, state, goalViewpointId): 
         #将人附近的点从联通图中删除，再计算path
         if state.location.viewpointId == goalViewpointId:
             return (0, 0, 0) # do nothing
@@ -238,72 +238,25 @@ class HCBatch():
         humanLocations = self.env.getHumanLocations(state.scanId)
 
         path = remove_close_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
-        # find next Viewpoint to avoid human
-        # compute the nearest human relative heading and elevation
-        relHeading, relElevation, minDistance = relHumanAngle(humanLocations, 
-                                                              [state.location.x, state.location.y, state.location.z], 
-                                                              state.heading,
-                                                              state.elevation)
-        if minDistance <= 2:
-            nx.get_node_attributes(scanGraph, 'position')
-            navigableViewpoints = []
-            for nav in state.navigableLocations:
-                navigableViewpoints.append(nav.viewpointId)
-            max_distance = 0
-            for neighbor in list(scanGraph.neighbors(state.location.viewpointId)):
-                node_position = scanGraph.nodes[neighbor]['position']
-                _, _, Distance = relHumanAngle(humanLocations, 
-                                                    list(node_position), 
-                                                    0,
-                                                    0)
-                if Distance >= 2 and neighbor in navigableViewpoints and neighbor in path:
-                    nextViewpointId = neighbor
-                    break
-                elif Distance >= 2 and neighbor in navigableViewpoints:
-                    nextViewpointId = neighbor
-                    break
-                elif Distance >= 2:
-                    nextViewpointId = neighbor
-                    break
-                elif Distance > max_distance:
-                    max_distance = Distance
-                    nextViewpointId = neighbor
-        
-        else:
-            nextViewpointId = path[1]   
+        nextViewpointId = path[1]
         # Can we see the next viewpoint?
         for i,loc in enumerate(state.navigableLocations):
             if loc.viewpointId == nextViewpointId:
-                # Look directly at the viewpoint before moving
-                if loc.rel_heading > math.pi/6.0:
-                      return (0, 1, 0) # Turn right
-                elif loc.rel_heading < -math.pi/6.0:
-                      return (0,-1, 0) # Turn left
-                elif loc.rel_elevation > math.pi/6.0 and state.viewIndex//12 < 2:
-                      return (0, 0, 1) # Look up
-                elif loc.rel_elevation < -math.pi/6.0 and state.viewIndex//12 > 0:
-                      return (0, 0,-1) # Look down
-                else:
-                      return (i, 0, 0) # Move
+                #print(f'sLLA {(i, loc.rel_heading, loc.rel_elevation)}')
+                return (i, loc.rel_heading, loc.rel_elevation) # Move
         # Can't see it - first neutralize camera elevation
-        if state.viewIndex//12 == 0:
-            return (0, 0, 1) # Look up
-        elif state.viewIndex//12 == 2:
-            return (0, 0,-1) # Look down
         # Otherwise decide which way to turn
         pos = [state.location.x, state.location.y, state.location.z]
-        target_rel = scanGraph.nodes[nextViewpointId]['position'] - pos
-        target_heading = math.pi/2.0 - math.atan2(target_rel[1], target_rel[0]) # convert to rel to y axis
-        if target_heading < 0:
-            target_heading += 2.0*math.pi
-        if state.heading > target_heading and state.heading - target_heading < math.pi:
-            return (0,-1, 0) # Turn left
-        if target_heading > state.heading and target_heading - state.heading > math.pi:
-            return (0,-1, 0) # Turn left
-        return (0, 1, 0) # Turn right
+        target_heading, target_elevation = horizontal_and_elevation_angles(pos, scanGraph.nodes[nextViewpointId]['position'])
+        rel_heading = target_heading - state.heading
+        rel_elevation = target_elevation - state.elevation
+        #print(f'sLLA {(0, rel_heading, rel_elevation)}')
+        if nextViewpointId == state.location.viewpointId:
+            return (0, 0.01, 0) # Turn 
+        else:
+            return (0, rel_heading, rel_elevation)
 
-    def _shortest_path_action_avoid_human_H(self, state, goalViewpointId): 
-        #TODO 提高teacher的避人成功率，不采用shotest策略
+    def _shortest_path_action_avoid_human_LLA(self, state, goalViewpointId): 
         #将人附近的点从联通图中删除，再计算path
         if state.location.viewpointId == goalViewpointId:
             return (0, 0, 0) # do nothing
@@ -342,6 +295,18 @@ class HCBatch():
         if target_heading > state.heading and target_heading - state.heading > math.pi:
             return (0,-1, 0) # Turn left
         return (0, 1, 0) # Turn right
+    # TODO 增加High Level Action
+    def _shortest_path_action_avoid_human_H(self, state, goalViewpointId): 
+        #将人附近的点从联通图中删除，再计算path
+        if state.location.viewpointId == goalViewpointId:
+            return goalViewpointId # do nothing
+        scanGraph = self.graphs[state.scanId]
+        humanLocations = self.env.getHumanLocations(state.scanId)
+
+        path = remove_close_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
+        assert path[0] == state.location.viewpointId
+        nextViewpointId = path[1]
+        return nextViewpointId
 
     def _shortest_path_action(self, state, goalViewpointId):
         ''' Determine next action on the shortest path to goal, for supervised training. '''
@@ -380,11 +345,20 @@ class HCBatch():
             return (0,-1, 0) # Turn left
         return (0, 1, 0) # Turn right
 
+    def _set_action_level(self, level):
+        self.action_level = level
+        print(f'Action Level:{self.action_level}')
 
     def _get_obs(self):
         obs = []
         for i,(feature,state) in enumerate(self.env.getStates()):
             item = self.batch[i]
+            if self.action_level == 'LLA':
+                teacher = self._shortest_path_action_avoid_human_LLA(state, item['path'][-1])
+            elif self.action_level == 'sLLA':
+                teacher = self._shortest_path_action_avoid_human_sLLA(state, item['path'][-1])
+            elif self.action_level == 'HLA':
+                teacher = self._shortest_path_action_avoid_human_HLA(state, item['path'][-1])
             obs.append({
                 'instr_id' : item['instr_id'],
                 'scan' : state.scanId,
@@ -397,7 +371,7 @@ class HCBatch():
                 'navigableLocations' : state.navigableLocations,
                 'instructions' : item['instructions'],
                 'isCrashed' : state.isCrushed, # in the simulator, if the agent is crashed, it will be reset to the start point. Threshold is 1.0m.
-                'teacher' : self._shortest_path_action_avoid_human_H(state, item['path'][-1]),
+                'teacher' : teacher,
             })
             if 'instr_encoding' in item:
                 obs[-1]['instr_encoding'] = item['instr_encoding']

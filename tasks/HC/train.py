@@ -1,24 +1,15 @@
-
-import gzip
-import json
 import os
 import sys
 import time
 from collections import defaultdict
-
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from agent import RandomAgent, Seq2SeqAgent, DecisionTransformerAgent
+from agent import Seq2SeqAgent
 from env import HCBatch
 from eval import Evaluation
 from model import AttnDecoderLSTM, EncoderLSTM
 from torch import optim
-from torch.autograd import Variable
-from tqdm import tqdm
-from transformers import BartModel, BartTokenizer
 from utils import (
     Tokenizer,
     build_vocab,
@@ -28,10 +19,6 @@ from utils import (
     timeSince,
     write_vocab,
 )
-
-from DT.minGPT import GPT, GPT1Config, GPTConfig
-from dataclasses import dataclass
-from DT.utils import seed_everything
 
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 
@@ -168,7 +155,7 @@ def train_val():
 
     # Creat validation environments
     val_envs = {split: (HCBatch(features, batch_size=batch_size, splits=[split],
-                tokenizer=tok, device=device), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
+                tokenizer=tok, device=device), Evaluation([split])) for split in ['train', 'val_seen', 'val_unseen']}
 
     # Build models and train
     enc_hidden_size = hidden_size//2 if bidirectional else hidden_size
@@ -176,40 +163,19 @@ def train_val():
                   dropout_ratio, bidirectional=bidirectional).cuda()
     decoder = AttnDecoderLSTM(Seq2SeqAgent.n_inputs(), Seq2SeqAgent.n_outputs(),
                   action_embedding_size, hidden_size, dropout_ratio).cuda()
-    train(train_env, encoder, decoder, n_iters, val_envs=val_envs)
-    #valid_teacher(train_env, encoder, decoder, val_envs=val_envs)
-    
-def eval_DT():
-
-    ''' Init a env to evaluate decision transformer'''
-    setup() 
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    tok = BartTokenizer.from_pretrained('facebook/bart-base')
-    embedding_model = BartModel.from_pretrained('facebook/bart-base')
-    #train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
-    
-    # Create Validation Environments 
-    val_env = HCBatch(features, batch_size=batch_size, splits=['val_seen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
-
-    # load models 
-    mconf = GPT1Config(6, 5 * 3, model_type = 'reward_conditioned', max_timestep=29)
-    model = GPT.load('/home/qid/minghanli/HC3D_simulator/tasks/HC/DT/models/GPT_model.pth', mconf)
-    
-    val_seen_agent = DecisionTransformerAgent(val_env, '/home/qid/minghanli/HC3D_simulator/tasks/HC/results', model)
-    
-    traj = val_seen_agent.rollout()
+    #train(train_env, encoder, decoder, n_iters, val_envs=val_envs)
+    valid_teacher(train_env, encoder, decoder, 'sLLA', val_envs=val_envs, )
         
-def valid_teacher(train_env, encoder, decoder, val_envs={}):
+def valid_teacher(train_env, encoder, decoder, actionLevel, val_envs={}):
     torch.set_grad_enabled(False)
 
     agent = Seq2SeqAgent(train_env, "", encoder, decoder, max_episode_len)
 
-
     for env_name, (env, evaluator) in val_envs.items():
         agent.env = env
-        agent.results_path = '%s%s_%s_iter_%s.json' % (RESULT_DIR, model_prefix, env_name, env_name)
+        agent.results_path = '%s%s_%s_iter_%s.json' % (RESULT_DIR, model_prefix, env_name, actionLevel)
         #agent.test(use_dropout=False, feedback='argmax', iters=iters)
-        agent.test_teacher()
+        agent.test_teacher(actionLevel)
         agent.write_results()
         #agent.write_results()
         if env_name != '' and (not env_name.startswith('test')):
@@ -219,7 +185,7 @@ def valid_teacher(train_env, encoder, decoder, val_envs={}):
                 loss_str += ', %s: %.4f' % (metric, val)
             print(loss_str)
 
-            record_file = open(os.path.join(PLOT_DIR, 'teacher_Hn_valid_log.txt'), 'a')
+            record_file = open(os.path.join(PLOT_DIR, f'teacher_{actionLevel}_valid_log.txt'), 'a')
             record_file.write(loss_str + '\n')
             record_file.close()
 
