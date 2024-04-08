@@ -10,6 +10,7 @@ from env import HCBatch
 from eval import Evaluation
 from model import AttnDecoderLSTM, EncoderLSTM
 from torch import optim
+from param import args
 from utils import (
     Tokenizer,
     build_vocab,
@@ -22,28 +23,27 @@ from utils import (
 
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 
-TRAIN_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/data/train_vocab.txt')
-TRAINVAL_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/data/trainval_vocab.txt')
-RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/results/')
-SNAPSHOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/snapshots/')
-PLOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/plots/')
+TRAIN_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/data/{args.model_name}/train_vocab.txt')
+TRAINVAL_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/data/{args.model_name}/trainval_vocab.txt')
+RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/results/{args.model_name}/')
+SNAPSHOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/snapshots/{args.model_name}/')
+PLOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/plots/{args.model_name}/')
 
-IMAGENET_FEATURES = os.path.join(HC3D_SIMULATOR_PATH, 'img_features/ResNet-152-imagenet_80_16_mean.tsv')
-MAX_INPUT_LENGTH = 80
+MAX_INPUT_LENGTH = args.max_input_length
 
-features = IMAGENET_FEATURES
-batch_size = 100
-max_episode_len = 20
-word_embedding_size = 256
-action_embedding_size = 32
-hidden_size = 512
-bidirectional = False
-dropout_ratio = 0.5
-feedback_method = 'sample' # teacher or sample
-learning_rate = 0.0001
-weight_decay = 0.0005
-n_iters = 5000 if feedback_method == 'teacher' else 20000
-model_prefix = 'seq2seq_%s_imagenet' % (feedback_method)
+features = os.path.join(HC3D_SIMULATOR_PATH, f'img_features/{args.features}.tsv')
+batch_size = args.batch_size
+max_episode_len = args.max_episode_len
+word_embedding_size = args.word_embedding_size
+action_embedding_size = args.action_embedding_size
+hidden_size = args.hidden_size
+bidirectional = args.bidirection
+dropout_ratio = args.dropout_ratio
+feedback_method = args.feedback_method # teacher or sample
+learning_rate = args.learning_rate
+weight_decay = args.weight_decay
+n_iters = args.n_iters
+model_prefix = args.model_prefix % (feedback_method)
 
 
 def train(train_env, encoder, decoder, n_iters, log_every=100, val_envs={}):
@@ -107,7 +107,6 @@ def train(train_env, encoder, decoder, n_iters, log_every=100, val_envs={}):
         dec_path = '%s%s_%s_dec_iter_%d' % (SNAPSHOT_DIR, model_prefix, split_string, iter)
         agent.save(enc_path, dec_path)
 
-
 def setup():
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
@@ -116,7 +115,6 @@ def setup():
         write_vocab(build_vocab(splits=['train']), TRAIN_VOCAB)
     if not os.path.exists(TRAINVAL_VOCAB):
         write_vocab(build_vocab(splits=['train','val_seen','val_unseen']), TRAINVAL_VOCAB)
-
 
 def test_submission():
     ''' Train on combined training and validation sets, and generate test submission. '''
@@ -142,12 +140,31 @@ def test_submission():
     agent.test(use_dropout=False, feedback='argmax')
     agent.write_results()
 
-
 def train_val():
     ''' Train on the training set, and validate on seen and unseen splits. '''
 
     setup()
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    device = f'cuda:{args.cuda}' if torch.cuda.is_available() else 'cpu'
+    # Create a batch training environment that will also preprocess text
+    vocab = read_vocab(TRAIN_VOCAB)
+    tok = Tokenizer(vocab=vocab, encoding_length=MAX_INPUT_LENGTH)
+    train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, device=device)
+
+    # Creat validation environments
+    val_envs = {split: (HCBatch(features, batch_size=batch_size, splits=[split],
+                tokenizer=tok, device=device), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
+
+    # Build models and train
+    enc_hidden_size = hidden_size//2 if bidirectional else hidden_size
+    encoder = EncoderLSTM(len(vocab), word_embedding_size, enc_hidden_size, padding_idx,
+                  dropout_ratio, bidirectional=bidirectional).cuda()
+    decoder = AttnDecoderLSTM(Seq2SeqAgent.n_inputs(), Seq2SeqAgent.n_outputs(),
+                  action_embedding_size, hidden_size, dropout_ratio).cuda()
+    train(train_env, encoder, decoder, n_iters, val_envs=val_envs)
+        
+def valid_teacher():
+    setup()
+    device = f'cuda:{args.cuda}' if torch.cuda.is_available() else 'cpu'
     # Create a batch training environment that will also preprocess text
     vocab = read_vocab(TRAIN_VOCAB)
     tok = Tokenizer(vocab=vocab, encoding_length=MAX_INPUT_LENGTH)
@@ -163,10 +180,6 @@ def train_val():
                   dropout_ratio, bidirectional=bidirectional).cuda()
     decoder = AttnDecoderLSTM(Seq2SeqAgent.n_inputs(), Seq2SeqAgent.n_outputs(),
                   action_embedding_size, hidden_size, dropout_ratio).cuda()
-    #train(train_env, encoder, decoder, n_iters, val_envs=val_envs)
-    valid_teacher(train_env, encoder, decoder, 'sLLA', val_envs=val_envs, )
-        
-def valid_teacher(train_env, encoder, decoder, actionLevel, val_envs={}):
     torch.set_grad_enabled(False)
 
     agent = Seq2SeqAgent(train_env, "", encoder, decoder, max_episode_len)
@@ -175,7 +188,7 @@ def valid_teacher(train_env, encoder, decoder, actionLevel, val_envs={}):
         agent.env = env
         agent.results_path = '%s%s_%s_iter_%s.json' % (RESULT_DIR, model_prefix, env_name, actionLevel)
         #agent.test(use_dropout=False, feedback='argmax', iters=iters)
-        agent.test_teacher(actionLevel)
+        agent.test_teacher(args.action_level)
         agent.write_results()
         #agent.write_results()
         if env_name != '' and (not env_name.startswith('test')):
@@ -185,7 +198,7 @@ def valid_teacher(train_env, encoder, decoder, actionLevel, val_envs={}):
                 loss_str += ', %s: %.4f' % (metric, val)
             print(loss_str)
 
-            record_file = open(os.path.join(PLOT_DIR, f'teacher_{actionLevel}_valid_log.txt'), 'a')
+            record_file = open(os.path.join(PLOT_DIR, f'teacher_{args.action_level}_valid_log.txt'), 'a')
             record_file.write(loss_str + '\n')
             record_file.close()
 
