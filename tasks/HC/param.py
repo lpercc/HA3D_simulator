@@ -22,5 +22,6 @@ class Param:
         self.parser.add_argument('--cuda', type=int, default=0)
         self.parser.add_argument('--rl_reward_strategy', type=str, default="teacher_strategy_1")
         self.parser.add_argument('--model_type', type=str, default="reward_conditioned")
+        self.args = self.parser.parse_args()
 param = Param()
 args = param.args

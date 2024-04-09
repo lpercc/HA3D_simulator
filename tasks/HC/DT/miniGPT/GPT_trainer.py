@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 import random
 import cv2
 import torch
-
+from datetime import datetime
 
 class TrainerConfig:
     # optimization parameters
@@ -41,6 +41,9 @@ class TrainerConfig:
     # checkpoint settings
     ckpt_path = None
     num_workers = 0 # for DataLoader
+    cuda = 0
+    log_path = ''
+
 
     def __init__(self, **kwargs):
         for k,v in kwargs.items():
@@ -56,10 +59,9 @@ class Trainer:
         self.config = config
 
         # take over whatever gpus are on the system
-        self.device = 'cpu'
-        if torch.cuda.is_available():
-            self.device = 'cuda:2'
-            self.model = self.model.to(self.device) #TODO: Add dataparallel in server 
+        self.device = f'cuda:{config.cuda}' if torch.cuda.is_available() else 'cpu'
+        print(self.device)
+        self.model = self.model.to(self.device) #TODO: Add dataparallel in server 
             
     def save_checkpoint(self):
         # DataParallel wrappers keep raw model object in .module attribute
@@ -139,11 +141,17 @@ class Trainer:
         for epoch in range(config.max_epochs):
 
             losses = run_one_epoch('train',)
-            print("Train Loss: ", np.mean(losses))
+            train_loss = np.mean(losses)
+            print("Train Loss: ", train_loss)
             test_loss = run_one_epoch('test')
             print("Test Loss: ", test_loss)
-            
-        self.trained_model = model 
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            record_file = open(config.log_path, 'a')
+            record_file.write(f"{current_time} Epoch: {epoch+1} Train Loss: {train_loss} Test Loss: {test_loss}\n")
+            record_file.close() 
+        
+        self.trained_model = model
+
         
     def get_trained_model(self):
         return self.trained_model

@@ -28,16 +28,7 @@ MAX_INPUT_LENGTH = args.max_input_length
 features = os.path.join(HC3D_SIMULATOR_PATH, f'img_features/{args.features}.tsv')
 batch_size = args.batch_size
 max_episode_len = args.max_episode_len
-word_embedding_size = args.word_embedding_size
-action_embedding_size = args.action_embedding_size
-hidden_size = args.hidden_size
-bidirectional = args.bidirection
-dropout_ratio = args.dropout_ratio
 feedback_method = args.feedback_method # teacher or sample
-learning_rate = args.learning_rate
-weight_decay = args.weight_decay
-n_iters = args.n_iters
-model_prefix = args.model_prefix % (feedback_method)
 
 def setup():
     torch.manual_seed(1)
@@ -56,8 +47,6 @@ def eval_DT():
     device = f'cuda:{args.cuda}' if torch.cuda.is_available() else 'cpu'
     tok = BartTokenizer.from_pretrained("facebook/bart-base")
     embedding_model = BartModel.from_pretrained("facebook/bart-base")
-    # train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
-
     # Create Validation Environments
     val_env = HCBatch(
         features,
@@ -73,7 +62,7 @@ def eval_DT():
     model = GPT.load(
         os.path.join(
             HC3D_SIMULATOR_PATH,
-            f"tasks/HC/DT/models/modelsGPT_model_{args.rl_reward_strategy}.pth",
+            f'tasks/HC/DT/models/{args.model_name}_model_{args.feedback_method}_{args.rl_reward_strategy}.pth'
         ),
         mconf,
     )
