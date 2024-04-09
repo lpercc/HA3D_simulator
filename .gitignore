@@ -12,3 +12,7 @@ tasks/HC/trajs/*
 sim2real/
 features_cache.pkl
 tasks/HC/DT/models/
+runs/
+models/
+trajs/
+nohup.out

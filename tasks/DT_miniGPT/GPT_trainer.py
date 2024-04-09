@@ -13,18 +13,25 @@ import logging
 
 from tqdm import tqdm
 import numpy as np
-
+import os
+import sys
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data.dataloader import DataLoader
-
+from torch.utils.tensorboard import SummaryWriter
+from transformers import BartModel, BartTokenizer
+from agent import DecisionTransformerAgent
+from env import HCBatch
+from eval import Evaluation
 logger = logging.getLogger(__name__)
-
+import json
 import random
 import cv2
 import torch
 from datetime import datetime
+HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
+RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/results/')
 
 class TrainerConfig:
     # optimization parameters
@@ -43,13 +50,14 @@ class TrainerConfig:
     num_workers = 0 # for DataLoader
     cuda = 0
     log_path = ''
+    features = ''
+    reward_strategy = ''
 
 
     def __init__(self, **kwargs):
         for k,v in kwargs.items():
             setattr(self, k, v)
-            
-            
+
 class Trainer: 
     
     def __init__(self, model, train_dataset, test_dataset, config):
@@ -62,6 +70,12 @@ class Trainer:
         self.device = f'cuda:{config.cuda}' if torch.cuda.is_available() else 'cpu'
         print(self.device)
         self.model = self.model.to(self.device) #TODO: Add dataparallel in server 
+        self.writer = SummaryWriter(log_dir=config.log_path)
+
+        tok = BartTokenizer.from_pretrained("facebook/bart-base")
+        embedding_model = BartModel.from_pretrained("facebook/bart-base")
+        self.val_envs = {split: (HCBatch(self.config.features, batch_size=self.config.batch_size, splits=[split],
+            tokenizer=tok, text_embedding_model=embedding_model, device=self.device), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
             
     def save_checkpoint(self):
         # DataParallel wrappers keep raw model object in .module attribute
@@ -131,8 +145,6 @@ class Trainer:
                 return test_loss
             else: 
                 return losses
-
-        # best_loss = float('inf')
         
         best_return = -float('inf')
 
@@ -145,13 +157,39 @@ class Trainer:
             print("Train Loss: ", train_loss)
             test_loss = run_one_epoch('test')
             print("Test Loss: ", test_loss)
+            self.writer.add_scalar('Loss/train', train_loss, epoch+1)
+            self.writer.add_scalar('Loss/test', test_loss, epoch+1)
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            record_file = open(config.log_path, 'a')
+            record_file = open(os.path.join(config.log_path, "train_log.txt"), 'a')
             record_file.write(f"{current_time} Epoch: {epoch+1} Train Loss: {train_loss} Test Loss: {test_loss}\n")
             record_file.close() 
         
         self.trained_model = model
+        self.writer.close()
+        record_file = open(os.path.join(config.log_path, "train_log.txt"), 'a')
+        log_info = self.val(self.trained_model)
+        record_file.write(f"{log_info}\n")
+        record_file.close() 
 
+    def val(self, model):
+        """Init a env to evaluate decision transformer"""
+        log_info = ''
+        for env_name, (env, evaluator) in self.val_envs.items():
+            result_file = os.path.join(RESULT_DIR, f"{env_name}_result.json")
+            agent = DecisionTransformerAgent(
+                env, result_file, model
+            )
+            assert self.config.reward_strategy != ''
+            agent.set_reward(self.config.reward_strategy)
+            agent.test()
+            agent.write_results()
+            
+            score_summary, _ = evaluator.score(result_file)
+            log_info += f'{env_name}:'
+            for metric,val in score_summary.items():
+                log_info += ', %s: %.3f' % (metric, val)
+
+        return log_info
         
     def get_trained_model(self):
         return self.trained_model

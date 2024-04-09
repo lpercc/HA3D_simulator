@@ -32,6 +32,9 @@ from tqdm import tqdm
 from dataclasses import dataclass
 from param import args
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
+MODEL_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/models")
+TRAJS_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/trajs")
+
 print(args); print(HC3D_SIMULATOR_PATH)
 class StateActionReturnDataset(Dataset):
 
@@ -44,7 +47,7 @@ class StateActionReturnDataset(Dataset):
             block_size (arryas): The is real transformer context length . block_size // 3 will be the input context length for actions, rewards and so on
             actions (arryas]): actions should be a list of integers.
             done_idxs (list[int]): A list of indices where the episode ends. 
-            rtgs (arryas): A list of return to go rewards.
+            rtgs (arryas): A list of return totasks/DT/models/ go rewards.
             timesteps (arryas): A list of timesteps
             
         return: 
@@ -157,13 +160,17 @@ def create_dataset(trajs,reward_strategy):
     
     
 if __name__ == '__main__':
-    log_path = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/DT/models/{args.model_name}_{args.feedback_method}_{args.rl_reward_strategy}_train_log.txt')
-    model_save_path = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/DT/models/{args.model_name}_{args.feedback_method}_{args.rl_reward_strategy}.pth')
-    record_file = open(log_path, 'a')
+    log_path = os.path.join(MODEL_DIR, f'{args.model_name}_{args.feedback_method}_{args.rl_reward_strategy}')
+    if not os.path.exists(log_path):
+        os.makedirs(log_path)
+    if not os.path.exists(TRAJS_DIR):
+        os.makedirs(TRAJS_DIR)
+    model_save_path = os.path.join(log_path, 'model.pth')
+    record_file = open(os.path.join(log_path, "train_log.txt"), 'w')
     record_file.write("model path:"+str(model_save_path)+'\n'+str(args) + '\n\n')
     record_file.close()
     seed_everything(args.seed)
-    trajs = load_data(os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/trajs/{args.feedback_method}'), args.feedback_method)
+    trajs = load_data(os.path.join(TRAJS_DIR, f'{args.feedback_method}'), args.feedback_method)
     states, actions, targets, rtgs,  done_idxs, time_steps = create_dataset(trajs, args.rl_reward_strategy)
     dataset = StateActionReturnDataset(states, 5 * 3, actions, targets, done_idxs, rtgs, time_steps)
     
@@ -187,11 +194,13 @@ if __name__ == '__main__':
     epochs = args.epochs
     tconf = TrainerConfig(max_epochs=epochs, batch_size=args.batch_size, learning_rate=6e-4,
                         lr_decay=True, warmup_tokens=512*20, final_tokens=2*len(sub_train)*args.context_length*3,
-                        num_workers=4, seed=args.seed, model_type=args.model_type, max_timestep=max(time_steps), cuda=args.cuda, log_path=log_path)
+                        num_workers=4, seed=args.seed, model_type=args.model_type, max_timestep=max(time_steps), 
+                        cuda=args.cuda, log_path=log_path, features=os.path.join(HC3D_SIMULATOR_PATH, f'img_features/{args.features}.tsv'),
+                        reward_strategy=args.rl_reward_strategy)
     trainer = Trainer(model, sub_train, sub_test, tconf)
 
     trainer.train()
     
     model = trainer.get_trained_model()
     # use wandb to track model performance
-    model.save(os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/DT/models/{args.model_name}_{args.feedback_method}_{args.rl_reward_strategy}.pth'))
+    model.save(model_save_path)
