@@ -112,8 +112,6 @@ def load_nav_graphs(scans):
     return graphs
 
 def load_datasets(splits):
-
-    
     data = []
     for split in splits:
         assert split in ['train', 'val_seen', 'val_unseen', 'test']
@@ -121,10 +119,7 @@ def load_datasets(splits):
             data += json.load(f)
     random.seed(10)
     random.shuffle(data)
-    # 按照每个字典中 'scan' 键的值对数据进行排序
-    sorted_data = sorted(data, key=lambda x: x['scan'])
-    
-    return sorted_data
+    return data
 
 
 class Tokenizer(object):

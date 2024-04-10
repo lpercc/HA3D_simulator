@@ -3,7 +3,7 @@ export HC3D_SIMULATOR_PATH=$(pwd)
 flag="  --model_name miniGPT 
         --features ResNet-152-imagenet_80_16_mean
         --batch_size 256
-        --feedback_method teacher
+        --feedback_method random
         --action_level LLA
         --rl_reward_strategy reward_strategy_$2
         --model_type reward_conditioned

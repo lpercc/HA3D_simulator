@@ -89,10 +89,11 @@ class StateActionReturnDataset(Dataset):
 def load_data(data_dir, trajs_type): 
     # TODO: Train as incremental learning
     trajs = []
-    for i, data in enumerate(os.listdir(data_dir)):
-        with open(data_dir + f'/train_trajs_{0}_{trajs_type}.pkl', 'rb') as f: #DONE: change to support pkl 
+    for i, data_file in enumerate(os.listdir(data_dir)):
+        with open(os.path.join(data_dir, data_file), 'rb') as f: #DONE: change to support pkl 
             traj = pickle.load(f) # 
             trajs.extend(traj)
+    print(f"{trajs_type} trajs data len {len(trajs)}")
     return trajs
 
 def create_dataset(trajs,reward_strategy):
@@ -173,15 +174,13 @@ if __name__ == '__main__':
     trajs = load_data(os.path.join(TRAJS_DIR, f'{args.feedback_method}'), args.feedback_method)
     states, actions, targets, rtgs,  done_idxs, time_steps = create_dataset(trajs, args.rl_reward_strategy)
     dataset = StateActionReturnDataset(states, 5 * 3, actions, targets, done_idxs, rtgs, time_steps)
-    
     # test the dataset 
     try: 
         try_data = dataset[0]
     except: 
         raise NotImplementedError()
     
-    # Now train the model 
-    dataset = StateActionReturnDataset(states, 5 * 3, actions, targets, done_idxs, rtgs, time_steps)
+    # Now train the model
     sub_train = torch.utils.data.Subset(dataset, list(range(len(dataset) - 1000)))
     sub_test = torch.utils.data.Subset(dataset, list(range(len(dataset) - 1000, len(dataset))))
     

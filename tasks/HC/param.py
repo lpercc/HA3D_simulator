@@ -11,7 +11,7 @@ class Param:
         self.parser.add_argument('--word_embedding_size', type=int, default=256)
         self.parser.add_argument('--action_embedding_size', type=int, default=32)
         self.parser.add_argument('--hidden_size', type=int, default=512)
-        self.parser.add_argument('--bidirectional', type=bool, default=False)
+        self.parser.add_argument('--bidirection', type=bool, default=False)
         self.parser.add_argument('--dropout_ratio', type=float, default=0.5)
         self.parser.add_argument('--feedback_method', type=str, default='sample')
         self.parser.add_argument('--learning_rate', type=float, default=0.0001)

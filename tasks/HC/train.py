@@ -23,11 +23,11 @@ from utils import (
 
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 
-TRAIN_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/data/{args.model_name}/train_vocab.txt')
-TRAINVAL_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/data/{args.model_name}/trainval_vocab.txt')
-RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/results/{args.model_name}/')
-SNAPSHOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/snapshots/{args.model_name}/')
-PLOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/plots/{args.model_name}/')
+TRAIN_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/data/train_vocab.txt')
+TRAINVAL_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/data/trainval_vocab.txt')
+RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/results/')
+SNAPSHOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/snapshots/')
+PLOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/plots/')
 
 MAX_INPUT_LENGTH = args.max_input_length
 
@@ -44,8 +44,8 @@ learning_rate = args.learning_rate
 weight_decay = args.weight_decay
 n_iters = args.n_iters
 model_prefix = args.model_prefix % (feedback_method)
-
-
+actionLevel = args.action_level
+print(str(args)+"\n")
 def train(train_env, encoder, decoder, n_iters, log_every=100, val_envs={}):
     ''' Train on training set, validating on both seen and unseen. '''
 
@@ -198,7 +198,7 @@ def valid_teacher():
                 loss_str += ', %s: %.4f' % (metric, val)
             print(loss_str)
 
-            record_file = open(os.path.join(PLOT_DIR, f'teacher_{args.action_level}_valid_log.txt'), 'a')
+            record_file = open(os.path.join(PLOT_DIR, f'teacher_{args.action_level}_local3_valid_log.txt'), 'a')
             record_file.write(loss_str + '\n')
             record_file.close()
 
@@ -211,5 +211,6 @@ if __name__ == "__main__":
     if not os.path.exists(os.path.dirname(PLOT_DIR)):
         os.makedirs(os.path.dirname(PLOT_DIR))
     #eval_DT()
-    train_val()
+    #train_val()
+    valid_teacher()
     #test_submission()

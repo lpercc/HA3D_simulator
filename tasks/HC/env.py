@@ -13,7 +13,7 @@ import random
 import networkx as nx
 from scripts.video_feature_loader import TimmExtractor 
 import torch
-from utils import load_datasets, load_nav_graphs, relHumanAngle, remove_close_nodes_and_find_path, horizontal_and_elevation_angles
+from utils import load_datasets, load_nav_graphs, relHumanAngle, remove_local_nodes_and_find_path, remove_global_nodes_and_find_path, horizontal_and_elevation_angles
 
 from tqdm import tqdm 
 import pickle
@@ -256,14 +256,16 @@ class HCBatch():
         else:
             return (0, rel_heading, rel_elevation)
 
-    def _shortest_path_action_avoid_human_LLA(self, state, goalViewpointId): 
+    def _shortest_path_action_avoid_human_LLA(self, state, goalViewpointId, strategy, radius): 
         #将人附近的点从联通图中删除，再计算path
         if state.location.viewpointId == goalViewpointId:
             return (0, 0, 0) # do nothing
         scanGraph = self.graphs[state.scanId]
         humanLocations = self.env.getHumanLocations(state.scanId)
-
-        path = remove_close_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
+        if strategy =='global':
+            path = remove_global_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
+        elif strategy == 'local':
+            path = remove_local_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId, radius)
         nextViewpointId = path[1]
         # Can we see the next viewpoint?
         for i,loc in enumerate(state.navigableLocations):
@@ -354,7 +356,7 @@ class HCBatch():
         for i,(feature,state) in enumerate(self.env.getStates()):
             item = self.batch[i]
             if self.action_level == 'LLA':
-                teacher = self._shortest_path_action_avoid_human_LLA(state, item['path'][-1])
+                teacher = self._shortest_path_action_avoid_human_LLA(state, item['path'][-1], strategy='local', radius=4.5)
             elif self.action_level == 'sLLA':
                 teacher = self._shortest_path_action_avoid_human_sLLA(state, item['path'][-1])
             elif self.action_level == 'HLA':
