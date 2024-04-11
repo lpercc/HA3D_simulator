@@ -6,7 +6,8 @@ import random
 import time
 import numpy as np
 import torch
-from utils import check_agent_status, RewardCalculater
+from utils import check_agent_status
+from reward import RewardCalculater
 from tqdm import tqdm
 import gc
 
@@ -82,6 +83,7 @@ class RandomAgent(BaseAgent):
         rwdclters = [RewardCalculater() for _ in range(len(obs))]
 
         ended = [False] * len(obs) # Is this enough for us to get a random walk agents?
+        turn_right = [random.choice([True, False]) for _ in range(len(obs))]
         for _, t in enumerate(range(max_steps)): # 30 Steps 之后所有 Agent 的状态
             actions = []
             last_distances = []
@@ -96,8 +98,12 @@ class RandomAgent(BaseAgent):
                 elif len(ob['navigableLocations']) > 1:
                     actions.append((1, 0, 0)) # go forward
                     self.steps[i] += 1
+                    turn_right[i] = random.choice([True, False])
                 else:
-                    actions.append((0, 1, 0))
+                    if turn_right[i]:
+                        actions.append((0, 1, 0))
+                    else:
+                        actions.append((0, -1, 0))
                 # turn right until we can go forward
 
                 last_distances.append(ob['distance'])

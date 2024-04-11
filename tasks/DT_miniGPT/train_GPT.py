@@ -18,7 +18,7 @@ from torch.nn import functional as F
 import math
 from torch.utils.data import Dataset
 from minGPT import GPT, GPT1Config, GPTConfig
-from GPT_trainer import Trainer, TrainerConfig 
+from GPT_trainer import Trainer
 from utils import seed_everything
 from collections import deque
 import random
@@ -89,8 +89,15 @@ class StateActionReturnDataset(Dataset):
 def load_data(data_dir, trajs_type): 
     # TODO: Train as incremental learning
     trajs = []
+    trajs_file = []
+    trajs_type = trajs_type.split('_')
     for i, data_file in enumerate(os.listdir(data_dir)):
-        with open(os.path.join(data_dir, data_file), 'rb') as f: #DONE: change to support pkl 
+        for traj_type in trajs_type:
+            if traj_type in data_file:
+                trajs_file.append(data_file)
+    for traj_file in trajs_file:
+        print(traj_file)
+        with open(os.path.join(data_dir, traj_file), 'rb') as f: #DONE: change to support pkl 
             traj = pickle.load(f) # 
             trajs.extend(traj)
     print(f"{trajs_type} trajs data len {len(trajs)}")
@@ -161,7 +168,7 @@ def create_dataset(trajs,reward_strategy):
     
     
 if __name__ == '__main__':
-    log_path = os.path.join(MODEL_DIR, f'{args.model_name}_{args.feedback_method}_{args.rl_reward_strategy}')
+    log_path = os.path.join(MODEL_DIR, f'{args.model_name}_{args.feedback_method}_{args.reward_strategy}')
     if not os.path.exists(log_path):
         os.makedirs(log_path)
     if not os.path.exists(TRAJS_DIR):
@@ -171,8 +178,8 @@ if __name__ == '__main__':
     record_file.write("model path:"+str(model_save_path)+'\n'+str(args) + '\n\n')
     record_file.close()
     seed_everything(args.seed)
-    trajs = load_data(os.path.join(TRAJS_DIR, f'{args.feedback_method}'), args.feedback_method)
-    states, actions, targets, rtgs,  done_idxs, time_steps = create_dataset(trajs, args.rl_reward_strategy)
+    trajs = load_data(TRAJS_DIR, args.feedback_method)
+    states, actions, targets, rtgs,  done_idxs, time_steps = create_dataset(trajs, args.reward_strategy)
     dataset = StateActionReturnDataset(states, 5 * 3, actions, targets, done_idxs, rtgs, time_steps)
     # test the dataset 
     try: 
@@ -181,8 +188,12 @@ if __name__ == '__main__':
         raise NotImplementedError()
     
     # Now train the model
-    sub_train = torch.utils.data.Subset(dataset, list(range(len(dataset) - 1000)))
-    sub_test = torch.utils.data.Subset(dataset, list(range(len(dataset) - 1000, len(dataset))))
+    indices = random.sample(range(len(dataset)), args.train_samples)
+    sub_train = torch.utils.data.Subset(dataset, indices)
+    assert len(sub_train) == args.train_samples
+    remaining_indices = list(set(range(len(dataset))) - set(indices))
+    sub_test = torch.utils.data.Subset(dataset, remaining_indices)
+    assert len(sub_test) == len(dataset) - args.train_samples
     
 
     mconf = GPT1Config(dataset.vocab_size, dataset.block_size,
@@ -190,13 +201,7 @@ if __name__ == '__main__':
     model = GPT(mconf)
 
     # initialize a trainer instance and kick off training
-    epochs = args.epochs
-    tconf = TrainerConfig(max_epochs=epochs, batch_size=args.batch_size, learning_rate=6e-4,
-                        lr_decay=True, warmup_tokens=512*20, final_tokens=2*len(sub_train)*args.context_length*3,
-                        num_workers=4, seed=args.seed, model_type=args.model_type, max_timestep=max(time_steps), 
-                        cuda=args.cuda, log_path=log_path, features=os.path.join(HC3D_SIMULATOR_PATH, f'img_features/{args.features}.tsv'),
-                        reward_strategy=args.rl_reward_strategy)
-    trainer = Trainer(model, sub_train, sub_test, tconf)
+    trainer = Trainer(model, sub_train, sub_test, args, log_path)
 
     trainer.train()
     
