@@ -13,7 +13,6 @@ from multiprocessing import Process
 import os
 import numpy as np
 from tqdm import tqdm
-from utils import write_vocab,build_vocab
 from env import HCBatch
 from agent import RandomAgent, TeacherAgent
 import pickle
@@ -93,21 +92,21 @@ def train_teacher(train_env, n_iters, log_every=100, val_envs={}):
     
     return trajs
 
-def train_run(iter, agent='random', gpu_id=0):
+def train_run(agent='random', gpu_id=0, process_id=0):
     """
     Trains an agent on the training set and saves the generated trajectories.
 
     This function sets up the training environment, initializes the tokenizer and embedding model, and iterates through the specified number of training iterations. For each iteration, it creates a new training environment, trains the agent (either a random or a teacher agent), and saves the generated trajectories to disk.
 
     Parameters:
-    - iter (int): The number of training iterations to perform.
+    - iters (int): The number of training iterations to perform.
     - agent (str): The type of agent to train. Can be 'random' or 'teacher'. Default is 'random'.
     - gpu_id (int): The ID of the GPU to use for training. Default is 0.
 
     Returns:
     None
     """
-    trajs_dir = os.path.join(TRAJS_DIR, agent)
+    trajs_dir = os.path.join(TRAJS_DIR)
     if not os.path.exists(trajs_dir):
         os.makedirs(trajs_dir)
     setup()
@@ -116,42 +115,25 @@ def train_run(iter, agent='random', gpu_id=0):
     tok = BartTokenizer.from_pretrained('facebook/bart-base')
     embedding_model = BartModel.from_pretrained('facebook/bart-base')
     
-    for i in range(iter):
-        train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
-        if agent == 'random':
-            trajs = train_random(train_env, n_iters)
-        elif agent == 'teacher':
-            trajs = train_teacher(train_env, n_iters)
-        with open(os.path.join(trajs_dir, f'train_trajs_{i}_{agent}.pkl'), 'wb') as f:
-            pickle.dump(trajs, f)
-
-def run_agent(agent, gpu_id, run):
-    """
-    Initiates the training process for a specified agent on a specified GPU.
-
-    This function is a wrapper that calls the `train_run` function with a predefined number of iterations (10) and the specified agent and GPU ID. It is designed to be used as a target for multiprocessing, allowing for parallel training of different agents on different GPUs.
-
-    Parameters:
-    - agent (str): The type of agent to train. Can be 'random' or 'teacher'.
-    - gpu_id (int): The ID of the GPU to use for training.
-
-    Returns:
-    None
-    """
-    train_run(run, agent=agent, gpu_id=gpu_id)
+    train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+    if agent == 'random':
+        trajs = train_random(train_env, n_iters)
+    elif agent == 'teacher':
+        trajs = train_teacher(train_env, n_iters)
+    with open(os.path.join(trajs_dir, f'train_trajs_{process_id}_{agent}.pkl'), 'wb') as f:
+        pickle.dump(trajs, f)
 
 if __name__ == '__main__':
     # Main entry point for the script. Initializes and starts the training process for the specified agents in parallel.
     if not os.path.exists(TRAJS_DIR):
         os.makedirs(TRAJS_DIR)
-    agents = ['random', 'teacher']
-    runs = [5, 1]
+    agents = {'random':5, 'teacher':1}
     processes = []
-    for i, (agent, run) in enumerate(zip(agents, runs)):
-        p = Process(target=run_agent, args=(agent, i, run))
-        processes.append(p)
-        p.start()
-    
+    for agent in agents.items():
+        for i, iter_idex in enumerate(range(agent[1])):
+            p = Process(target=train_run, args=(agent[0], 2, i))
+            processes.append(p)
+            p.start()
     for p in processes:
         p.join()
 

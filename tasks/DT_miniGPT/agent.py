@@ -6,7 +6,8 @@ import random
 import time
 import numpy as np
 import torch
-from utils import check_agent_status, RewardCalculater
+from utils import check_agent_status
+from reward import RewardCalculater
 from tqdm import tqdm
 import gc
 

@@ -33,69 +33,47 @@ from datetime import datetime
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/results/')
 
-class TrainerConfig:
-    # optimization parameters
-    max_epochs = 10
-    batch_size = 64
-    learning_rate = 3e-4
-    betas = (0.9, 0.95)
-    grad_norm_clip = 1.0
-    weight_decay = 0.1 # only applied on matmul weights
-    # learning rate decay params: linear warmup followed by cosine decay to 10% of original
-    lr_decay = False
-    warmup_tokens = 375e6 # these two numbers come from the GPT-3 paper, but may not be good defaults elsewhere
-    final_tokens = 260e9 # (at what point we reach 10% of original LR)
-    # checkpoint settings
-    ckpt_path = None
-    num_workers = 0 # for DataLoader
-    cuda = 0
-    log_path = ''
-    features = ''
-    reward_strategy = ''
-
-
-    def __init__(self, **kwargs):
-        for k,v in kwargs.items():
-            setattr(self, k, v)
-
 class Trainer: 
     
-    def __init__(self, model, train_dataset, test_dataset, config):
+    def __init__(self, model, train_dataset, test_dataset, args, log_path):
         self.model = model
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
-        self.config = config
-
+        self.args = args
+        self.log_path = log_path
         # take over whatever gpus are on the system
-        self.device = f'cuda:{config.cuda}' if torch.cuda.is_available() else 'cpu'
-        print(self.device)
+        self.device = f'cuda:{self.args.cuda}' if torch.cuda.is_available() else 'cpu'
         self.model = self.model.to(self.device) #TODO: Add dataparallel in server 
-        self.writer = SummaryWriter(log_dir=config.log_path)
-
+        self.writer = SummaryWriter()
+        features = os.path.join(HC3D_SIMULATOR_PATH, f'img_features/{self.args.features}.tsv')
         tok = BartTokenizer.from_pretrained("facebook/bart-base")
         embedding_model = BartModel.from_pretrained("facebook/bart-base")
-        self.val_envs = {split: (HCBatch(self.config.features, batch_size=self.config.batch_size, splits=[split],
-            tokenizer=tok, text_embedding_model=embedding_model, device=self.device), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
+        self.val_envs = {split: (HCBatch(features,                                        
+                                        batch_size=self.args.batch_size, 
+                                        splits=[split],
+                                        tokenizer=tok, 
+                                        text_embedding_model=embedding_model, 
+                                        device=self.device), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
             
     def save_checkpoint(self):
         # DataParallel wrappers keep raw model object in .module attribute
         raw_model = self.model.module if hasattr(self.model, "module") else self.model
-        logger.info("saving %s", self.config.ckpt_path)
-        # torch.save(raw_model.state_dict(), self.config.ckpt_path)
+        logger.info("saving %s", self.args.ckpt_path)
+        # torch.save(raw_model.state_dict(), self.args.ckpt_path)
         
         
     def train(self):
-        model, config = self.model, self.config
-        raw_model = model.module if hasattr(self.model, "module") else model
-        optimizer = raw_model.configure_optimizers(config)
+        model = self.model
+        raw_model = model.module if hasattr(model, "module") else model
+        optimizer = raw_model.configure_optimizers(self.args)
 
         def run_one_epoch(split):
             is_train = split == 'train'
             model.train(is_train)
             data = self.train_dataset if is_train else self.test_dataset
             loader = DataLoader(data, shuffle=True, pin_memory=True,
-                                batch_size=config.batch_size,
-                                num_workers=config.num_workers)
+                                batch_size=self.args.batch_size,
+                                num_workers=self.args.num_workers)
 
             losses = []
             pbar = tqdm(enumerate(loader), total=len(loader)) if is_train else enumerate(loader)
@@ -117,24 +95,24 @@ class Trainer:
                     # backprop and update the parameters
                     model.zero_grad()
                     loss.backward()
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_norm_clip)
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), self.args.grad_norm_clip)
                     optimizer.step()
 
                     # decay the learning rate based on our progress
-                    if config.lr_decay:
+                    if self.args.lr_decay:
                         self.tokens += (y >= 0).sum() # number of tokens processed this step (i.e. label is not -100)
-                        if self.tokens < config.warmup_tokens:
+                        if self.tokens < self.args.warmup_tokens:
                             # linear warmup
-                            lr_mult = float(self.tokens) / float(max(1, config.warmup_tokens))
+                            lr_mult = float(self.tokens) / float(max(1, self.args.warmup_tokens))
                         else:
                             # cosine learning rate decay
-                            progress = float(self.tokens - config.warmup_tokens) / float(max(1, config.final_tokens - config.warmup_tokens))
+                            progress = float(self.tokens - self.args.warmup_tokens) / float(max(1, self.args.final_tokens - self.args.warmup_tokens))
                             lr_mult = max(0.1, 0.5 * (1.0 + math.cos(math.pi * progress)))
-                        lr = config.learning_rate * lr_mult
+                        lr = self.args.learning_rate * lr_mult
                         for param_group in optimizer.param_groups:
                             param_group['lr'] = lr
                     else:
-                        lr = config.learning_rate
+                        lr = self.args.learning_rate
 
                     # report progress
                     pbar.set_description(f"epoch {epoch+1} iter {it}: train loss {loss.item():.5f}. lr {lr:e}")
@@ -150,7 +128,7 @@ class Trainer:
 
         self.tokens = 0 # counter used for learning rate decay
 
-        for epoch in range(config.max_epochs):
+        for epoch in range(self.args.epochs):
 
             losses = run_one_epoch('train',)
             train_loss = np.mean(losses)
@@ -160,13 +138,13 @@ class Trainer:
             self.writer.add_scalar('Loss/train', train_loss, epoch+1)
             self.writer.add_scalar('Loss/test', test_loss, epoch+1)
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            record_file = open(os.path.join(config.log_path, "train_log.txt"), 'a')
+            record_file = open(os.path.join(self.log_path, "train_log.txt"), 'a')
             record_file.write(f"{current_time} Epoch: {epoch+1} Train Loss: {train_loss} Test Loss: {test_loss}\n")
             record_file.close() 
         
         self.trained_model = model
         self.writer.close()
-        record_file = open(os.path.join(config.log_path, "train_log.txt"), 'a')
+        record_file = open(os.path.join(self.log_path, "train_log.txt"), 'a')
         log_info = self.val(self.trained_model)
         record_file.write(f"{log_info}\n")
         record_file.close() 
@@ -175,12 +153,12 @@ class Trainer:
         """Init a env to evaluate decision transformer"""
         log_info = ''
         for env_name, (env, evaluator) in self.val_envs.items():
-            result_file = os.path.join(RESULT_DIR, f"{env_name}_result.json")
+            result_file = os.path.join(RESULT_DIR, f'{self.args.model_name}_{self.args.feedback_method}_{self.args.rl_reward_strategy}', f"{env_name}_result.json")
             agent = DecisionTransformerAgent(
                 env, result_file, model
             )
-            assert self.config.reward_strategy != ''
-            agent.set_reward(self.config.reward_strategy)
+            assert self.args.reward_strategy != ''
+            agent.set_reward(self.args.reward_strategy)
             agent.test()
             agent.write_results()
             
