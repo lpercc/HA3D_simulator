@@ -92,7 +92,7 @@ def train_teacher(train_env, n_iters, log_every=100, val_envs={}):
     
     return trajs
 
-def train_run(agent='random', gpu_id=0, process_id=0):
+def train_run(agent='random', gpu_id=0, iters=0):
     """
     Trains an agent on the training set and saves the generated trajectories.
 
@@ -114,14 +114,14 @@ def train_run(agent='random', gpu_id=0, process_id=0):
     
     tok = BartTokenizer.from_pretrained('facebook/bart-base')
     embedding_model = BartModel.from_pretrained('facebook/bart-base')
-    
-    train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
-    if agent == 'random':
-        trajs = train_random(train_env, n_iters)
-    elif agent == 'teacher':
-        trajs = train_teacher(train_env, n_iters)
-    with open(os.path.join(trajs_dir, f'train_trajs_{process_id}_{agent}.pkl'), 'wb') as f:
-        pickle.dump(trajs, f)
+    for iter in range(iters):
+        train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+        if agent == 'random':
+            trajs = train_random(train_env, n_iters)
+        elif agent == 'teacher':
+            trajs = train_teacher(train_env, n_iters)
+        with open(os.path.join(trajs_dir, f'train_trajs_{iter}_{agent}.pkl'), 'wb') as f:
+            pickle.dump(trajs, f)
 
 if __name__ == '__main__':
     # Main entry point for the script. Initializes and starts the training process for the specified agents in parallel.
@@ -130,10 +130,9 @@ if __name__ == '__main__':
     agents = {'random':5, 'teacher':1}
     processes = []
     for agent in agents.items():
-        for i, iter_idex in enumerate(range(agent[1])):
-            p = Process(target=train_run, args=(agent[0], 2, i))
-            processes.append(p)
-            p.start()
+        p = Process(target=train_run, args=(agent[0], 0, agent[1]))
+        processes.append(p)
+        p.start()
     for p in processes:
         p.join()
 
