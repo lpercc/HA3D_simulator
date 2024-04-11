@@ -21,22 +21,12 @@ from transformers import BartTokenizer, BartModel
 import sys
 
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
-TRAJS_DIR = os,path.join(HC3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/trajs')
+TRAJS_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/trajs')
 IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet_80_16_mean.tsv'
 
 features = IMAGENET_FEATURES
 batch_size = 100
-max_episode_len = 20
-word_embedding_size = 256
-action_embedding_size = 32
-hidden_size = 512
-bidirectional = False
-dropout_ratio = 0.5
-feedback_method = 'sample' # teacher or sample
-learning_rate = 0.0001
-weight_decay = 0.0005
 n_iters = 100 # the total trajectory number of the training process will be n_iters * batch_size
-model_prefix = 'seq2seq_%s_imagenet' % (feedback_method)
 
 
 
@@ -152,11 +142,13 @@ def run_agent(agent, gpu_id, run):
 
 if __name__ == '__main__':
     # Main entry point for the script. Initializes and starts the training process for the specified agents in parallel.
+    if not os.path.exists(TRAJS_DIR):
+        os.makedirs(TRAJS_DIR)
     agents = ['random', 'teacher']
     runs = [5, 1]
     processes = []
     for i, (agent, run) in enumerate(zip(agents, runs)):
-        p = Process(target=run_agent, args=(agent, i+1, run))
+        p = Process(target=run_agent, args=(agent, i, run))
         processes.append(p)
         p.start()
     

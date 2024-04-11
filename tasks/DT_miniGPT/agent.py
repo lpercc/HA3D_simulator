@@ -82,6 +82,7 @@ class RandomAgent(BaseAgent):
         rwdclters = [RewardCalculater() for _ in range(len(obs))]
 
         ended = [False] * len(obs) # Is this enough for us to get a random walk agents?
+        turn_right = [random.choice([True, False]) for _ in range(len(obs))]
         for _, t in enumerate(range(max_steps)): # 30 Steps 之后所有 Agent 的状态
             actions = []
             last_distances = []
@@ -96,9 +97,13 @@ class RandomAgent(BaseAgent):
                 elif len(ob['navigableLocations']) > 1:
                     actions.append((1, 0, 0)) # go forward
                     self.steps[i] += 1
+                    turn_right[i] = random.choice([True, False])
                 else:
-                    actions.append((0, 1, 0))
-                # turn right until we can go forward
+                    if turn_right[i]:
+                        actions.append((0, 1, 0))
+                    else:
+                        actions.append((0, -1, 0))
+                # turn right/left until we can go forward
 
                 last_distances.append(ob['distance'])
             
@@ -144,6 +149,100 @@ class RandomAgent(BaseAgent):
 
         return traj
     
+class RandomAgentWithAvoidance(BaseAgent):
+    ''' An agent that picks a random goal viewpoint then tries to go straight for
+        five viewpoint steps and then stops. '''
+        
+        # five viewpoint steps and then stops. Total 6 viewpoints. 
+        # choose five because the maximum number of steps is 5 to get to the goal.
+    def rollout(self, max_steps=30):
+        obs = self.env.reset()
+        traj = [{
+            'instr_id': ob['instr_id'],
+            'path': [],
+            'teacher_actions': [],
+            'student_actions': [],
+            'unique_path': [ob['viewpoint']],
+            'state_features': [],
+            'final_reward': [], 
+            'sparse_final_reward': [],
+            'target_reward': [],
+            'path_reward': [],
+            'missing_reward': [],
+            'human_reward': [],
+            'crashed': [],
+        } for ob in obs]
+        # self.steps = random.sample(range(-11,1), len(obs))
+        self.steps = np.random.randint(-11, 1, size=len(obs))# ramdom from -11 - 0 (12 numbers) to choose the direction, because we have 12 discrete views
+        rwdclters = [RewardCalculater() for _ in range(len(obs))]
+
+        ended = [False] * len(obs) # Is this enough for us to get a random walk agents?
+        turn_right = [random.choice([True, False]) for _ in range(len(obs))]
+        for _, t in enumerate(range(max_steps)): # 30 Steps 之后所有 Agent 的状态
+            actions = []
+            last_distances = []
+            for i,ob in enumerate(obs):
+                if self.steps[i] >= 5: # End of navigation larger than 5 steps (including the first one) 
+                    actions.append((0, 0, 0))# do nothing, i.e. end
+                    ended[i] = True
+                    self.steps[i] += 1
+                elif self.steps[i] < 0: # 等价于随机起始一个方向, 直到 steps[i] == 0
+                    actions.append((0, 1, 0)) # turn right (direction choosing)
+                    self.steps[i] += 1
+                elif len(ob['navigableLocations']) > 1:
+                    actions.append((1, 0, 0)) # go forward
+                    self.steps[i] += 1
+                    turn_right[i] = random.choice([True, False])
+                else:
+                    if turn_right[i]:
+                        actions.append((0, 1, 0))
+                    else:
+                        actions.append((0, -1, 0))
+                # turn right/left until we can go forward
+
+                last_distances.append(ob['distance'])
+            
+                # 对于 traj 来说, 真正有用的 Actions 在 steps == 0 之后的 actions, 因为在这之前都是在调整方向
+                # only need to record once after the end of navigation
+                
+                if self.steps[i] > 6: 
+                    record_end_flag = True
+                else:
+                    record_end_flag = False
+
+                if self.steps[i] >= 0 and not record_end_flag:
+                    traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation']))
+                    traj[i]['teacher_actions'].append(get_indexed_teacher_action(ob['teacher']))
+                    traj[i]['student_actions'].append(get_indexed_teacher_action(actions[i]))
+                    # TODO: Teacher action rewards
+                    traj[i]['state_features'].append(ob['state_features'])
+                    traj[i]['crashed'].append(ob['isCrashed'])
+                    
+                    delta_distance = ob['distance'] - last_distances[i] if t > 0 else 0
+                    rwdclter = rwdclters[i]
+                    rwdclter._set_ob(ob, actions[i], delta_distance)
+                    reward = rwdclter.calculate()
+                    sparse_reward = rwdclter.calculate(reward_type='sparse')
+                    traj[i]['final_reward'].append(reward[0])
+                    traj[i]['target_reward'].append(reward[1])
+                    traj[i]['path_reward'].append(reward[2])
+                    traj[i]['missing_reward'].append(reward[3])
+                    traj[i]['human_reward'].append(reward[4])
+                    
+                    traj[i]['sparse_final_reward'].append(sparse_reward[0])
+                    
+                    if len(traj[i]['unique_path']) == 0 or ob['viewpoint'] != traj[i]['unique_path'][-1]:
+                        traj[i]['unique_path'].append(ob['viewpoint'])
+    
+            obs = self.env.step(actions)
+        # Check Agent 
+        #check_agent_status(traj, max_steps, ended)
+                        
+        # calculate all reward here , for quick test, new we use just to find the shortest path 
+        # for each step , we calculate the distances between the current viewpoint and the goal. 
+        
+
+        return traj
 
 class TeacherAgent(BaseAgent):
     ''' An agent that follows the teacher's actions exactly. '''
