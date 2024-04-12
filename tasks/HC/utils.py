@@ -369,8 +369,10 @@ class RewardCalculater():
                 'reward_strategy_5': float
             } 
         """
-
-        self.reward_strategy_1(consider_human=True, reward_type=reward_type)
+        # Experiment Group 1
+        self.reward_strategy_1(reward_type=reward_type)
+        self.reward_strategy_2(reward_type=reward_type)
+        self.reward_strategy_3(reward_type=reward_type)
 
         
         return [self.final_reward, self.target_reward, self.path_reward, self.miss_penalty, self.human_reward]
@@ -390,7 +392,7 @@ class RewardCalculater():
             final_reward = target_reward + path_reward + miss_penalty + human_reward
         return final_reward
     
-    def reward_strategy_1(self, consider_human, reward_type):
+    def reward_strategy_1(self, reward_type):
         """
         Description:
         The function calculates rewards for the agent based on its current observation, the action it took,
@@ -418,6 +420,7 @@ class RewardCalculater():
             tuple: A tuple containing the target reward, path reward, miss penalty, and human reward.
         """
         # Initialize rewards and penalties
+        # TODO: We only use Target for strategy one
         target_reward = 0.0
         path_reward = 0.0
         miss_penalty = 0.0
@@ -429,30 +432,63 @@ class RewardCalculater():
         # Check if the agent has stopped
         if self.action == (0, 0, 0):
             if dist < 3.0:
-                target_reward = 3.0
+                target_reward = 5.0
             else:
-                target_reward = -3.0
-        else:
-            # Calculate path fidelity reward
-            path_flag = - self.delta_distance
-            if path_flag > 0.0:
-                path_reward = 0.0
-            elif path_flag < 0.0:
-                path_reward = -1.0
-            else:
-                path_reward = -0.1
-            
-            # Calculate miss penalty
-            last_dist = dist - self.delta_distance
-            if (last_dist < 1.0) and (- self.delta_distance > 0.0):
-                miss_penalty = (last_dist - 1.0) * 2.0
-            # Calculate human interaction reward if not in test local environment
-        if consider_human:
-            # Check if the agent has crashed
-            crashed = self.ob['isCrashed']
-            if crashed:
-                human_reward = -2.0  # Negative reward for crashing
-            else:
-                human_reward = 0.0
+                target_reward = -5.0
+
         final_reward = self.get_final_reward(target_reward, path_reward, miss_penalty, human_reward, reward_type)
         self.append_rewards(final_reward, target_reward, path_reward, miss_penalty, human_reward, strategy_name='reward_strategy_1')    
+        
+        # Get the current distance from the observation
+        dist = self.ob['distance']
+
+        # Check if the agent has stopped
+        if self.action == (0, 0, 0):
+            if dist < 3.0:
+                target_reward = 0
+            else:
+                target_reward = 0
+        
+        # Human Reward 
+        crashed = self.ob['isCrashed']
+        if crashed: 
+            human_reward = -2.0 
+
+        final_reward = self.get_final_reward(target_reward, path_reward, miss_penalty, human_reward, reward_type)
+        self.append_rewards(final_reward, target_reward, path_reward, miss_penalty, human_reward, strategy_name='reward_strategy_3')
+        
+        
+        
+    def reward_strategy_2(self, reward_type):
+    # Initialize rewards and penalties
+        # TODO: We only use Target for strategy one
+        target_reward = 0.0
+        path_reward = 0.0
+        miss_penalty = 0.0
+        human_reward = 0.0  # Human interaction reward is calculated in the calculate method
+
+        # Get the current distance from the observation
+        dist = self.ob['distance']
+
+        # Check if the agent has stopped
+        if self.action == (0, 0, 0):
+            if dist < 3.0:
+                target_reward = 5.0
+            else:
+                target_reward = -5.0
+        
+        # Human Reward 
+        crashed = self.ob['isCrashed']
+        if crashed: 
+            human_reward = -2.0 
+
+        final_reward = self.get_final_reward(target_reward, path_reward, miss_penalty, human_reward, reward_type)
+        self.append_rewards(final_reward, target_reward, path_reward, miss_penalty, human_reward, strategy_name='reward_strategy_2')
+        
+    def reward_strategy_3(self, reward_type):
+    # Initialize rewards and penalties
+        # TODO: We only use Target for strategy one
+        target_reward = 0.0
+        path_reward = 0.0
+        miss_penalty = 0.0
+        human_reward = 0.0  # Human interaction reward is calculated in the calculate method

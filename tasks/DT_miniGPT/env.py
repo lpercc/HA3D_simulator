@@ -13,7 +13,7 @@ import random
 import networkx as nx
 from scripts.video_feature_loader import TimmExtractor 
 import torch
-from utils import load_datasets, load_nav_graphs, relHumanAngle, remove_close_nodes_and_find_path, horizontal_and_elevation_angles
+from utils import load_datasets, load_nav_graphs, relHumanAngle, remove_local_nodes_and_find_path, horizontal_and_elevation_angles
 
 from tqdm import tqdm 
 import pickle
@@ -235,7 +235,7 @@ class HCBatch():
         scanGraph = self.graphs[state.scanId]
         humanLocations = self.env.getHumanLocations(state.scanId)
 
-        path = remove_close_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
+        path = remove_local_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId, 4.5)
         nextViewpointId = path[1]
         # Can we see the next viewpoint?
         for i,loc in enumerate(state.navigableLocations):
@@ -261,7 +261,7 @@ class HCBatch():
         scanGraph = self.graphs[state.scanId]
         humanLocations = self.env.getHumanLocations(state.scanId)
 
-        path = remove_close_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
+        path = remove_local_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId, 4.5)
         nextViewpointId = path[1]
         # Can we see the next viewpoint?
         for i,loc in enumerate(state.navigableLocations):
@@ -301,7 +301,7 @@ class HCBatch():
         scanGraph = self.graphs[state.scanId]
         humanLocations = self.env.getHumanLocations(state.scanId)
 
-        path = remove_close_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
+        path = remove_local_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId, 4.5)
         assert path[0] == state.location.viewpointId
         nextViewpointId = path[1]
         return nextViewpointId

@@ -4,8 +4,9 @@ class Param:
     def __init__(self):
         self.parser = argparse.ArgumentParser(description="")
         self.parser.add_argument('--model_name', type=str, default='miniGPT')
-        self.parser.add_argument('--features', type=str, required=True)
+        self.parser.add_argument('--features', type=str, default='img_features/ResNet-152-imagenet_80_16_mean.tsv')
         self.parser.add_argument('--batch_size', type=int, default=1)
+        self.parser.add_argument('--max_episode_len', type=int, default=30)
         self.parser.add_argument('--learning_rate', type=int, default=6e-4)
         self.parser.add_argument('--betas', type=tuple, default=(0.9, 0.95))
         self.parser.add_argument('--grad_norm_clip', type=float, default=1.0)
@@ -26,7 +27,7 @@ class Param:
         self.parser.add_argument('--game', type=str, default='Breakout')
         self.parser.add_argument('--trajectories_per_buffer', type=int, default=10, help='Number of trajectories to sample from each of the buffers.')
         self.parser.add_argument('--data_dir_prefix', type=str, default='./dqn_replay/')
-        self.parser.add_argument('--train_samples', type=int, default=48000)
+        self.parser.add_argument('--train_samples', type=int, default=60000)
         
         self.args = self.parser.parse_args()
         self.args.final_tokens = 2 * self.args.train_samples * self.args.context_length * 3

@@ -34,6 +34,7 @@ from param import args
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 MODEL_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/models")
 TRAJS_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/trajs")
+NAME = 'right_left_mix_teacher'
 
 print(args); print(HC3D_SIMULATOR_PATH)
 class StateActionReturnDataset(Dataset):
@@ -88,20 +89,26 @@ class StateActionReturnDataset(Dataset):
     
 def load_data(data_dir, trajs_type): 
     # TODO: Train as incremental learning
-    trajs = []
-    trajs_file = []
+    train_trajs = []
+    val_seen_trajs = []
+    val_unseen_trajs = []
     trajs_type = trajs_type.split('_')
-    for i, data_file in enumerate(os.listdir(data_dir)):
-        for traj_type in trajs_type:
-            if traj_type in data_file:
-                trajs_file.append(data_file)
-    for traj_file in trajs_file:
-        print(traj_file)
-        with open(os.path.join(data_dir, traj_file), 'rb') as f: #DONE: change to support pkl 
-            traj = pickle.load(f) # 
-            trajs.extend(traj)
-    print(f"{trajs_type} trajs data len {len(trajs)}")
-    return trajs
+    for traj_type in trajs_type:
+        #NOTE - Here load all trajs including teacher and random
+        with open(os.path.join(data_dir, f"train_trajs_{traj_type}_{NAME}.pkl"), 'rb') as f: #DONE: change to support pkl 
+            train_traj = pickle.load(f) # 
+            train_trajs.extend(train_traj)
+
+        with open(os.path.join(data_dir, f"val_seen_trajs_{traj_type}_{NAME}.pkl"), 'rb') as f: #DONE: change to support pkl 
+            val_seen_traj = pickle.load(f) # 
+            val_seen_trajs.extend(val_seen_traj)
+        
+        with open(os.path.join(data_dir, f"val_unseen_trajs_{traj_type}_{NAME}.pkl"), 'rb') as f: #DONE: change to support pkl 
+            val_unseen_traj = pickle.load(f) # 
+            val_unseen_trajs.extend(val_unseen_traj)
+    
+    print(f"{trajs_type} trajs data len train={len(train_trajs)} val_seen={len(val_seen_trajs)} val_unseen={len(val_unseen_trajs)}")
+    return train_trajs, val_seen_trajs, val_unseen_trajs
 
 def create_dataset(trajs,reward_strategy):
     # This is a function to read all trajs into one big dataset. 
@@ -133,7 +140,7 @@ def create_dataset(trajs,reward_strategy):
     start_index = 0
     for done_idx in done_idxs: 
         if done_idx == -1: 
-            rtgs[start_index: start_index + 30] = -100 #TODO: if not finish the episode, set the reward to -100 
+            rtgs[start_index: start_index + args.max_episode_len] = -100 #TODO: if not finish the episode, set the reward to -100 
         else: 
             rtgs[start_index: start_index + done_idx + 1] = np.cumsum(rewards[start_index: start_index + done_idx + 1][::-1])[::-1]
         start_index += done_idx + 1
@@ -144,13 +151,14 @@ def create_dataset(trajs,reward_strategy):
     
     rtgs = np.array(rtgs)
     print('max rtg is %d' % max(rtgs))
+    print('min rtg is %d' % min(rtgs))
     
     # -- create timesteps dataset 
     start_index = 0 
     time_steps = np.zeros(len(rewards), dtype=int)
     for done_idx in done_idxs: 
         if done_idx == -1: 
-            time_steps[start_index: start_index + 30] = np.arange(0, 30)
+            time_steps[start_index: start_index + args.max_episode_len] = np.arange(0, args.max_episode_len)
         else: 
             insert = np.arange(0, done_idx + 1)
             assert start_index + done_idx + 1 - start_index == len(insert), "Error: length of timesteps is not equal to done_idx"
@@ -178,30 +186,28 @@ if __name__ == '__main__':
     record_file.write("model path:"+str(model_save_path)+'\n'+str(args) + '\n\n')
     record_file.close()
     seed_everything(args.seed)
-    trajs = load_data(TRAJS_DIR, args.feedback_method)
-    states, actions, targets, rtgs,  done_idxs, time_steps = create_dataset(trajs, args.reward_strategy)
-    dataset = StateActionReturnDataset(states, 5 * 3, actions, targets, done_idxs, rtgs, time_steps)
+    train_trajs, val_seen_trajs, val_unseen_trajs = load_data(TRAJS_DIR, args.feedback_method)
+    
+    train_states, train_actions, train_targets, train_rtgs,  train_done_idxs, train_time_steps = create_dataset(train_trajs, args.reward_strategy)
+    train_dataset = StateActionReturnDataset(train_states, 5 * 3, train_actions, train_targets, train_done_idxs, train_rtgs, train_time_steps)
+    
+    val_seen_states, val_seen_actions, val_seen_targets, val_seen_rtgs,  val_seen_done_idxs, val_seen_time_steps = create_dataset(val_seen_trajs, args.reward_strategy)
+    val_seen_dataset = StateActionReturnDataset(val_seen_states, 5 * 3, val_seen_actions, val_seen_targets, val_seen_done_idxs, val_seen_rtgs, val_seen_time_steps)
+    
+    val_unseen_states, val_unseen_actions, val_unseen_targets, val_unseen_rtgs,  val_unseen_done_idxs, val_unseen_time_steps = create_dataset(val_unseen_trajs, args.reward_strategy)
+    val_unseen_dataset = StateActionReturnDataset(val_unseen_states, 5 * 3, val_unseen_actions, val_unseen_targets, val_unseen_done_idxs, val_unseen_rtgs, val_unseen_time_steps)
     # test the dataset 
     try: 
-        try_data = dataset[0]
+        try_data = train_states[0]
     except: 
         raise NotImplementedError()
-    
-    # Now train the model
-    indices = random.sample(range(len(dataset)), args.train_samples)
-    sub_train = torch.utils.data.Subset(dataset, indices)
-    assert len(sub_train) == args.train_samples
-    remaining_indices = list(set(range(len(dataset))) - set(indices))
-    sub_test = torch.utils.data.Subset(dataset, remaining_indices)
-    assert len(sub_test) == len(dataset) - args.train_samples
-    
 
-    mconf = GPT1Config(dataset.vocab_size, dataset.block_size,
-                     model_type=args.model_type, max_timestep=max(time_steps))
+    mconf = GPT1Config(train_dataset.vocab_size, train_dataset.block_size,
+                     model_type=args.model_type, max_timestep=max(train_time_steps))
     model = GPT(mconf)
 
     # initialize a trainer instance and kick off training
-    trainer = Trainer(model, sub_train, sub_test, args, log_path)
+    trainer = Trainer(model, train_dataset, val_seen_dataset, val_unseen_dataset, args, log_path)
 
     trainer.train()
     

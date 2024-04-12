@@ -185,7 +185,8 @@ def build_vocab(splits=['train'], min_count=5, start_vocab=base_vocab):
             break
     return vocab
 
-def remove_close_nodes_and_find_path(G, humanLocations, currentViewpointId, goalViewpointId):
+# TODO: 整体最优策略
+def remove_global_nodes_and_find_path(G, humanLocations, currentViewpointId, goalViewpointId):
     # deleteAll = False 把最近的人从图中删除，deleteAll = True 把所有人从图中删除
     def euclidean_distance(x, y):
         return np.sqrt(np.sum((np.array(x) - np.array(y)) ** 2))
@@ -195,6 +196,50 @@ def remove_close_nodes_and_find_path(G, humanLocations, currentViewpointId, goal
     G_copy = G.copy()
     # 遍历每个人的位置
     for humanLocation in humanLocations:
+        # 遍历图中的每个节点
+        for node, data in G_copy.nodes(data=True):
+            if node == currentViewpointId or node == goalViewpointId or node in nodes_to_remove:
+                # 如果节点是当前位置或目标位置，跳过不删除
+                continue
+            node_position = data['position']
+            # 计算节点与人的欧几里得距离
+            if euclidean_distance(humanLocation, node_position[:3]) < 1:
+                # 如果距离小于1，标记该节点以便稍后从图中移除
+                nodes_to_remove.append(node)
+    # 在迭代完成后移除标记的节点
+    for node in nodes_to_remove:
+        G_copy.remove_node(node)
+
+    # 尝试找到从当前位置到目标位置的最短路径
+    try:
+        path = nx.shortest_path(G_copy, source=currentViewpointId, target=goalViewpointId)
+    except nx.NetworkXNoPath:
+        # 如果没有找到路径，返回当前位置
+        path = [currentViewpointId, currentViewpointId]
+    return path
+
+# TODO: 局部最优策略
+def remove_local_nodes_and_find_path(G, humanLocations, currentViewpointId, goalViewpointId, radius):
+    # deleteAll = False 把最近的人从图中删除，deleteAll = True 把所有人从图中删除
+    def euclidean_distance(x, y):
+        return np.sqrt(np.sum((np.array(x) - np.array(y)) ** 2))
+    # 创建要删除的节点列表
+    nodes_to_remove = []
+    # 创建图的副本以避免修改原始图
+    G_copy = G.copy()
+    
+    humanInfo = []
+    agentLocation = G_copy.nodes[currentViewpointId]['position']
+    for humanLocation in humanLocations:
+        humanDistance  = euclidean_distance(humanLocation, agentLocation[:3])
+        # 只考虑agent与人之间的距离小于4.5的
+        if humanDistance < radius:
+            humanInfo.append((humanDistance, humanLocation))
+    #humanInfo.sort(key=lambda x:x[0]) 
+    
+    
+    # 遍历每个人的位置
+    for (humanDistance, humanLocation) in humanInfo:
         # 遍历图中的每个节点
         for node, data in G_copy.nodes(data=True):
             if node == currentViewpointId or node == goalViewpointId or node in nodes_to_remove:

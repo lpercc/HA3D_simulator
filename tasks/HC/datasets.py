@@ -14,6 +14,7 @@ import os
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from dataclasses import dataclass
 
 from utils import write_vocab,build_vocab
 from env import HCBatch
@@ -27,35 +28,22 @@ module_path = '/home/dylan/projects/motion_hcl/Matterport3DSimulator/build'
 if module_path not in sys.path:
     sys.path.append(module_path)
     
-    
-
-TRAIN_VOCAB = 'tasks/HC/data/train_vocab.txt'
-TRAINVAL_VOCAB = 'tasks/HC/data/trainval_vocab.txt'
-RESULT_DIR = 'tasks/HC/results/'
-SNAPSHOT_DIR = 'tasks/HC/snapshots/'
-PLOT_DIR = 'tasks/HC/plots/'
-TRAJS_DIR = 'tasks/HC/trajs'
-
-IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet_80_16_mean.tsv'
-MAX_INPUT_LENGTH = 80
-
-features = IMAGENET_FEATURES
-batch_size = 100
-max_episode_len = 20
-word_embedding_size = 256
-action_embedding_size = 32
-hidden_size = 512
-bidirectional = False
-dropout_ratio = 0.5
-feedback_method = 'sample' # teacher or sample
-learning_rate = 0.0001
-weight_decay = 0.0005
-n_iters = 100 # the total trajectory number of the training process will be n_iters * batch_size
-model_prefix = 'seq2seq_%s_imagenet' % (feedback_method)
+@dataclass
+class Config:
+    TRAIN_VOCAB: str = 'tasks/HC/data/train_vocab.txt'
+    TRAINVAL_VOCAB: str = 'tasks/HC/data/trainval_vocab.txt'
+    RESULT_DIR: str = 'tasks/HC/results/'
+    SNAPSHOT_DIR: str = 'tasks/HC/snapshots/'
+    PLOT_DIR: str = 'tasks/HC/plots/'
+    TRAJS_DIR: str = 'tasks/HC/trajs'
+    IMAGENET_FEATURES: str = 'img_features/ResNet-152-imagenet_80_16_mean.tsv'
+    features: str = IMAGENET_FEATURES
+    batch_size: int = 100
+    n_iters: int = 100 # the total trajectory number of the training process will be n_iters * batch_size
+    dataset_name = 'right_left_random_mix_teacher'
 
 
-
-def setup():
+def setup(dataset_cfg):
     """
     Prepares the training environment by setting a fixed random seed for reproducibility and ensuring necessary vocabulary files exist.
     
@@ -73,10 +61,10 @@ def setup():
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
     # Check for vocabs
-    if not os.path.exists(TRAIN_VOCAB):
-        write_vocab(build_vocab(splits=['train']), TRAIN_VOCAB)
-    if not os.path.exists(TRAINVAL_VOCAB):
-        write_vocab(build_vocab(splits=['train','val_seen','val_unseen']), TRAINVAL_VOCAB)
+    if not os.path.exists(dataset_cfg.TRAIN_VOCAB):
+        write_vocab(build_vocab(splits=['train']), dataset_cfg.TRAIN_VOCAB)
+    if not os.path.exists(dataset_cfg.TRAINVAL_VOCAB):
+        write_vocab(build_vocab(splits=['train','val_seen','val_unseen']), dataset_cfg.TRAINVAL_VOCAB)
 
 
 def train_random(train_env, n_iters, log_every=100, val_envs={}):
@@ -137,7 +125,7 @@ def train_teacher(train_env, n_iters, log_every=100, val_envs={}):
     
     return trajs
 
-def train_run(iter, agent='random', gpu_id=0):
+def train_run(iter, dataset_cfg, agent='random', gpu_id=0):
     """
     Trains an agent on the training set and saves the generated trajectories.
 
@@ -151,25 +139,25 @@ def train_run(iter, agent='random', gpu_id=0):
     Returns:
     None
     """
-    trajs_dir = os.path.join(TRAJS_DIR, agent)
+    trajs_dir = os.path.join(dataset_cfg.TRAJS_DIR, agent)
     if not os.path.exists(trajs_dir):
         os.makedirs(trajs_dir)
-    setup()
+    setup(dataset_cfg)
     device = f'cuda:{gpu_id}' if torch.cuda.is_available() else 'cpu'
     
     tok = BartTokenizer.from_pretrained('facebook/bart-base')
     embedding_model = BartModel.from_pretrained('facebook/bart-base')
     
     for i in range(iter):
-        train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+        train_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
         if agent == 'random':
-            trajs = train_random(train_env, n_iters)
+            trajs = train_random(train_env, dataset_cfg.n_iters)
         elif agent == 'teacher':
-            trajs = train_teacher(train_env, n_iters)
-        with open(os.path.join(trajs_dir, f'train_trajs_{i}_{agent}.pkl'), 'wb') as f:
+            trajs = train_teacher(train_env, dataset_cfg.n_iters)
+        with open(os.path.join(trajs_dir, f'train_trajs_{i}_{agent}_{dataset_cfg.dataset_name}.pkl'), 'wb') as f:
             pickle.dump(trajs, f)
 
-def run_agent(agent, gpu_id, run):
+def run_agent(dataset_cfg, agent, gpu_id, run):
     """
     Initiates the training process for a specified agent on a specified GPU.
 
@@ -182,15 +170,16 @@ def run_agent(agent, gpu_id, run):
     Returns:
     None
     """
-    train_run(run, agent=agent, gpu_id=gpu_id)
+    train_run(run, dataset_cfg, agent=agent, gpu_id=gpu_id)
 
 if __name__ == '__main__':
     # Main entry point for the script. Initializes and starts the training process for the specified agents in parallel.
+    dataset_cfg = Config()
     agents = ['random', 'teacher']
     runs = [5, 1]
     processes = []
     for i, (agent, run) in enumerate(zip(agents, runs)):
-        p = Process(target=run_agent, args=(agent, i+1, run))
+        p = Process(target=run_agent, args=(dataset_cfg, agent, i+1, run))
         processes.append(p)
         p.start()
     
