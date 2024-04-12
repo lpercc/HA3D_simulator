@@ -49,8 +49,8 @@ class GPT1Config(GPTConfig):
     n_layer = 12
     n_head = 12
     n_embd = 768
-    max_length = 5
-    whole_step = 30
+    max_length = 5 #NOTE - This is context length
+    whole_step = 20 #TODO - Make its related to the max_eposide_length
 
 class CausalSelfAttention(nn.Module):
     """

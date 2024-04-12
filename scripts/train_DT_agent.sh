@@ -1,6 +1,6 @@
 export HC3D_SIMULATOR_PATH=$(pwd)
 
-flag="  --model_name miniGPT 
+flag="--model_name miniGPT 
         --features ResNet-152-imagenet_80_16_mean
         --batch_size 256
         --feedback_method teacher_random

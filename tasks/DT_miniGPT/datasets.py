@@ -19,22 +19,29 @@ import pickle
 from transformers import BartTokenizer, BartModel
 import sys
 
-HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
-TRAJS_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/trajs')
-IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet_80_16_mean.tsv'
+from dataclasses import dataclass
 
-features = IMAGENET_FEATURES
-batch_size = 100
-n_iters = 100 # the total trajectory number of the training process will be n_iters * batch_size
+@dataclass
+class Config:
+    # Dataset Path and Name
+    HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
+    TRAJS_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/trajs')
+    IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet_80_16_mean.tsv'
+    features = IMAGENET_FEATURES
+    batch_size = 100
+    name = 'right_left_mix_teacher' #LINK - should work wit param.py
+    
+    # Dataset Size 
+    max_eposide_length = 30
 
 
 
 def setup():
-    torch.manual_seed(1)
+    torch.manual_seed(1)    
     torch.cuda.manual_seed(1)
 
 
-def train_random(train_env, n_iters, log_every=100, val_envs={}):
+def train_random(dataset_cfg, train_env, n_iters, log_every=100, val_envs={}):
     """
     Trains a random agent on a given environment for a specified number of iterations.
     
@@ -51,19 +58,19 @@ def train_random(train_env, n_iters, log_every=100, val_envs={}):
     """
     
     agent = RandomAgent(train_env, "")
-    
+    max_steps = dataset_cfg.max_eposide_length
     print('Random Agent Begins')
     trajs = []
 
     for _ in tqdm(range(0, n_iters)):
         
         # traj is a list of dictionaries, each of which is a episode, we have a batch of episodes
-        traj = agent.rollout()
+        traj = agent.rollout(max_steps)
         trajs.extend(traj)
     
     return trajs 
 
-def train_teacher(train_env, n_iters, log_every=100, val_envs={}):
+def train_teacher(dataset_cfg, train_env, n_iters, log_every=100, val_envs={}):
     """
     Trains an agent using the teacher forcing method on a given training environment for a specified number of iterations.
     
@@ -80,6 +87,7 @@ def train_teacher(train_env, n_iters, log_every=100, val_envs={}):
     """
     
     agent = TeacherAgent(train_env, "")
+    max_steps = dataset_cfg.max_eposide_length
     
     print('Teacher Agent Begins')
     trajs = []
@@ -87,12 +95,12 @@ def train_teacher(train_env, n_iters, log_every=100, val_envs={}):
     for _ in tqdm(range(0, n_iters)):
         
         # traj is a list of dictionaries, each of which is a episode, we have a batch of episodes
-        traj = agent.rollout()
+        traj = agent.rollout(max_steps)
         trajs.extend(traj)
     
     return trajs
 
-def train_run(agent='random', gpu_id=0, process_id=0):
+def train_run(dataset_cfg, agent='random', gpu_id=0, n_iters=0):
     """
     Trains an agent on the training set and saves the generated trajectories.
 
@@ -106,7 +114,7 @@ def train_run(agent='random', gpu_id=0, process_id=0):
     Returns:
     None
     """
-    trajs_dir = os.path.join(TRAJS_DIR)
+    trajs_dir = os.path.join(dataset_cfg.TRAJS_DIR)
     if not os.path.exists(trajs_dir):
         os.makedirs(trajs_dir)
     setup()
@@ -114,26 +122,81 @@ def train_run(agent='random', gpu_id=0, process_id=0):
     
     tok = BartTokenizer.from_pretrained('facebook/bart-base')
     embedding_model = BartModel.from_pretrained('facebook/bart-base')
-    
-    train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+    train_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
     if agent == 'random':
-        trajs = train_random(train_env, n_iters)
+        trajs = train_random(dataset_cfg, train_env, n_iters)
     elif agent == 'teacher':
-        trajs = train_teacher(train_env, n_iters)
-    with open(os.path.join(trajs_dir, f'train_trajs_{process_id}_{agent}.pkl'), 'wb') as f:
+        trajs = train_teacher(dataset_cfg, train_env, n_iters)
+    with open(os.path.join(trajs_dir, f'train_trajs_{agent}_{dataset_cfg.name}.pkl'), 'wb') as f:
         pickle.dump(trajs, f)
 
+    val_seen_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['val_seen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+    if agent == 'random':
+        trajs = train_random(dataset_cfg, val_seen_env, int(n_iters/14))
+    elif agent == 'teacher':
+        trajs = train_teacher(dataset_cfg, val_seen_env, int(n_iters/14))
+    with open(os.path.join(trajs_dir, f'val_seen_trajs_{agent}_{dataset_cfg.name}.pkl'), 'wb') as f:
+        pickle.dump(trajs, f)
+
+    val_unseen_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['val_unseen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+    if agent == 'random':
+        trajs = train_random(dataset_cfg, val_unseen_env, int(n_iters/7))
+    elif agent == 'teacher':
+        trajs = train_teacher(dataset_cfg, val_unseen_env, int(n_iters/7))
+    with open(os.path.join(trajs_dir, f'val_unseen_trajs_{agent}_{dataset_cfg.name}.pkl'), 'wb') as f:
+        pickle.dump(trajs, f)
+        
+def train_run_quick_test(dataset_cfg, agent='random', gpu_id=0, n_iters=0):
+    """
+    Trains an agent on the training set and saves the generated trajectories.
+
+    This function sets up the training environment, initializes the tokenizer and embedding model, and iterates through the specified number of training iterations. For each iteration, it creates a new training environment, trains the agent (either a random or a teacher agent), and saves the generated trajectories to disk.
+
+    Parameters:
+    - iters (int): The number of training iterations to perform.
+    - agent (str): The type of agent to train. Can be 'random' or 'teacher'. Default is 'random'.
+    - gpu_id (int): The ID of the GPU to use for training. Default is 0.
+
+    Returns:
+    None
+    """
+    print("debug test")
+    trajs_dir = os.path.join(dataset_cfg.TRAJS_DIR)
+    if not os.path.exists(trajs_dir):
+        os.makedirs(trajs_dir)
+    setup()
+    device = f'cuda:{gpu_id}' if torch.cuda.is_available() else 'cpu'
+    
+    tok = BartTokenizer.from_pretrained('facebook/bart-base')
+    embedding_model = BartModel.from_pretrained('facebook/bart-base')
+
+    val_seen_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['val_seen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+    if agent == 'random':
+        trajs = train_random(dataset_cfg, val_seen_env, int(n_iters/14))
+    elif agent == 'teacher':
+        trajs = train_teacher(dataset_cfg, val_seen_env, int(n_iters/14))
+    """         
+    with open(os.path.join(trajs_dir, f'val_seen_trajs_{agent}_{dataset_cfg.name}.pkl'), 'wb') as f:
+        pickle.dump(trajs, f) 
+    """
+
+    
+
 if __name__ == '__main__':
+    dataset_cfg = Config()
     # Main entry point for the script. Initializes and starts the training process for the specified agents in parallel.
-    if not os.path.exists(TRAJS_DIR):
-        os.makedirs(TRAJS_DIR)
-    agents = {'random':5, 'teacher':1}
+
+    if not os.path.exists(dataset_cfg.TRAJS_DIR):
+        os.makedirs(dataset_cfg.TRAJS_DIR)
+    agents = {'random':450, 'teacher':150}
     processes = []
-    for agent in agents.items():
-        for i, iter_idex in enumerate(range(agent[1])):
-            p = Process(target=train_run, args=(agent[0], 2, i))
-            processes.append(p)
-            p.start()
+    for i, agent in enumerate(agents.items()):
+        p = Process(target=train_run, args=(dataset_cfg, agent[0], i%3, agent[1]))
+        processes.append(p)
+        p.start()
     for p in processes:
         p.join()
-
+ 
+    # NOTE: for now we only process teacher agent with single processor for debugging
+    #train_run_quick_test(dataset_cfg, agent='teacher', gpu_id=1, n_iters=14)
+        

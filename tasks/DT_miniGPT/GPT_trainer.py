@@ -35,10 +35,11 @@ RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/results/')
 
 class Trainer: 
     
-    def __init__(self, model, train_dataset, test_dataset, args, log_path):
+    def __init__(self, model, train_dataset, val_seen_dataset, val_unseen_dataset, args, log_path):
         self.model = model
         self.train_dataset = train_dataset
-        self.test_dataset = test_dataset
+        self.val_seen_dataset = val_seen_dataset
+        self.val_unseen_dataset = val_unseen_dataset
         self.args = args
         self.log_path = log_path
         # take over whatever gpus are on the system
@@ -68,13 +69,22 @@ class Trainer:
         optimizer = raw_model.configure_optimizers(self.args)
 
         def run_one_epoch(split):
-            is_train = split == 'train'
+            if split == 'train':
+                is_train = True
+                loader = DataLoader(self.train_dataset, shuffle=True, pin_memory=True,
+                    batch_size=self.args.batch_size,
+                    num_workers=self.args.num_workers)
+            elif split == 'val_seen':
+                is_train = False
+                loader = DataLoader(self.val_seen_dataset, shuffle=True, pin_memory=True,
+                    batch_size=self.args.batch_size,
+                    num_workers=self.args.num_workers)
+            elif split == 'val_unseen':
+                is_train = False
+                loader = DataLoader(self.val_unseen_dataset, shuffle=True, pin_memory=True,
+                    batch_size=self.args.batch_size,
+                    num_workers=self.args.num_workers)
             model.train(is_train)
-            data = self.train_dataset if is_train else self.test_dataset
-            loader = DataLoader(data, shuffle=True, pin_memory=True,
-                                batch_size=self.args.batch_size,
-                                num_workers=self.args.num_workers)
-
             losses = []
             pbar = tqdm(enumerate(loader), total=len(loader)) if is_train else enumerate(loader)
             for it, (x, y, _, r, t) in pbar: # states, actions, targets, rtgs, timesteps
@@ -118,9 +128,9 @@ class Trainer:
                     pbar.set_description(f"epoch {epoch+1} iter {it}: train loss {loss.item():.5f}. lr {lr:e}")
             
             if not is_train:
-                test_loss = float(np.mean(losses))
-                logger.info("test loss: %f", test_loss)
-                return test_loss
+                val_loss = float(np.mean(losses))
+                logger.info(f"{split} loss: {val_loss}")
+                return val_loss
             else: 
                 return losses
         
@@ -133,13 +143,16 @@ class Trainer:
             losses = run_one_epoch('train',)
             train_loss = np.mean(losses)
             print("Train Loss: ", train_loss)
-            test_loss = run_one_epoch('test')
-            print("Test Loss: ", test_loss)
+            val_seen_loss = run_one_epoch('val_seen')
+            val_unseen_loss = run_one_epoch('val_unseen')
+            print("Val_seen Loss: ", val_seen_loss)
+            print("Val_unseen Loss: ", val_unseen_loss)
             self.writer.add_scalar('Loss/train', train_loss, epoch+1)
-            self.writer.add_scalar('Loss/test', test_loss, epoch+1)
+            self.writer.add_scalar('Loss/val_seen_loss', val_seen_loss, epoch+1)
+            self.writer.add_scalar('Loss/val_unseen_loss', val_unseen_loss, epoch+1)
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             record_file = open(os.path.join(self.log_path, "train_log.txt"), 'a')
-            record_file.write(f"{current_time} Epoch: {epoch+1} Train Loss: {train_loss} Test Loss: {test_loss}\n")
+            record_file.write(f"{current_time} Epoch: {epoch+1} Train Loss: {train_loss} val_seen_loss: {val_seen_loss} val_unseen_loss: {val_unseen_loss}\n")
             record_file.close() 
         
         self.trained_model = model
