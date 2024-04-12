@@ -6,13 +6,9 @@ flag="--model_name miniGPT
         --feedback_method teacher_random
         --action_level LLA
         --reward_strategy reward_strategy_$2
-        --model_type reward_conditioned
-        --seed 123
-        --context_length 30
+        --context_length 5
+        --max_episode_len 30
         --epochs 50
-        --game Breakout
-        --trajectories_per_buffer 10
-        --data_dir_prefix ./dqn_replay/
         --cuda $1"
          
 
