@@ -182,10 +182,9 @@ if __name__ == '__main__':
         os.makedirs(log_path)
     if not os.path.exists(TRAJS_DIR):
         os.makedirs(TRAJS_DIR)
-    model_save_path = os.path.join(log_path, 'model.pth')
-    record_file = open(os.path.join(log_path, "train_log.txt"), 'w')
-    record_file.write("model path:"+str(model_save_path)+'\n'+str(args) + '\n\n')
-    record_file.close()
+    model_save_path = os.path.join(log_path, 'model_last.pth')
+    model_load_path = os.path.join(log_path, args.ckpt_file)
+
     seed_everything(args.seed)
     train_trajs, val_seen_trajs, val_unseen_trajs = load_data(TRAJS_DIR, args.feedback_method)
     
@@ -212,12 +211,19 @@ if __name__ == '__main__':
 
 
     if VAL:
-        trainer.load_checkpoint('/home/qid/minghanli/HC3D_simulator/tasks/DT_miniGPT/results/miniGPT_teacher_random_reward_strategy_1_10.pth')
-        trainer.val()
+        print(f"val mode {model_load_path}")
+        trainer.load_checkpoint(model_load_path)
+        log_info = trainer.val()
+        record_file = open(os.path.join(log_path, "val_log.txt"), 'a')
+        record_file.write(f"Validation model path:{model_load_path}\n\n{log_info}\n")
+        record_file.close() 
     else: 
-            trainer.train()
-            model = trainer.get_trained_model()
-            model.save(model_save_path)
+        record_file = open(os.path.join(log_path, "train_log.txt"), 'a')
+        record_file.write("model path:"+str(model_save_path)+'\n'+str(args) + '\n\n')
+        record_file.close()
+        print(f"train mdoe {model_save_path}")
+        trainer.train()
+        trainer.save_checkpoint(model_save_path)
     
     
     

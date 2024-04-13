@@ -50,21 +50,18 @@ class Trainer:
         self.tok = BartTokenizer.from_pretrained("facebook/bart-base")
         self.embedding_model = BartModel.from_pretrained("facebook/bart-base")
             
-    def save_checkpoint(self, epoch):
+    def save_checkpoint(self, path):
         # DataParallel wrappers keep raw model object in .module attribute
         #raw_model = self.model.module if hasattr(self.model, "module") else self.model
-        logger.info("saving %s", self.args.ckpt_path)
-        torch.save(self.get_trained_model().state_dict(), os.path.join(self.args.ckpt_path, f"{self.args.model_name}_{self.args.feedback_method}_{self.args.reward_strategy}_{epoch}.pth"))
+        logger.info("saving %s", path)
+        torch.save(self.model.state_dict(), path)
     
     def load_checkpoint(self, path):
         self.saved_epoch = int(path.split('/')[-1].split('.')[0].split('_')[-1])
         self.model.load_state_dict(torch.load(path))
         
-        
-        
     def train(self):
-        model = self.model
-        raw_model = model.module if hasattr(model, "module") else model
+        raw_model = self.model.module if hasattr(self.model, "module") else self.model
         optimizer = raw_model.configure_optimizers(self.args)
 
         def run_one_epoch(split):
@@ -83,7 +80,7 @@ class Trainer:
                 loader = DataLoader(self.val_unseen_dataset, shuffle=True, pin_memory=True,
                     batch_size=self.args.batch_size,
                     num_workers=self.args.num_workers)
-            model.train(is_train)
+            self.model.train(is_train)
             losses = []
             pbar = tqdm(enumerate(loader), total=len(loader)) if is_train else enumerate(loader)
             for it, (x, y, _, r, t) in pbar: # states, actions, targets, rtgs, timesteps
@@ -96,15 +93,15 @@ class Trainer:
 
                 # forward the model
                 with torch.set_grad_enabled(is_train):
-                    logits, loss = model(x, y, y, r, t)
+                    logits, loss = self.model(x, y, y, r, t)
                     loss = loss.mean() # collapse all losses if they are scattered on multiple gpus
                     losses.append(loss.item())
 
                 if is_train:
                     # backprop and update the parameters
-                    model.zero_grad()
+                    self.model.zero_grad()
                     loss.backward()
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), self.args.grad_norm_clip)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.grad_norm_clip)
                     optimizer.step()
 
                     # decay the learning rate based on our progress
@@ -155,14 +152,15 @@ class Trainer:
             record_file.close() 
 
             if epoch % self.args.save_interval == 0:
-                self.trained_model = model
-                self.save_checkpoint(epoch)
-        record_file = open(os.path.join(self.log_path, "train_log.txt"), 'a')
-        log_info = self.val(self.trained_model)
-        record_file.write(f"{log_info}\n")
-        record_file.close() 
-        self.writer.close()
+                save_model_path = os.path.join(self.log_path, 
+                                    f"mdoel_epoch_{epoch}.pth")
+                self.save_checkpoint(save_model_path)
+                record_file = open(os.path.join(self.log_path, "train_log.txt"), 'a')
+                log_info = self.val()
+                record_file.write(f"{log_info}\n")
+                record_file.close() 
 
+        self.writer.close()
 
     def val(self):
         """Init a env to evaluate decision transformer"""
@@ -184,11 +182,11 @@ class Trainer:
             agent.write_results()
             
             score_summary, _ = evaluator.score(result_file)
-            log_info += f'{env_name}:'
+            log_info += f'\n{env_name}:'
             for metric,val in score_summary.items():
                 log_info += ', %s: %.3f' % (metric, val)
         print(log_info)
         return log_info
         
     def get_trained_model(self):
-        return self.trained_model
+        return self.model

@@ -8,7 +8,7 @@ flag="--model_name miniGPT
         --reward_strategy reward_strategy_$1
         --context_length 5
         --max_episode_len 30
-        --ckpt_path /home/qid/minghanli/HC3D_simulator/tasks/DT_miniGPT/results
+        --ckpt_file model_epoch_10.pth
         --save_interval 5
         --epochs 15
         --cuda $2

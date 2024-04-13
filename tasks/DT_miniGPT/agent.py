@@ -404,15 +404,15 @@ class DecisionTransformerAgent(BaseAgent):
                 # 如果观察已结束，并且还没有记录过结束信息，则记录
                 #TODO - 改成方便 Json 解析的形式
                 if ended[i] and i not in ended_set:
-                    print(f'ob{i} ended, recorded')
-                    traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation'], ob['isCrashed']))
+                    #print(f'ob{i} ended, recorded')
+                    #FIXME - traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation'], ob['isCrashed']))
                     ended_set.add(i) # 将结束的观察添加到集合中
                 # 如果观察还没有结束，则记录其路径信息
                 elif not ended[i]:
                     traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation'], ob['isCrashed']))
             
             if len(ended_set) == len(obs):
-                print('All ended. Dropping out of loop')
+                #print('All ended. Dropping out of loop')
                 break
             # del unused variables         
             gc.collect()

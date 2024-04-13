@@ -14,7 +14,7 @@ class Param:
         self.parser.add_argument('--lr_decay', type=bool, default=True)
         self.parser.add_argument('--warmup_tokens', type=int, default=512*20)
         self.parser.add_argument('--final_tokens', type=int, default=260e9)
-        self.parser.add_argument('--ckpt_path', type=str, default=None)
+        self.parser.add_argument('--ckpt_file', type=str, default=None)
         self.parser.add_argument('--num_workers', type=int, default=12)
         self.parser.add_argument('--feedback_method', type=str, default='teacher')
         self.parser.add_argument('--action_level', type=str, default='LLA')
