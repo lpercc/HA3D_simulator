@@ -176,7 +176,6 @@ def create_dataset(trajs,reward_strategy):
     
     
 if __name__ == '__main__':
-    VAL = args.validation
     log_path = os.path.join(MODEL_DIR, f'{args.model_name}_{args.feedback_method}_{args.reward_strategy}')
     if not os.path.exists(log_path):
         os.makedirs(log_path)
@@ -210,20 +209,22 @@ if __name__ == '__main__':
     trainer = Trainer(model, train_dataset, val_seen_dataset, val_unseen_dataset, args, log_path)
 
 
-    if VAL:
+    if args.mode == 'val':
         print(f"val mode {model_load_path}")
         trainer.load_checkpoint(model_load_path)
         log_info = trainer.val()
         record_file = open(os.path.join(log_path, "val_log.txt"), 'a')
-        record_file.write(f"Validation model path:{model_load_path}\n\n{log_info}\n")
+        record_file.write(f"\nValidation model path:{model_load_path}{log_info}\n")
         record_file.close() 
-    else: 
+    elif args.mode == 'train': 
         record_file = open(os.path.join(log_path, "train_log.txt"), 'a')
         record_file.write("model path:"+str(model_save_path)+'\n'+str(args) + '\n\n')
         record_file.close()
-        print(f"train mdoe {model_save_path}")
+        print(f"train mode {model_save_path}")
         trainer.train()
         trainer.save_checkpoint(model_save_path)
+    else:
+        raise NotImplementedError()
     
     
     

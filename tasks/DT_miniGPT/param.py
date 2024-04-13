@@ -29,7 +29,7 @@ class Param:
         self.parser.add_argument('--data_dir_prefix', type=str, default='./dqn_replay/')
         self.parser.add_argument('--train_samples', type=int, default=60000)
         self.parser.add_argument('--save_interval', type=int, default=5)
-        self.parser.add_argument('--validation', type=bool, default=False)
+        self.parser.add_argument('--mode', type=str, default='train')
         self.parser.add_argument('--fusion_type', type=str, default='simple')
 
         
