@@ -176,6 +176,7 @@ def create_dataset(trajs,reward_strategy):
     
     
 if __name__ == '__main__':
+    VAL = args.validation
     log_path = os.path.join(MODEL_DIR, f'{args.model_name}_{args.feedback_method}_{args.reward_strategy}')
     if not os.path.exists(log_path):
         os.makedirs(log_path)
@@ -209,8 +210,14 @@ if __name__ == '__main__':
     # initialize a trainer instance and kick off training
     trainer = Trainer(model, train_dataset, val_seen_dataset, val_unseen_dataset, args, log_path)
 
-    trainer.train()
+
+    if VAL:
+        trainer.load_checkpoint('/home/qid/minghanli/HC3D_simulator/tasks/DT_miniGPT/results/miniGPT_teacher_random_reward_strategy_1_10.pth')
+        trainer.val()
+    else: 
+            trainer.train()
+            model = trainer.get_trained_model()
+            model.save(model_save_path)
     
-    model = trainer.get_trained_model()
-    # use wandb to track model performance
-    model.save(model_save_path)
+    
+    

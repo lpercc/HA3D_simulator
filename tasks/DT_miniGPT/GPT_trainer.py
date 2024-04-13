@@ -46,21 +46,20 @@ class Trainer:
         self.device = f'cuda:{self.args.cuda}' if torch.cuda.is_available() else 'cpu'
         self.model = self.model.to(self.device) #TODO: Add dataparallel in server 
         self.writer = SummaryWriter()
-        features = os.path.join(HC3D_SIMULATOR_PATH, f'img_features/{self.args.features}.tsv')
-        tok = BartTokenizer.from_pretrained("facebook/bart-base")
-        embedding_model = BartModel.from_pretrained("facebook/bart-base")
-        self.val_envs = {split: (HCBatch(features,                                        
-                                        batch_size=self.args.batch_size, 
-                                        splits=[split],
-                                        tokenizer=tok, 
-                                        text_embedding_model=embedding_model, 
-                                        device=self.device), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
+        self.features = os.path.join(HC3D_SIMULATOR_PATH, f'img_features/{self.args.features}.tsv')
+        self.tok = BartTokenizer.from_pretrained("facebook/bart-base")
+        self.embedding_model = BartModel.from_pretrained("facebook/bart-base")
             
-    def save_checkpoint(self):
+    def save_checkpoint(self, epoch):
         # DataParallel wrappers keep raw model object in .module attribute
-        raw_model = self.model.module if hasattr(self.model, "module") else self.model
+        #raw_model = self.model.module if hasattr(self.model, "module") else self.model
         logger.info("saving %s", self.args.ckpt_path)
-        # torch.save(raw_model.state_dict(), self.args.ckpt_path)
+        torch.save(self.get_trained_model().state_dict(), os.path.join(self.args.ckpt_path, f"{self.args.model_name}_{self.args.feedback_method}_{self.args.reward_strategy}_{epoch}.pth"))
+    
+    def load_checkpoint(self, path):
+        self.saved_epoch = int(path.split('/')[-1].split('.')[0].split('_')[-1])
+        self.model.load_state_dict(torch.load(path))
+        
         
         
     def train(self):
@@ -138,7 +137,7 @@ class Trainer:
 
         self.tokens = 0 # counter used for learning rate decay
 
-        for epoch in range(self.args.epochs):
+        for epoch in range(1, self.args.epochs+1):
 
             losses = run_one_epoch('train',)
             train_loss = np.mean(losses)
@@ -152,23 +151,32 @@ class Trainer:
             self.writer.add_scalar('Loss/val_unseen_loss', val_unseen_loss, epoch+1)
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             record_file = open(os.path.join(self.log_path, "train_log.txt"), 'a')
-            record_file.write(f"{current_time} Epoch: {epoch+1} Train Loss: {train_loss} val_seen_loss: {val_seen_loss} val_unseen_loss: {val_unseen_loss}\n")
+            record_file.write(f"{current_time} Epoch: {epoch} Train Loss: {train_loss} val_seen_loss: {val_seen_loss} val_unseen_loss: {val_unseen_loss}\n")
             record_file.close() 
-        
-        self.trained_model = model
-        self.writer.close()
+
+            if epoch % self.args.save_interval == 0:
+                self.trained_model = model
+                self.save_checkpoint(epoch)
         record_file = open(os.path.join(self.log_path, "train_log.txt"), 'a')
         log_info = self.val(self.trained_model)
         record_file.write(f"{log_info}\n")
         record_file.close() 
+        self.writer.close()
 
-    def val(self, model):
+
+    def val(self):
         """Init a env to evaluate decision transformer"""
+        self.val_envs = {split: (HCBatch(self.features,                                        
+                                batch_size=100 if self.args.batch_size > 100 else self.args.batch_size, 
+                                splits=[split],
+                                tokenizer=self.tok, 
+                                text_embedding_model=self.embedding_model, 
+                                device=self.device), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
         log_info = ''
         for env_name, (env, evaluator) in self.val_envs.items():
-            result_file = os.path.join(RESULT_DIR, f'{self.args.model_name}_{self.args.feedback_method}_{self.args.rl_reward_strategy}', f"{env_name}_result.json")
+            result_file = os.path.join(RESULT_DIR, f'{self.args.model_name}_{self.args.feedback_method}_{self.args.reward_strategy}_{self.saved_epoch}', f"{env_name}_result.json")
             agent = DecisionTransformerAgent(
-                env, result_file, model
+                env, result_file, self.model
             )
             assert self.args.reward_strategy != ''
             agent.set_reward(self.args.reward_strategy)
@@ -179,7 +187,7 @@ class Trainer:
             log_info += f'{env_name}:'
             for metric,val in score_summary.items():
                 log_info += ', %s: %.3f' % (metric, val)
-
+        print(log_info)
         return log_info
         
     def get_trained_model(self):

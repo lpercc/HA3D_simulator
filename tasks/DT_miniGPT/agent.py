@@ -283,7 +283,7 @@ class DecisionTransformerAgent(BaseAgent):
             actions = np.zeros((len(obs), 1, 1)) - 1 # set first time is None for action
         else: 
             states = np.repeat(np.array(states, dtype=np.float32).reshape(len(obs), 1, -1), self.max_steps, axis=1)
-            target_returns = np.ones((len(obs), self.max_steps, 1)) * 4.5 # set the target return to 3.0, because we have sparse positive reward
+            target_returns = np.ones((len(obs), self.max_steps, 1)) * 5.0 # TODO: add to global config
             timesteps = np.zeros((len(obs), self.max_steps, 1), dtype=np.int64) # set the timesteps to 0
             timesteps = np.tile(np.arange(self.max_steps).reshape(1, -1, 1), (len(obs), 1, 1))
             actions = np.zeros((len(obs), self.max_steps, 1)) # set first time is zero for action,
@@ -292,9 +292,9 @@ class DecisionTransformerAgent(BaseAgent):
     
     def _check_action_valid(self, ob):
         ''' if a action is go forward, check if the agent can go forward. If not, resample the action until the agent can go forward.
-        - next_action: the action that the model predict. size (batch_size, 1). Batch size should be 1.
         '''
-        if len(ob['navigableLocations']) > 1:
+        
+        if len(ob['navigableLocations']) >= 2:  # 设置为大于等于 2, 因为自身也被算作 navigableLocations
             return True 
         else: 
             return False
@@ -308,6 +308,7 @@ class DecisionTransformerAgent(BaseAgent):
         states, actions, target_returns, timesteps = self._variable_from_obs(obs, True)
         batch_size = len(obs)
         ended = [False for _ in range(batch_size)]
+        ended_set = set()
         
         
         
@@ -319,7 +320,7 @@ class DecisionTransformerAgent(BaseAgent):
 
         
         # Initialize lists to accumulate data for concatenation after the loop
-        pbar = tqdm(enumerate(range(self.max_steps)), total=30) # TODO: change this to config as max steps
+        pbar = tqdm(enumerate(range(self.max_steps)), total=self.max_steps) # TODO: change this to config as max steps
         for _, step in pbar: # max run 30 steps
             pbar.set_description(f"Step {step}")
             # NOTE: can not set batch here
@@ -345,10 +346,11 @@ class DecisionTransformerAgent(BaseAgent):
                         predict_action , _ = self.model.forward(state_t, actions=None, targets=None, rtgs=target_return_t, timesteps=timestep_t)
                         next_actions_logit = predict_action[:, -1, :] # shape (batch_size, n_actions)
                         # here, model predcit the logits, we need to sample the action from the logits.
-                        next_action = self.model.sample_from_logits(next_actions_logit, temperature=1.0, sample=True, top_k=1) # size (batch_size, 1)
+                        next_action = self.model.sample_from_logits(next_actions_logit, temperature=1.0, sample=False, top_k=None) # size (batch_size, 1)
                         # check if the action is valid 
                         # only when the action is forward, we need to check if the agent can go forward.
-                        while next_action[0].item() == 5 and not self._check_action_valid(ob): # NOTE: must set with sample = True, because we need to sample the action again.
+                        can_forward = self._check_action_valid(ob)
+                        while next_action[0].item() == 5 and not can_forward: # NOTE: must set with sample = True, because we need to sample the action again.
                             next_actions_logit[:, 5] = -float('inf') # set the forward action to -inf   
                             next_action = self.model.sample_from_logits(next_actions_logit, temperature=1.0, sample=True, top_k=None) #TODO: chang to sample from no main distribution.
                         
@@ -359,8 +361,10 @@ class DecisionTransformerAgent(BaseAgent):
                         predict_action = self.model.get_action_prediction(state_t, actions=action_t, rtgs=target_return_t, timesteps=timestep_t)
                         next_actions_logit = predict_action[:, -1, :] # shape (batch_size, 1, n_actions)
                         # here, model predcit the logits, we need to sample the action from the logits.
-                        next_action = self.model.sample_from_logits(next_actions_logit, temperature=1.0, sample=True, top_k=None)
-                        while next_action[0] == 5 and not self._check_action_valid(ob): # NOTE: must set with sample = True, because we need to sample the action again.
+                        #NOTE - Set sample and top_k = False, then we choose top1 action
+                        next_action = self.model.sample_from_logits(next_actions_logit, temperature=1.0, sample=False, top_k=None)
+                        can_forward = self._check_action_valid(ob)
+                        while next_action[0] == 5 and not can_forward: # NOTE: must set with sample = True, because we need to sample the action again.
                             next_actions_logit[:, 5] = -float('inf') # set the forward action to -inf 
                             next_action = self.model.sample_from_logits(next_actions_logit, temperature=1.0, sample=True, top_k=None)
                         actions[i:i+1, step, :] = next_action.unsqueeze(1).cpu().detach().numpy() # set the action to the last action
@@ -381,26 +385,35 @@ class DecisionTransformerAgent(BaseAgent):
             new_states, _, _, _ = self._variable_from_obs(obs)
             # calculate next rewards
             next_rewards = np.zeros((batch_size, 1, 1))
-            rwdclters = [RewardCalculater() for _ in range(len(obs))]
             for i, ob in enumerate(obs):
                 delta_distance = ob['distance'] - last_distance[i] if step > 0 else 0
-                rwdclter = rwdclters[i]
-                rwdclter._set_ob(ob, actions_to_env[i], delta_distance)
+                distance = ob['distance']
+                is_crashed = ob['isCrashed']
+                rwdclter = RewardCalculater()
+                rwdclter._set_ob(distance, is_crashed, actions_to_env[i], delta_distance)
                 reward = rwdclter.calculate()
-                next_rewards[i][0][0] = reward[0][self.reward_strategy] # TODO: 此处和 Reward 的策略要一致, [0] is for final reward
+                #NOTE: 此处和 Reward 的策略要一致, [0] is for final reward
+                next_rewards[i][0][0] = reward[0][self.reward_strategy] 
             # updated stuffs should add to sequence 
             # # DONE: change to modify a numpy array in place instead of concatenate
             if step < self.max_steps - 1:
                 states[:, step+1, :] = new_states.reshape(batch_size, -1)
                 target_returns[:, step+1, :] = target_returns[:, step, :].reshape(batch_size, -1) - next_rewards.reshape(batch_size, -1)
 
-            
-            # update trajs
             for i, ob in enumerate(obs):
-                if not ended[i]:
+                # 如果观察已结束，并且还没有记录过结束信息，则记录
+                #TODO - 改成方便 Json 解析的形式
+                if ended[i] and i not in ended_set:
+                    print(f'ob{i} ended, recorded')
+                    traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation'], ob['isCrashed']))
+                    ended_set.add(i) # 将结束的观察添加到集合中
+                # 如果观察还没有结束，则记录其路径信息
+                elif not ended[i]:
                     traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation'], ob['isCrashed']))
             
-            
+            if len(ended_set) == len(obs):
+                print('All ended. Dropping out of loop')
+                break
             # del unused variables         
             gc.collect()
             

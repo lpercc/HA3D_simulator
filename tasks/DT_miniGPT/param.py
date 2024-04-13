@@ -15,11 +15,11 @@ class Param:
         self.parser.add_argument('--warmup_tokens', type=int, default=512*20)
         self.parser.add_argument('--final_tokens', type=int, default=260e9)
         self.parser.add_argument('--ckpt_path', type=str, default=None)
-        self.parser.add_argument('--num_workers', type=int, default=4)
+        self.parser.add_argument('--num_workers', type=int, default=12)
         self.parser.add_argument('--feedback_method', type=str, default='teacher')
         self.parser.add_argument('--action_level', type=str, default='LLA')
-        self.parser.add_argument('--cuda', type=int, default=0)
-        self.parser.add_argument('--reward_strategy', type=str, default="reward_strategy_1")
+        self.parser.add_argument('--cuda', type=int, default=2)
+        self.parser.add_argument('--reward_strategy', type=str, default="reward_strategy_3")
         self.parser.add_argument('--model_type', type=str, default="reward_conditioned")
         self.parser.add_argument('--seed', type=int, default=123)
         self.parser.add_argument('--context_length', type=int, default=30)
@@ -28,6 +28,10 @@ class Param:
         self.parser.add_argument('--trajectories_per_buffer', type=int, default=10, help='Number of trajectories to sample from each of the buffers.')
         self.parser.add_argument('--data_dir_prefix', type=str, default='./dqn_replay/')
         self.parser.add_argument('--train_samples', type=int, default=60000)
+        self.parser.add_argument('--save_interval', type=int, default=5)
+        self.parser.add_argument('--validation', type=bool, default=False)
+        self.parser.add_argument('--fusion_type', type=str, default='simple')
+
         
         self.args = self.parser.parse_args()
         self.args.final_tokens = 2 * self.args.train_samples * self.args.context_length * 3

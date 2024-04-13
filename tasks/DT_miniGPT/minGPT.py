@@ -23,6 +23,7 @@ import logging
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from param import args
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +148,16 @@ class GPT(nn.Module):
         logger.info("number of parameters: %e", sum(p.numel() for p in self.parameters()))
 
         # our task, state 
-        self.state_encoder = nn.Sequential(nn.Linear(2048+768, config.n_embd), nn.Tanh())
+        if args.fusion_type == 'simple':
+            self.state_encoder = nn.Sequential(nn.Linear(2048+768, config.n_embd), nn.Tanh())
+        elif args.fusion_type == 'complex':
+            #TODO - Add complex fusion here
+            image_feature_dim = 2048
+            text_feature_dim = 768
+            self.image_embedding = nn.Linear(image_feature_dim, config.n_embd)
+            # this is a learnable position embedding
+            self.image_pos_emb = nn.Parameter(torch.randn(1, config.n_embd))
+            
 
         self.ret_emb = nn.Sequential(nn.Linear(1, config.n_embd), nn.Tanh())
 
