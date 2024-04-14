@@ -62,7 +62,7 @@ message(${PYTHON_EXECUTABLE})
 # Need to search for python executable again to pick up an activated
 # virtualenv python, if any.
 unset(PYTHON_EXECUTABLE CACHE)
-find_program(PYTHON_EXECUTABLE python
+find_program(PYTHON_EXECUTABLE python3.10
       PATHS ENV PATH         # look in the PATH environment variable
       NO_DEFAULT_PATH        # do not look anywhere else...
       )
