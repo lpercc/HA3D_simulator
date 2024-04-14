@@ -10,6 +10,7 @@ from utils import check_agent_status
 from reward import RewardCalculater
 from tqdm import tqdm
 import gc
+from param import args
 
 
 class BaseAgent(object):
@@ -88,6 +89,7 @@ class RandomAgent(BaseAgent):
             actions = []
             last_distances = []
             for i,ob in enumerate(obs):
+                #TODO - 5 改为 随机
                 if self.steps[i] >= 5: # End of navigation larger than 5 steps (including the first one) 
                     actions.append((0, 0, 0))# do nothing, i.e. end
                     ended[i] = True
@@ -261,7 +263,7 @@ class DecisionTransformerAgent(BaseAgent):
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         self.model = self.model.to(self.device)
         self.model.eval()
-        self.max_steps = 30 # max run 30 steps
+        self.max_steps = args.max_episode_len # max run 30 steps
         
 
     def _variable_from_obs(self, obs, return_whole=False):
@@ -283,7 +285,7 @@ class DecisionTransformerAgent(BaseAgent):
             actions = np.zeros((len(obs), 1, 1)) - 1 # set first time is None for action
         else: 
             states = np.repeat(np.array(states, dtype=np.float32).reshape(len(obs), 1, -1), self.max_steps, axis=1)
-            target_returns = np.ones((len(obs), self.max_steps, 1)) * 5.0 # TODO: add to global config
+            target_returns = np.ones((len(obs), self.max_steps, 1)) * args.target_rtg # TODO: add to global config
             timesteps = np.zeros((len(obs), self.max_steps, 1), dtype=np.int64) # set the timesteps to 0
             timesteps = np.tile(np.arange(self.max_steps).reshape(1, -1, 1), (len(obs), 1, 1))
             actions = np.zeros((len(obs), self.max_steps, 1)) # set first time is zero for action,
@@ -306,6 +308,7 @@ class DecisionTransformerAgent(BaseAgent):
     def rollout(self):
         obs = np.array(self.env.reset())
         states, actions, target_returns, timesteps = self._variable_from_obs(obs, True)
+        print(f"target returns: {target_returns}")
         batch_size = len(obs)
         ended = [False for _ in range(batch_size)]
         ended_set = set()
@@ -404,7 +407,7 @@ class DecisionTransformerAgent(BaseAgent):
                 # 如果观察已结束，并且还没有记录过结束信息，则记录
                 #TODO - 改成方便 Json 解析的形式
                 if ended[i] and i not in ended_set:
-                    #print(f'ob{i} ended, recorded')
+                    print(f'ob{i} ended, recorded')
                     #FIXME - traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation'], ob['isCrashed']))
                     ended_set.add(i) # 将结束的观察添加到集合中
                 # 如果观察还没有结束，则记录其路径信息
@@ -412,7 +415,7 @@ class DecisionTransformerAgent(BaseAgent):
                     traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation'], ob['isCrashed']))
             
             if len(ended_set) == len(obs):
-                #print('All ended. Dropping out of loop')
+                print('All ended. Dropping out of loop')
                 break
             # del unused variables         
             gc.collect()

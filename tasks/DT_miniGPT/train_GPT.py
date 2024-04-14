@@ -32,11 +32,26 @@ from tqdm import tqdm
 from dataclasses import dataclass
 from param import args
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
+print(f"sim root dir:{HC3D_SIMULATOR_PATH}")
 MODEL_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/models")
 TRAJS_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/trajs")
-NAME = 'right_left_mix_teacher'
 
-print(args); print(HC3D_SIMULATOR_PATH)
+# Iterate through the args dictionary and print each entry's key (parameter name) and value
+for key, value in vars(args).items():
+    print(f"{key} = {value}")
+user_input = input("Confirm parameters are correct and continue with the program? (yes/no): ").strip().lower()  # Get user input, remove leading and trailing spaces, convert to lowercase
+
+if user_input == "yes":
+    print("Continuing program execution...")
+    # Add code here to continue program execution if needed
+elif user_input == "no":
+    print("Program terminated.")
+    exit()  # Use exit() function to terminate the program
+else:
+    print("Invalid input, please enter yes or no.")
+    exit()
+    # You may choose to ask again or terminate the program
+
 class StateActionReturnDataset(Dataset):
 
     def __init__(self, data, block_size, actions, targets, done_idxs, rtgs, timesteps):        
@@ -95,17 +110,26 @@ def load_data(data_dir, trajs_type):
     trajs_type = trajs_type.split('_')
     for traj_type in trajs_type:
         #NOTE - Here load all trajs including teacher and random
-        with open(os.path.join(data_dir, f"train_trajs_{traj_type}_{NAME}.pkl"), 'rb') as f: #DONE: change to support pkl 
+        with open(os.path.join(data_dir, f"train_trajs_{traj_type}_{args.dataset_name}.pkl"), 'rb') as f: #DONE: change to support pkl 
             train_traj = pickle.load(f) # 
-            train_trajs.extend(train_traj)
+            if args.mode == 'debug':
+                train_trajs.extend(train_traj[:args.train_samples])
+            else:
+                train_trajs.extend(train_traj)
 
-        with open(os.path.join(data_dir, f"val_seen_trajs_{traj_type}_{NAME}.pkl"), 'rb') as f: #DONE: change to support pkl 
+        with open(os.path.join(data_dir, f"val_seen_trajs_{traj_type}_{args.dataset_name}.pkl"), 'rb') as f: #DONE: change to support pkl 
             val_seen_traj = pickle.load(f) # 
-            val_seen_trajs.extend(val_seen_traj)
+            if args.mode == 'debug':
+                val_seen_trajs.extend(val_seen_traj[:args.train_samples])
+            else:
+                val_seen_trajs.extend(val_seen_traj)
         
-        with open(os.path.join(data_dir, f"val_unseen_trajs_{traj_type}_{NAME}.pkl"), 'rb') as f: #DONE: change to support pkl 
+        with open(os.path.join(data_dir, f"val_unseen_trajs_{traj_type}_{args.dataset_name}.pkl"), 'rb') as f: #DONE: change to support pkl 
             val_unseen_traj = pickle.load(f) # 
-            val_unseen_trajs.extend(val_unseen_traj)
+            if args.mode == 'debug':
+                val_unseen_trajs.extend(val_unseen_traj[:args.train_samples])
+            else:
+                val_unseen_trajs.extend(val_unseen_traj)
     
     print(f"{trajs_type} trajs data len train={len(train_trajs)} val_seen={len(val_seen_trajs)} val_unseen={len(val_unseen_trajs)}")
     return train_trajs, val_seen_trajs, val_unseen_trajs
@@ -176,13 +200,14 @@ def create_dataset(trajs,reward_strategy):
     
     
 if __name__ == '__main__':
-    log_path = os.path.join(MODEL_DIR, f'{args.model_name}_{args.feedback_method}_{args.reward_strategy}')
-    if not os.path.exists(log_path):
-        os.makedirs(log_path)
+    model_dir = os.path.join(MODEL_DIR, f'{args.experiment_id}_{args.model_name}_{args.feedback_method}_{args.reward_strategy}')
+    
+    
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
     if not os.path.exists(TRAJS_DIR):
         os.makedirs(TRAJS_DIR)
-    model_save_path = os.path.join(log_path, 'model_last.pth')
-    model_load_path = os.path.join(log_path, args.ckpt_file)
+
 
     seed_everything(args.seed)
     train_trajs, val_seen_trajs, val_unseen_trajs = load_data(TRAJS_DIR, args.feedback_method)
@@ -206,21 +231,30 @@ if __name__ == '__main__':
     model = GPT(mconf)
 
     # initialize a trainer instance and kick off training
-    trainer = Trainer(model, train_dataset, val_seen_dataset, val_unseen_dataset, args, log_path)
+    trainer = Trainer(model, train_dataset, val_seen_dataset, val_unseen_dataset, args, model_dir)
 
 
     if args.mode == 'val':
         print(f"val mode {model_load_path}")
         trainer.load_checkpoint(model_load_path)
-        log_info = trainer.val()
-        record_file = open(os.path.join(log_path, "val_log.txt"), 'a')
-        record_file.write(f"\nValidation model path:{model_load_path}{log_info}\n")
+        eval_results, eval_results_dict = trainer.val()
+        record_file = open(os.path.join(model_dir, "val_log.txt"), 'a')
+        record_file.write(f"\nValidation model path:{model_load_path}\n{args}\n{eval_results}\n")
         record_file.close() 
     elif args.mode == 'train': 
-        record_file = open(os.path.join(log_path, "train_log.txt"), 'a')
-        record_file.write("model path:"+str(model_save_path)+'\n'+str(args) + '\n\n')
+        model_save_path = os.path.join(model_dir, 'model_last.pth')
+        record_file = open(os.path.join(model_dir, "train_log.txt"), 'a')
+        record_file.write(f"\nTrain model path:{model_save_path}\n{args}\n")
         record_file.close()
         print(f"train mode {model_save_path}")
+        trainer.train()
+        trainer.save_checkpoint(model_save_path)
+    elif args.mode == 'debug': 
+        model_save_path = os.path.join(model_dir, 'model_last.pth')
+        record_file = open(os.path.join(model_dir, "train_log.txt"), 'a')
+        record_file.write(f"\nTrain model path:{model_save_path}\n{args}\n")
+        record_file.close()
+        print(f"debug mode {model_save_path}")
         trainer.train()
         trainer.save_checkpoint(model_save_path)
     else:

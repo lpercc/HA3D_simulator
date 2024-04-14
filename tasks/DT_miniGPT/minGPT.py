@@ -49,7 +49,7 @@ class GPT1Config(GPTConfig):
     """ GPT-1 like network roughly 125M params """
     n_layer = 12
     n_head = 12
-    n_embd = 768
+    n_embd = 768 
     max_length = 5 #NOTE - This is context length
     whole_step = 30 #TODO - Make its related to the max_eposide_length
 
@@ -150,14 +150,28 @@ class GPT(nn.Module):
         # our task, state 
         if args.fusion_type == 'simple':
             self.state_encoder = nn.Sequential(nn.Linear(2048+768, config.n_embd), nn.Tanh())
-        elif args.fusion_type == 'complex':
+        elif args.fusion_type == 'attention':
             #TODO - Add complex fusion here
             image_feature_dim = 2048
             text_feature_dim = 768
             self.image_embedding = nn.Linear(image_feature_dim, config.n_embd)
             # this is a learnable position embedding
-            self.image_pos_emb = nn.Parameter(torch.randn(1, config.n_embd))
-            
+
+            self.text_embedding = nn.Linear(text_feature_dim, config.n_embd)
+            self.state_encoder = nn.MultiheadAttention(embed_dim=config.n_embd, num_heads=8, dropout=0.1, batch_first=True)
+        elif args.fusion_type == 'bert':
+            image_feature_dim = 2048
+            text_feature_dim = 768
+            self.image_embedding = nn.Linear(image_feature_dim, config.n_embd)
+            #REVIEW - Need position embedding? 
+            self.image_pos_emb = nn.Parameter(torch.randn(1, config.n_embd)) 
+            self.text_embedding = nn.Linear(text_feature_dim, config.n_embd)
+            self.text_pos_emb = nn.Parameter(torch.randn(1, config.n_embd))
+            encoder_layer = nn.TransformerEncoderLayer(d_model=config.n_embd * 2, nhead=8, batch_first=True)
+            self.state_encoder = nn.TransformerEncoder(encoder_layer, num_layers=4)
+            self.proj = nn.Linear(config.n_embd * 2, config.n_embd)
+        else: 
+            raise NotImplementedError('Fusion type not implemented')
 
         self.ret_emb = nn.Sequential(nn.Linear(1, config.n_embd), nn.Tanh())
 
@@ -187,8 +201,10 @@ class GPT(nn.Module):
         # separate out all parameters to those that will and won't experience regularizing weight decay
         decay = set()
         no_decay = set()
+        
         # whitelist_weight_modules = (torch.nn.Linear, )
-        whitelist_weight_modules = (torch.nn.Linear, torch.nn.Conv2d)
+        whitelist_weight_modules = (torch.nn.Linear, torch.nn.Conv2d, torch.nn.MultiheadAttention, \
+            torch.nn.TransformerEncoder, torch.nn.LayerNorm, nn.TransformerEncoderLayer)
         blacklist_weight_modules = (torch.nn.LayerNorm, torch.nn.Embedding)
         for mn, m in self.named_modules():
             for pn, p in m.named_parameters():
@@ -203,6 +219,9 @@ class GPT(nn.Module):
                 elif pn.endswith('weight') and isinstance(m, blacklist_weight_modules):
                     # weights of blacklist modules will NOT be weight decayed
                     no_decay.add(fpn)
+                elif 'image_pos_emb' in fpn or 'text_pos_emb' in fpn:
+                    no_decay.add(fpn)
+
 
         # special case the position embedding parameter in the root GPT module as not decayed
         # no_decay.add('pos_emb')
@@ -238,8 +257,24 @@ class GPT(nn.Module):
 
         
         assert self.model_type == 'reward_conditioned', "The model type should be reward_conditioned"
+        if args.fusion_type == 'simple':
+            state_embeddings = self.state_encoder(states.type(torch.float32)) # (batch , block_size // 3, n_embd)
+        elif args.fusion_type == 'attention': 
+            image_features = states[:, :, :2048]
+            text_features = states[:, :, 2048:]
+            image_embeddings = self.image_embedding(image_features)
+            text_embeddings = self.text_embedding(text_features)
+            #NOTE - Here we use text as query
+            state_embeddings = self.state_encoder(text_embeddings, image_embeddings, image_embeddings)
+        elif args.fusion_type == 'bert':
+            image_features = states[:, :, :2048]
+            text_features = states[:, :, 2048:]
+            text_embedding = self.text_embedding(text_features) + self.text_pos_emb
+            image_embedding = self.image_embedding(image_features) + self.image_pos_emb
+            state_embeddings = self.state_encoder(torch.cat([text_embedding, image_embedding], dim=-1))
+            state_embeddings = self.proj(state_embeddings)
+            
         
-        state_embeddings = self.state_encoder(states.type(torch.float32)) # (batch , block_size // 3, n_embd)
         rtg_embeddings = self.ret_emb(rtgs.type(torch.float32)) # (batch, block_size // 3, n_embd)
         
         if actions is not None and self.model_type == 'reward_conditioned':

@@ -16,3 +16,4 @@ runs/
 models/
 trajs/
 nohup.out
+tensorboard_logs/

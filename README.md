@@ -78,3 +78,7 @@ Pyrender supports three backends for offscreen rendering:
   default is EGL
 pyrender offscreen rendering https://pyrender.readthedocs.io/en/latest/examples/offscreen.html
 
+## train
+```bash
+python tasks/DT_miniGPT/train_GPT.py --experiment_id time --cuda 2 --reward_strategy 1 --epochs 15 --fusion_type simple --target_rtg 5 --mode train 
+```

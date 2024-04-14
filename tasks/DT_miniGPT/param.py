@@ -1,11 +1,13 @@
 import argparse
+import datetime
 
 class Param:
     def __init__(self):
         self.parser = argparse.ArgumentParser(description="")
+        self.parser.add_argument('--experiment_id', type=str, required=True)
         self.parser.add_argument('--model_name', type=str, default='miniGPT')
-        self.parser.add_argument('--features', type=str, default='img_features/ResNet-152-imagenet_80_16_mean.tsv')
-        self.parser.add_argument('--batch_size', type=int, default=1)
+        self.parser.add_argument('--features', type=str, default='ResNet-152-imagenet_80_16_mean.tsv')
+        self.parser.add_argument('--batch_size', type=int, default=1024)
         self.parser.add_argument('--max_episode_len', type=int, default=30)
         self.parser.add_argument('--learning_rate', type=int, default=6e-4)
         self.parser.add_argument('--betas', type=tuple, default=(0.9, 0.95))
@@ -16,24 +18,38 @@ class Param:
         self.parser.add_argument('--final_tokens', type=int, default=260e9)
         self.parser.add_argument('--ckpt_file', type=str, default=None)
         self.parser.add_argument('--num_workers', type=int, default=12)
-        self.parser.add_argument('--feedback_method', type=str, default='teacher')
+        self.parser.add_argument('--feedback_method', type=str, choices=['random, teacher, random_teacher'],default='random_teacher')
         self.parser.add_argument('--action_level', type=str, default='LLA')
-        self.parser.add_argument('--cuda', type=int, default=2)
-        self.parser.add_argument('--reward_strategy', type=str, default="reward_strategy_3")
+        self.parser.add_argument('--cuda', type=int, choices=range(4),required=True)
+        self.parser.add_argument('--reward_strategy', type=int, choices=range(4), required=True)
         self.parser.add_argument('--model_type', type=str, default="reward_conditioned")
         self.parser.add_argument('--seed', type=int, default=123)
-        self.parser.add_argument('--context_length', type=int, default=30)
-        self.parser.add_argument('--epochs', type=int, default=5)
+        self.parser.add_argument('--context_length', type=int, default=5)
+        self.parser.add_argument('--epochs', type=int, required=True)
         self.parser.add_argument('--game', type=str, default='Breakout')
         self.parser.add_argument('--trajectories_per_buffer', type=int, default=10, help='Number of trajectories to sample from each of the buffers.')
         self.parser.add_argument('--data_dir_prefix', type=str, default='./dqn_replay/')
         self.parser.add_argument('--train_samples', type=int, default=60000)
         self.parser.add_argument('--save_interval', type=int, default=5)
-        self.parser.add_argument('--mode', type=str, default='train')
-        self.parser.add_argument('--fusion_type', type=str, default='simple')
-
+        self.parser.add_argument('--mode', type=str, choices=['train', 'val', 'debug'], required=True)
+        self.parser.add_argument('--fusion_type', type=str, choices=['bert', 'simple', 'attention'], required=True)
+        self.parser.add_argument('--target_rtg', type=float, required=True)
+        self.parser.add_argument('--dataset_name', type=str, default='right_left_mix_teacher')
         
         self.args = self.parser.parse_args()
+        if self.args.mode == 'val' and self.args.ckpt_file == None:
+            raise ValueError('Please provide a checkpoint file for validation.')
+        self.args.reward_strategy = f"reward_strategy_{self.args.reward_strategy}"
+        if self.args.experiment_id == 'time':
+            current_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+            self.args.experiment_id = current_time
+        if self.args.mode == 'debug':
+            self.args.experiment_id = 'debug'
+            self.args.save_interval = 1
+            self.args.epochs = 1
+            self.args.train_samples = 100
+
         self.args.final_tokens = 2 * self.args.train_samples * self.args.context_length * 3
+
 param = Param()
 args = param.args

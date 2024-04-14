@@ -32,24 +32,32 @@ import torch
 from datetime import datetime
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/results/')
-
+TENSORBOARD_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/tensorboard_logs/")
 class Trainer: 
     
-    def __init__(self, model, train_dataset, val_seen_dataset, val_unseen_dataset, args, log_path):
+    def __init__(self, model, train_dataset, val_seen_dataset, val_unseen_dataset, args, model_dir):
         self.model = model
         self.train_dataset = train_dataset
         self.val_seen_dataset = val_seen_dataset
         self.val_unseen_dataset = val_unseen_dataset
         self.args = args
-        self.log_path = log_path
+        self.model_dir = model_dir
         # take over whatever gpus are on the system
         self.device = f'cuda:{self.args.cuda}' if torch.cuda.is_available() else 'cpu'
         self.model = self.model.to(self.device) #TODO: Add dataparallel in server 
-        self.writer = SummaryWriter()
+        self.scale_writer = SummaryWriter(os.path.join(TENSORBOARD_DIR, f'{args.experiment_id}_{self.args.fusion_type}_{self.args.feedback_method}_{self.args.reward_strategy}'))
+        self.hparam_writer = SummaryWriter(os.path.join(TENSORBOARD_DIR, 'hparam_experiment'))
         self.features = os.path.join(HC3D_SIMULATOR_PATH, f'img_features/{self.args.features}.tsv')
         self.tok = BartTokenizer.from_pretrained("facebook/bart-base")
         self.embedding_model = BartModel.from_pretrained("facebook/bart-base")
-            
+        self.hparams = {
+            'batch_size' : self.args.batch_size,
+            'max_episode_len' : self.args.max_episode_len,
+            'reward_strategy' : int(self.args.reward_strategy.split('_')[-1]),
+            'fusion_type' : int(['bert', 'simple', 'attention'].index(self.args.fusion_type)),
+            'target_rtg' : self.args.target_rtg,
+        } 
+        print(f'Hyparams:{self.hparams}')
     def save_checkpoint(self, path):
         # DataParallel wrappers keep raw model object in .module attribute
         #raw_model = self.model.module if hasattr(self.model, "module") else self.model
@@ -59,6 +67,7 @@ class Trainer:
     def load_checkpoint(self, path):
         self.saved_epoch = int(path.split('/')[-1].split('.')[0].split('_')[-1])
         self.model.load_state_dict(torch.load(path))
+        self.model = self.model.to(self.device)
         
     def train(self):
         raw_model = self.model.module if hasattr(self.model, "module") else self.model
@@ -121,7 +130,7 @@ class Trainer:
                         lr = self.args.learning_rate
 
                     # report progress
-                    pbar.set_description(f"epoch {epoch+1} iter {it}: train loss {loss.item():.5f}. lr {lr:e}")
+                    pbar.set_description(f"epoch {epoch} iter {it}: train loss {loss.item():.5f}. lr {lr:e}")
             
             if not is_train:
                 val_loss = float(np.mean(losses))
@@ -143,50 +152,77 @@ class Trainer:
             val_unseen_loss = run_one_epoch('val_unseen')
             print("Val_seen Loss: ", val_seen_loss)
             print("Val_unseen Loss: ", val_unseen_loss)
-            self.writer.add_scalar('Loss/train', train_loss, epoch+1)
-            self.writer.add_scalar('Loss/val_seen_loss', val_seen_loss, epoch+1)
-            self.writer.add_scalar('Loss/val_unseen_loss', val_unseen_loss, epoch+1)
+            self.scale_writer.add_scalar('Loss/train', train_loss, epoch)
+            self.scale_writer.add_scalar('Loss/val_seen_loss', val_seen_loss, epoch)
+            self.scale_writer.add_scalar('Loss/val_unseen_loss', val_unseen_loss, epoch)
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            record_file = open(os.path.join(self.log_path, "train_log.txt"), 'a')
+            record_file = open(os.path.join(self.model_dir, "train_log.txt"), 'a')
             record_file.write(f"{current_time} Epoch: {epoch} Train Loss: {train_loss} val_seen_loss: {val_seen_loss} val_unseen_loss: {val_unseen_loss}\n")
             record_file.close() 
 
             if epoch % self.args.save_interval == 0:
-                save_model_path = os.path.join(self.log_path, 
+                save_model_path = os.path.join(self.model_dir, 
                                     f"mdoel_epoch_{epoch}.pth")
                 self.save_checkpoint(save_model_path)
-                record_file = open(os.path.join(self.log_path, "train_log.txt"), 'a')
-                log_info = self.val()
-                record_file.write(f"{log_info}\n")
+                record_file = open(os.path.join(self.model_dir, "train_log.txt"), 'a')
+                self.saved_epoch = epoch
+                eval_results, eval_results_dict = self.val()
+                write_eval_tensorboard_hparams(self.hparam_writer, self.hparams, train_loss, val_seen_loss, val_unseen_loss, eval_results_dict)
+                write_eval_tensorboard(self.scale_writer, eval_results_dict, epoch)
+                record_file.write(f"{eval_results}\n")
                 record_file.close() 
 
-        self.writer.close()
+        self.scale_writer.close()
+        self.hparam_writer.close()
 
     def val(self):
         """Init a env to evaluate decision transformer"""
         self.val_envs = {split: (HCBatch(self.features,                                        
-                                batch_size=100 if self.args.batch_size > 100 else self.args.batch_size, 
+                                batch_size=self.args.batch_size, 
                                 splits=[split],
                                 tokenizer=self.tok, 
                                 text_embedding_model=self.embedding_model, 
                                 device=self.device), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
-        log_info = ''
+        eval_results = ''
+        eval_results_dict = {}
         for env_name, (env, evaluator) in self.val_envs.items():
-            result_file = os.path.join(RESULT_DIR, f'{self.args.model_name}_{self.args.feedback_method}_{self.args.reward_strategy}_{self.saved_epoch}', f"{env_name}_result.json")
+            result_file = os.path.join(RESULT_DIR, f'{self.args.experiment_id}_{self.args.model_name}_{self.args.feedback_method}_{self.args.reward_strategy}_{self.saved_epoch}', f"{env_name}_result.json")
             agent = DecisionTransformerAgent(
                 env, result_file, self.model
             )
             assert self.args.reward_strategy != ''
             agent.set_reward(self.args.reward_strategy)
-            agent.test()
-            agent.write_results()
-            
+            if self.args.mode != 'debug':
+                agent.test()
+                agent.write_results()
             score_summary, _ = evaluator.score(result_file)
-            log_info += f'\n{env_name}:'
+            eval_results += f'{env_name}:'
+            eval_results_dict[env_name] = {}
             for metric,val in score_summary.items():
-                log_info += ', %s: %.3f' % (metric, val)
-        print(log_info)
-        return log_info
+                eval_results += ', %s: %.3f' % (metric, val)
+                eval_results_dict[env_name][str(metric)] = float('%.3f' % val)
+            eval_results += '\n'
+        print(eval_results)
+        return eval_results, eval_results_dict
         
     def get_trained_model(self):
         return self.model
+
+
+def write_eval_tensorboard(scale_writer, eval_results_dict, epoch):
+    for env_name, score_dict in eval_results_dict.items():
+        for metric, val in score_dict.items():
+            scale_writer.add_scalar(f'Eval/{env_name}/{metric}', val, epoch)
+
+def write_eval_tensorboard_hparams(hparam_writer, hparams, train_loss, val_seen_loss, val_unseen_loss, eval_results_dict):
+    metrics = {
+        'train_loss' : train_loss,
+        'val_seen_loss' : val_seen_loss,
+        'val_unseen_loss' : val_unseen_loss,
+    }
+    for env_name, score_dict in eval_results_dict.items():
+        for metric, val in score_dict.items():
+            if metric == 'spl':
+                continue
+            metrics[f"{env_name}/{metric}"] = val
+    hparam_writer.add_hparams(hparams, metrics)
