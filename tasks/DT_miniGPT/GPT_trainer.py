@@ -162,15 +162,15 @@ class Trainer:
 
             if epoch % self.args.save_interval == 0:
                 save_model_path = os.path.join(self.model_dir, 
-                                    f"mdoel_epoch_{epoch}.pth")
+                                    f"model_epoch_{epoch}.pth")
                 self.save_checkpoint(save_model_path)
-                record_file = open(os.path.join(self.model_dir, "train_log.txt"), 'a')
-                self.saved_epoch = epoch
-                eval_results, eval_results_dict = self.val()
-                write_eval_tensorboard_hparams(self.hparam_writer, self.hparams, train_loss, val_seen_loss, val_unseen_loss, eval_results_dict)
-                write_eval_tensorboard(self.scale_writer, eval_results_dict, epoch)
-                record_file.write(f"{eval_results}\n")
-                record_file.close() 
+                #record_file = open(os.path.join(self.model_dir, "train_log.txt"), 'a')
+                #self.saved_epoch = epoch
+                # eval_results, eval_results_dict = self.val()
+                # write_eval_tensorboard_hparams(self.hparam_writer, self.hparams, train_loss, val_seen_loss, val_unseen_loss, eval_results_dict)
+                # write_eval_tensorboard(self.scale_writer, eval_results_dict, epoch)
+                # record_file.write(f"{eval_results}\n")
+                # record_file.close() 
 
         self.scale_writer.close()
         self.hparam_writer.close()
@@ -178,7 +178,7 @@ class Trainer:
     def val(self):
         """Init a env to evaluate decision transformer"""
         self.val_envs = {split: (HCBatch(self.features,                                        
-                                batch_size=self.args.batch_size, 
+                                batch_size=300 if self.args.batch_size > 300 else self.args.batch_size, 
                                 splits=[split],
                                 tokenizer=self.tok, 
                                 text_embedding_model=self.embedding_model, 

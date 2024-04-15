@@ -235,20 +235,28 @@ if __name__ == '__main__':
 
 
     if args.mode == 'val':
-        print(f"val mode {model_load_path}")
-        trainer.load_checkpoint(model_load_path)
-        eval_results, eval_results_dict = trainer.val()
-        record_file = open(os.path.join(model_dir, "val_log.txt"), 'a')
-        record_file.write(f"\nValidation model path:{model_load_path}\n{args}\n{eval_results}\n")
-        record_file.close() 
+        for model_file in os.listdir(model_dir):
+            if model_file.endswith(".pth"):
+                cpt_path = os.path.join(model_dir, model_file)
+                print(f"val mode {cpt_path}")
+                trainer.load_checkpoint(cpt_path)
+                eval_results, eval_results_dict = trainer.val()
+                record_file = open(os.path.join(model_dir, "val_log.txt"), 'a')
+                record_file.write(f"\nValidation model path:{cpt_path}\n{args}\n{eval_results}\n")
+                record_file.close()
     elif args.mode == 'train': 
-        model_save_path = os.path.join(model_dir, 'model_last.pth')
-        record_file = open(os.path.join(model_dir, "train_log.txt"), 'a')
-        record_file.write(f"\nTrain model path:{model_save_path}\n{args}\n")
-        record_file.close()
-        print(f"train mode {model_save_path}")
+        # 先 Train
         trainer.train()
-        trainer.save_checkpoint(model_save_path)
+        # 开始 validation
+        for model_file in os.listdir(model_dir):
+            if model_file.endswith(".pth"):
+                cpt_path = os.path.join(model_dir, model_file)
+                print(f"val mode {cpt_path}")
+                trainer.load_checkpoint(cpt_path)
+                eval_results, eval_results_dict = trainer.val()
+                record_file = open(os.path.join(model_dir, "val_log.txt"), 'a')
+                record_file.write(f"\nValidation model path:{cpt_path}\n{args}\n{eval_results}\n")
+                record_file.close()
     elif args.mode == 'debug': 
         model_save_path = os.path.join(model_dir, 'model_last.pth')
         record_file = open(os.path.join(model_dir, "train_log.txt"), 'a')

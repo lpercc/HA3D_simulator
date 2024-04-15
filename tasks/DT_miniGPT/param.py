@@ -9,7 +9,7 @@ class Param:
         self.parser.add_argument('--features', type=str, default='ResNet-152-imagenet_80_16_mean.tsv')
         self.parser.add_argument('--batch_size', type=int, default=1024)
         self.parser.add_argument('--max_episode_len', type=int, default=30)
-        self.parser.add_argument('--learning_rate', type=int, default=6e-4)
+        self.parser.add_argument('--learning_rate', type=float, default=6e-4)
         self.parser.add_argument('--betas', type=tuple, default=(0.9, 0.95))
         self.parser.add_argument('--grad_norm_clip', type=float, default=1.0)
         self.parser.add_argument('--weight_decay', type=float, default=0.1)
@@ -35,10 +35,13 @@ class Param:
         self.parser.add_argument('--fusion_type', type=str, choices=['bert', 'simple', 'attention'], required=True)
         self.parser.add_argument('--target_rtg', type=float, required=True)
         self.parser.add_argument('--dataset_name', type=str, default='right_left_mix_teacher')
+        self.parser.add_argument('--notes', type=str, default='')
+        self.parser.add_argument('--bert_layers', type=int, default=1) # 1,2, 4, 6
         
         self.args = self.parser.parse_args()
-        if self.args.mode == 'val' and self.args.ckpt_file == None:
-            raise ValueError('Please provide a checkpoint file for validation.')
+        #self.warmup_tokens = self.args.warmup_tokens / 512 * self.args.batch_size
+        #if self.args.mode == 'val' and self.args.ckpt_file == None:
+        #    raise ValueError('Please provide a checkpoint file for validation.')
         self.args.reward_strategy = f"reward_strategy_{self.args.reward_strategy}"
         if self.args.experiment_id == 'time':
             current_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')

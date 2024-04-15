@@ -32,6 +32,45 @@ import numpy as np
 class GELU(nn.Module):
     def forward(self, input):
         return F.gelu(input)
+    
+class CrossAttention(nn.Module):
+    def __init__(self, d_model, num_heads):
+        super(CrossAttention, self).__init__()
+        assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
+        
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.d_k = d_model // num_heads
+        
+        self.W_q = nn.Linear(d_model, d_model)
+        self.W_k = nn.Linear(d_model, d_model)
+        self.W_v = nn.Linear(d_model, d_model)
+        self.W_o = nn.Linear(d_model, d_model)
+        
+    def scaled_dot_product_attention(self, Q, K, V, mask=None):
+        attn_scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.d_k)
+        if mask is not None:
+            attn_scores = attn_scores.masked_fill(mask == 0, -1e9)
+        attn_probs = torch.softmax(attn_scores, dim=-1)
+        output = torch.matmul(attn_probs, V)
+        return output
+        
+    def split_heads(self, x):
+        batch_size, seq_length, d_model = x.size()
+        return x.view(batch_size, seq_length, self.num_heads, self.d_k).transpose(1, 2)
+        
+    def combine_heads(self, x):
+        batch_size, _, seq_length, d_k = x.size()
+        return x.transpose(1, 2).contiguous().view(batch_size, seq_length, self.d_model)
+        
+    def forward(self, Q, K, V, mask=None):
+        Q = self.split_heads(self.W_q(Q))
+        K = self.split_heads(self.W_k(K))
+        V = self.split_heads(self.W_v(V))
+        
+        attn_output = self.scaled_dot_product_attention(Q, K, V, mask)
+        output = self.W_o(self.combine_heads(attn_output))
+        return output
 
 class GPTConfig:
     """ base GPT config, params common to all GPT versions """
@@ -157,18 +196,19 @@ class GPT(nn.Module):
             self.image_embedding = nn.Linear(image_feature_dim, config.n_embd)
             # this is a learnable position embedding
 
-            self.text_embedding = nn.Linear(text_feature_dim, config.n_embd)
-            self.state_encoder = nn.MultiheadAttention(embed_dim=config.n_embd, num_heads=8, dropout=0.1, batch_first=True)
+            self.text_embedding = nn.Identity()
+            self.state_encoder = CrossAttention(config.n_embd, 2)
+            #REVIEW - self.proj = nn.Linear(config.n_embd * 2, config.n_embd)
         elif args.fusion_type == 'bert':
             image_feature_dim = 2048
             text_feature_dim = 768
             self.image_embedding = nn.Linear(image_feature_dim, config.n_embd)
             #REVIEW - Need position embedding? 
             self.image_pos_emb = nn.Parameter(torch.randn(1, config.n_embd)) 
-            self.text_embedding = nn.Linear(text_feature_dim, config.n_embd)
+            self.text_embedding = nn.Identity()
             self.text_pos_emb = nn.Parameter(torch.randn(1, config.n_embd))
-            encoder_layer = nn.TransformerEncoderLayer(d_model=config.n_embd * 2, nhead=8, batch_first=True)
-            self.state_encoder = nn.TransformerEncoder(encoder_layer, num_layers=4)
+            encoder_layer = nn.TransformerEncoderLayer(d_model=config.n_embd * 2, nhead=2, batch_first=True)
+            self.state_encoder = nn.TransformerEncoder(encoder_layer, num_layers=args.bert_layers)
             self.proj = nn.Linear(config.n_embd * 2, config.n_embd)
         else: 
             raise NotImplementedError('Fusion type not implemented')
@@ -265,7 +305,7 @@ class GPT(nn.Module):
             image_embeddings = self.image_embedding(image_features)
             text_embeddings = self.text_embedding(text_features)
             #NOTE - Here we use text as query
-            state_embeddings = self.state_encoder(text_embeddings, image_embeddings, image_embeddings)
+            state_embeddings = self.state_encoder(image_embeddings, text_embeddings, text_embeddings)
         elif args.fusion_type == 'bert':
             image_features = states[:, :, :2048]
             text_features = states[:, :, 2048:]
