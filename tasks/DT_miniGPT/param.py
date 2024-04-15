@@ -18,7 +18,7 @@ class Param:
         self.parser.add_argument('--final_tokens', type=int, default=260e9)
         self.parser.add_argument('--ckpt_file', type=str, default=None)
         self.parser.add_argument('--num_workers', type=int, default=12)
-        self.parser.add_argument('--feedback_method', type=str, choices=['random, teacher, random_teacher'],default='random_teacher')
+        self.parser.add_argument('--feedback_method', type=str, choices=['random', 'teacher', 'random_teacher'],default='random_teacher')
         self.parser.add_argument('--action_level', type=str, default='LLA')
         self.parser.add_argument('--cuda', type=int, choices=range(4),required=True)
         self.parser.add_argument('--reward_strategy', type=int, choices=range(4), required=True)
@@ -56,3 +56,5 @@ class Param:
 
 param = Param()
 args = param.args
+
+# python tasks/DT_miniGPT/train_GPT.py --experiment_id 'bert-layer_1' --cuda 3 --reward_strategy 1 --epochs 15 --fusion_type bert --target_rtg 5 --mode train
