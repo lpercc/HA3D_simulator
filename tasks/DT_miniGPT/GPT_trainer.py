@@ -92,7 +92,6 @@ class Trainer:
             losses = []
             pbar = tqdm(enumerate(loader), total=len(loader)) if is_train else enumerate(loader)
             for it, (x, y, _, r, t) in pbar: # states, actions, targets, rtgs, timesteps
-                assert x.shape[0] == self.args.batch_size
                 # place data on the correct device
                 x = x.to(self.device) 
                 y = y.to(self.device)
