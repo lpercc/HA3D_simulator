@@ -19,5 +19,5 @@ jobs:
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CONFIG.MODEL: "gpt-3.5-turbo-0125"
-          CONFIG.MODEL_TURBO: "gpt-3.5-turbo-0125"
+          CONFIG.MODEL: "gpt-3.5-turbo"
+          CONFIG.MODEL_TURBO: "gpt-3.5-turbo"
