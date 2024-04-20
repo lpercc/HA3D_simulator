@@ -111,6 +111,12 @@ class TorchVisionExtractor(BaseFrameExtractor):
         model.eval()
         return model
 
+    def _test_model(self):
+        # Test the model with a random input
+        x = torch.randn(1, 3, 224, 224)
+        outputs = self.model(x)
+        assert outputs.dim() == 4, "Model output should be 4D tensor, (Batch, C, H, W)"
+        assert outputs.size(1) == 2048, "Resnet152 should output 2048 channels"
         
 
 class TimmExtractor(BaseFrameExtractor):
