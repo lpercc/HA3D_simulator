@@ -356,7 +356,7 @@ class HCBatch():
         for i,(feature,state) in enumerate(self.env.getStates()):
             item = self.batch[i]
             if self.action_level == 'LLA':
-                teacher = self._shortest_path_action_avoid_human_LLA(state, item['path'][-1], strategy='local', radius=4.5)
+                teacher = self._shortest_path_action_avoid_human_LLA(state, item['path'][-1], strategy='global', radius=4.5)
             elif self.action_level == 'sLLA':
                 teacher = self._shortest_path_action_avoid_human_sLLA(state, item['path'][-1])
             elif self.action_level == 'HLA':

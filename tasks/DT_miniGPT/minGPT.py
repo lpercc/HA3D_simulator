@@ -193,6 +193,7 @@ class GPT(nn.Module):
             #TODO - Add complex fusion here
             image_feature_dim = 2048
             text_feature_dim = 768
+            
             self.image_embedding = nn.Linear(image_feature_dim, config.n_embd)
             # this is a learnable position embedding
 
@@ -202,6 +203,7 @@ class GPT(nn.Module):
         elif args.fusion_type == 'bert':
             image_feature_dim = 2048
             text_feature_dim = 768
+            self.cls_token = nn.Parameter(torch.randn(1, 1, config.n_embd))
             self.image_embedding = nn.Linear(image_feature_dim, config.n_embd)
             #REVIEW - Need position embedding? 
             self.image_pos_emb = nn.Parameter(torch.randn(1, config.n_embd)) 
@@ -302,17 +304,19 @@ class GPT(nn.Module):
         elif args.fusion_type == 'attention': 
             image_features = states[:, :, :2048]
             text_features = states[:, :, 2048:]
-            image_embeddings = self.image_embedding(image_features)
-            text_embeddings = self.text_embedding(text_features)
+            image_embeddings = F.normalize(self.image_embedding(image_features), dim=-1)
+            text_embeddings = F.normolize(self.text_embedding(text_features), dim=-1)
             #NOTE - Here we use text as query
             state_embeddings = self.state_encoder(image_embeddings, text_embeddings, text_embeddings)
         elif args.fusion_type == 'bert':
             image_features = states[:, :, :2048]
             text_features = states[:, :, 2048:]
-            text_embedding = self.text_embedding(text_features) + self.text_pos_emb
-            image_embedding = self.image_embedding(image_features) + self.image_pos_emb
-            state_embeddings = self.state_encoder(torch.cat([text_embedding, image_embedding], dim=-1))
-            state_embeddings = self.proj(state_embeddings)
+            #NOTE - sure the text_image_embedding is masked
+            text_embedding = F.normalize(self.text_embedding(text_features), dim=-1) + self.text_pos_emb
+            image_embedding = F.normalize(self.image_embedding(image_features), dim=-1) + self.image_pos_emb
+            text_image_embedding = torch.cat([text_embedding, image_embedding], dim=1) # cat on the sequence Length dim
+            state_embeddings = self.state_encoder(text_image_embedding)
+            
             
         
         rtg_embeddings = self.ret_emb(rtgs.type(torch.float32)) # (batch, block_size // 3, n_embd)

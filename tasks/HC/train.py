@@ -89,9 +89,6 @@ def train(train_env, encoder, decoder, n_iters, log_every=100, val_envs={}):
                 data_log['%s %s' % (env_name,metric)].append(val)
                 if metric in ['success_rate']:
                     loss_str += ', %s: %.3f' % (metric, val)
-            record_file = open(os.path.join(PLOT_DIR, f'{model_prefix}_log.txt'), 'a')
-            record_file.write(loss_str + '\n')
-            record_file.close()
         agent.env = train_env
 
         print('%s (%d %d%%) %s' % (timeSince(start, float(iter)/n_iters),
@@ -211,6 +208,6 @@ if __name__ == "__main__":
     if not os.path.exists(os.path.dirname(PLOT_DIR)):
         os.makedirs(os.path.dirname(PLOT_DIR))
     #eval_DT()
-    #train_val()
-    valid_teacher()
+    train_val()
+    #valid_teacher()
     #test_submission()

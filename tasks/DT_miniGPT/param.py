@@ -21,7 +21,7 @@ class Param:
         self.parser.add_argument('--feedback_method', type=str, choices=['random', 'teacher', 'random_teacher'],default='random_teacher')
         self.parser.add_argument('--action_level', type=str, default='LLA')
         self.parser.add_argument('--cuda', type=int, choices=range(4),required=True)
-        self.parser.add_argument('--reward_strategy', type=int, choices=range(4), required=True)
+        self.parser.add_argument('--reward_strategy', type=int, choices=range(1,5), required=True)
         self.parser.add_argument('--model_type', type=str, default="reward_conditioned")
         self.parser.add_argument('--seed', type=int, default=123)
         self.parser.add_argument('--context_length', type=int, default=5)
@@ -37,7 +37,8 @@ class Param:
         self.parser.add_argument('--dataset_name', type=str, default='right_left_mix_teacher')
         self.parser.add_argument('--notes', type=str, default='')
         self.parser.add_argument('--bert_layers', type=int, default=1) # 1,2, 4, 6
-        
+        self.parser.add_argument('--mask_text', type=bool, default=False)
+
         self.args = self.parser.parse_args()
         #self.warmup_tokens = self.args.warmup_tokens / 512 * self.args.batch_size
         #if self.args.mode == 'val' and self.args.ckpt_file == None:

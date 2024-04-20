@@ -85,9 +85,9 @@ class RandomAgent(BaseAgent):
 
         ended = [False] * len(obs) # Is this enough for us to get a random walk agents?
         turn_right = [random.choice([True, False]) for _ in range(len(obs))]
+        last_distances = [ob['distance'] for ob in obs]
         for _, t in enumerate(range(max_steps)): # 30 Steps 之后所有 Agent 的状态
             actions = []
-            last_distances = []
             for i,ob in enumerate(obs):
                 #TODO - 5 改为 随机
                 if self.steps[i] >= 5: # End of navigation larger than 5 steps (including the first one) 
@@ -107,8 +107,6 @@ class RandomAgent(BaseAgent):
                     else:
                         actions.append((0, -1, 0))
                 # turn right/left until we can go forward
-
-                last_distances.append(ob['distance'])
             
                 # 对于 traj 来说, 真正有用的 Actions 在 steps == 0 之后的 actions, 因为在这之前都是在调整方向
                 # only need to record once after the end of navigation
@@ -120,6 +118,7 @@ class RandomAgent(BaseAgent):
 
                 if self.steps[i] >= 0 and not record_end_flag:
                     delta_distance = ob['distance'] - last_distances[i] if t > 0 else 0
+                    last_distances[i] = ob['distance']
                     rwdclters = RewardCalculater()
                     is_crashed = ob['isCrashed']
                     distance = ob['distance']
@@ -192,14 +191,13 @@ class TeacherAgent(BaseAgent):
             'crashed': [],
         } for ob in obs]
         ended = [False] * len(obs)
-        
+        last_distances = [ob['distance'] for ob in obs]
         for _, t in enumerate(range(max_steps)):  # Execute steps until max_steps or all agents have ended
             actions = [ob['teacher'] for ob in obs]  # Follow the teacher's action
-            last_distances = []
             for i, ob in enumerate(obs):
-                last_distances.append(ob['distance'])
                 if not ended[i]:
                     delta_distance = ob['distance'] - last_distances[i] if t > 0 else 0 
+                    last_distances[i] = ob['distance']
                     rwdclters = RewardCalculater()
                     is_crashed = ob['isCrashed']
                     distance = ob['distance']
@@ -235,6 +233,7 @@ class TeacherAgent(BaseAgent):
 
 
 class DecisionTransformerAgent(BaseAgent):
+
     # For now, the agent can't pick which forward move to make - just the one in the middle
     model_actions = ['left', 'right', 'up', 'down', 'forward', '<end>', '<start>', '<ignore>']
     env_actions = [

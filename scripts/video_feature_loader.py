@@ -97,6 +97,7 @@ class TorchVisionExtractor(BaseFrameExtractor):
         super().__init__(model_name, fps, device)
         self.weights_key = weights_key
         self.model = self._load_model()
+        self._test_model()
     
     def _load_model(self):
         model = models.get_model(self.model_name, weights=self.weights_key)
@@ -105,10 +106,12 @@ class TorchVisionExtractor(BaseFrameExtractor):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485,  0.456,  0.406], std=[0.229,  0.224,  0.225])
         ])
-        model = nn.Sequential(*list(model.children())[:-1])
+        model = model.reset_classifier(0, '')
         model = model.to(self.device)
         model.eval()
         return model
+
+        
 
 class TimmExtractor(BaseFrameExtractor):
     def __init__(self, model_name, fps, device) -> None:

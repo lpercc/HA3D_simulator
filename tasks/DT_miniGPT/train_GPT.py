@@ -148,14 +148,14 @@ def create_dataset(trajs,reward_strategy):
         rewards.extend(t['final_reward'])
         targets.extend(t['teacher_actions'])
         done_idxs.append(len(t['student_actions']) - 1) # -1 because the index starts from 0
-        
+    
     # Convert to numpy arrays
     states  = np.array(states)
     targets = np.array(targets)
     rewards = [reward_dict[reward_strategy] for reward_dict in rewards]
     rewards = np.array(rewards)
     actions = np.array(actions)
-    
+    print(f"states shape:{states.shape}, reward shape:{rewards.shape}   ")
     assert np.sum(done_idxs) == len(actions) - len(done_idxs), "Error: sum of done_idxs is not equal to length of actions"
     
     
@@ -211,9 +211,12 @@ if __name__ == '__main__':
 
     seed_everything(args.seed)
     train_trajs, val_seen_trajs, val_unseen_trajs = load_data(TRAJS_DIR, args.feedback_method)
-    
+    print(f"train_trajs len:{len(train_trajs)}")
     train_states, train_actions, train_targets, train_rtgs,  train_done_idxs, train_time_steps = create_dataset(train_trajs, args.reward_strategy)
     train_dataset = StateActionReturnDataset(train_states, 5 * 3, train_actions, train_targets, train_done_idxs, train_rtgs, train_time_steps)
+    #TODO - Subset
+    #indices = list(range(args.train_samples))
+    #sub_train = torch.utils.data.Subset(train_dataset, indices)
     
     val_seen_states, val_seen_actions, val_seen_targets, val_seen_rtgs,  val_seen_done_idxs, val_seen_time_steps = create_dataset(val_seen_trajs, args.reward_strategy)
     val_seen_dataset = StateActionReturnDataset(val_seen_states, 5 * 3, val_seen_actions, val_seen_targets, val_seen_done_idxs, val_seen_rtgs, val_seen_time_steps)
@@ -231,6 +234,7 @@ if __name__ == '__main__':
     model = GPT(mconf)
 
     # initialize a trainer instance and kick off training
+    #trainer = Trainer(model, sub_train, val_seen_dataset, val_unseen_dataset, args, model_dir)
     trainer = Trainer(model, train_dataset, val_seen_dataset, val_unseen_dataset, args, model_dir)
 
 

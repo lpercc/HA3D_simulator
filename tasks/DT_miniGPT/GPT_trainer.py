@@ -46,7 +46,6 @@ class Trainer:
         self.device = f'cuda:{self.args.cuda}' if torch.cuda.is_available() else 'cpu'
         self.model = self.model.to(self.device) #TODO: Add dataparallel in server 
         self.scale_writer = SummaryWriter(os.path.join(TENSORBOARD_DIR, f'{args.experiment_id}_{self.args.fusion_type}_{self.args.feedback_method}_{self.args.reward_strategy}'))
-        self.hparam_writer = SummaryWriter(os.path.join(TENSORBOARD_DIR, 'hparam_experiment'))
         self.features = os.path.join(HC3D_SIMULATOR_PATH, f'img_features/{self.args.features}.tsv')
         self.tok = BartTokenizer.from_pretrained("facebook/bart-base")
         self.embedding_model = BartModel.from_pretrained("facebook/bart-base")
@@ -93,7 +92,7 @@ class Trainer:
             losses = []
             pbar = tqdm(enumerate(loader), total=len(loader)) if is_train else enumerate(loader)
             for it, (x, y, _, r, t) in pbar: # states, actions, targets, rtgs, timesteps
-
+                assert x.shape[0] == self.args.batch_size
                 # place data on the correct device
                 x = x.to(self.device) 
                 y = y.to(self.device)
@@ -167,13 +166,10 @@ class Trainer:
                 #record_file = open(os.path.join(self.model_dir, "train_log.txt"), 'a')
                 #self.saved_epoch = epoch
                 # eval_results, eval_results_dict = self.val()
-                # write_eval_tensorboard_hparams(self.hparam_writer, self.hparams, train_loss, val_seen_loss, val_unseen_loss, eval_results_dict)
-                # write_eval_tensorboard(self.scale_writer, eval_results_dict, epoch)
                 # record_file.write(f"{eval_results}\n")
                 # record_file.close() 
 
         self.scale_writer.close()
-        self.hparam_writer.close()
 
     def val(self):
         """Init a env to evaluate decision transformer"""
@@ -203,6 +199,7 @@ class Trainer:
                 eval_results_dict[env_name][str(metric)] = float('%.3f' % val)
             eval_results += '\n'
         print(eval_results)
+        write_eval_tensorboard(self.scale_writer, eval_results_dict, self.saved_epoch)
         return eval_results, eval_results_dict
         
     def get_trained_model(self):
@@ -212,7 +209,7 @@ class Trainer:
 def write_eval_tensorboard(scale_writer, eval_results_dict, epoch):
     for env_name, score_dict in eval_results_dict.items():
         for metric, val in score_dict.items():
-            scale_writer.add_scalar(f'Eval/{env_name}/{metric}', val, epoch)
+            scale_writer.add_scalar(f'{metric}/{env_name}', val, epoch)
 
 def write_eval_tensorboard_hparams(hparam_writer, hparams, train_loss, val_seen_loss, val_unseen_loss, eval_results_dict):
     metrics = {

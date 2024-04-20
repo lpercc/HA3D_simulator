@@ -8,3 +8,5 @@ torchvision
 PyQt5
 PyQtChart
 timm
+tensorboard
+transformers
