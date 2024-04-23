@@ -106,18 +106,11 @@ class TorchVisionExtractor(BaseFrameExtractor):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485,  0.456,  0.406], std=[0.229,  0.224,  0.225])
         ])
-        model = model.reset_classifier(0, '')
         model = model.to(self.device)
         model.eval()
         return model
 
-    def _test_model(self):
-        # Test the model with a random input
-        x = torch.randn(1, 3, 224, 224)
-        outputs = self.model(x)
-        assert outputs.dim() == 4, "Model output should be 4D tensor, (Batch, C, H, W)"
-        assert outputs.size(1) == 2048, "Resnet152 should output 2048 channels"
-        
+
 
 class TimmExtractor(BaseFrameExtractor):
     def __init__(self, model_name, fps, device) -> None:
@@ -129,10 +122,18 @@ class TimmExtractor(BaseFrameExtractor):
         self.transforms = create_transform(**resolve_data_config(model.pretrained_cfg, model=model, verbose=True))
         # for timm we should use a PIL image
         self.transforms = Compose([transforms.ToPILImage(), self.transforms])
-        model.reset_classifier(0)
+        model = model.reset_classifier(0, '')
         model = model.to(self.device)
         model.eval()
         return model
+    
+    def _test_model(self):
+        # Test the model with a random input
+        x = torch.randn(1, 3, 224, 224)
+        outputs = self.model(x)
+        assert outputs.dim() == 4, "Model output should be 4D tensor, (Batch, C, H, W)"
+        assert outputs.size(1) == 2048, "Resnet152 should output 2048 channels"
+        
     
     
 class HieraExtractor(BaseFrameExtractor):
