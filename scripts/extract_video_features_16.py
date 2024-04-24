@@ -162,6 +162,8 @@ def build_tsv(args):
                 else:
                     extractor.load_video(video)
                     feature = extractor.extract_features(keep_T=True)
+                    print(feature.shape)
+                    exit()
                 assert feature.shape == (video_len, FEATURE_SIZE)
                 # extractor should load_video first to get video 
                 # video should be a numpy array with shape (F, W, H, C)
@@ -229,7 +231,7 @@ if __name__ == "__main__":
     parser.add_argument('--viewpoint_s', default=0)
     parser.add_argument('--viewpoint_e', default=10567)
     parser.add_argument('--img_feat', default='./')
-    parser.add_argument('--pipeID', type=int, required=True, help='ID for the pipe to be created')
+    parser.add_argument('--pipeID', default=0)
     args = parser.parse_args()
     build_tsv(args)
     tsv_path1 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_nomean_{args.viewpoint_s}-{args.viewpoint_e}.tsv")
