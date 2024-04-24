@@ -34,12 +34,9 @@ class Config:
     # Dataset Size 
     max_eposide_length = 30
 
-
-
 def setup():
     torch.manual_seed(1)    
     torch.cuda.manual_seed(1)
-
 
 def train_random(dataset_cfg, train_env, n_iters, log_every=100, val_envs={}):
     """
@@ -85,16 +82,23 @@ def train_teacher(dataset_cfg, train_env, n_iters, log_every=100, val_envs={}):
     Returns:
     - trajs: A list of trajectories. Each trajectory is a list of dictionaries, where each dictionary represents the state of the environment and the agent's action at each step of the interaction. This data structure is useful for analyzing the agent's behavior and for training on the generated data.
     """
-    
+    train_env._set_action_level('LLA')
     agent = TeacherAgent(train_env, "")
     max_steps = dataset_cfg.max_eposide_length
     
-    print('Teacher Agent Begins')
+    print('Teacher Agent (Avoiding human) Begins')
     trajs = []
 
     for _ in tqdm(range(0, n_iters)):
-        
         # traj is a list of dictionaries, each of which is a episode, we have a batch of episodes
+
+        traj = agent.rollout(max_steps)
+        trajs.extend(traj)
+    
+    train_env._set_action_level('LLA-NA')
+    agent = TeacherAgent(train_env, "")
+    print('Teacher Agent (shortest path) Begins')
+    for _ in tqdm(range(0, n_iters)):
         traj = agent.rollout(max_steps)
         trajs.extend(traj)
     

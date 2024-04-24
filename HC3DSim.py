@@ -227,10 +227,10 @@ class HCSimulator(MatterSim.Simulator):
                 humanStates.append(hs[self.frame_num])
         return humanStates  
 
-    def getStepState(self,framesPerStep=16,gap=4):
+    def getStepState(self,frames=16,gap=4):
         agentViewFrames = []
-        for i in range(int(framesPerStep/gap)):
-            self.makeAction(0, 0, 0)
+        for i in range(int(frames/gap)):
+            self.makeAction([0], [0], [0])
             state = self.getState(framesPerStep=gap)[0]
             agentViewFrames.append(state.rgb)
         #state.humanState = self.getHumanState()

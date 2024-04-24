@@ -353,6 +353,8 @@ class HCBatch():
             item = self.batch[i]
             if self.action_level == 'LLA':
                 teacher = self._shortest_path_action_avoid_human_LLA(state, item['path'][-1])
+            elif self.action_level == 'LLA-NA':
+                teacher = self._shortest_path_action(state, item['path'][-1])
             elif self.action_level == 'sLLA':
                 teacher = self._shortest_path_action_avoid_human_sLLA(state, item['path'][-1])
             elif self.action_level == 'HLA':
