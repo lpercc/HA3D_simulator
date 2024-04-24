@@ -21,7 +21,7 @@ class Param:
         self.parser.add_argument('--feedback_method', type=str, choices=['random', 'teacher', 'random_teacher'],default='random_teacher')
         self.parser.add_argument('--action_level', type=str, default='LLA')
         self.parser.add_argument('--cuda', type=int, choices=range(4),required=True)
-        self.parser.add_argument('--reward_strategy', type=int, choices=range(1,5), required=True)
+        self.parser.add_argument('--reward_strategy', type=int, choices=range(1,8), required=True)
         self.parser.add_argument('--model_type', type=str, default="reward_conditioned")
         self.parser.add_argument('--seed', type=int, default=123)
         self.parser.add_argument('--context_length', type=int, default=5)
