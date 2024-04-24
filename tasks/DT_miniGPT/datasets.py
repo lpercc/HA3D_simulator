@@ -132,17 +132,17 @@ def train_run(dataset_cfg, agent='random', gpu_id=0, n_iters=0):
 
     val_seen_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['val_seen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
     if agent == 'random':
-        trajs = train_random(dataset_cfg, val_seen_env, int(n_iters/14))
+        trajs = train_random(dataset_cfg, val_seen_env, int(n_iters*0.3))
     elif agent == 'teacher':
-        trajs = train_teacher(dataset_cfg, val_seen_env, int(n_iters/14))
+        trajs = train_teacher(dataset_cfg, val_seen_env, int(n_iters*0.3))
     with open(os.path.join(trajs_dir, f'val_seen_trajs_{agent}_{dataset_cfg.name}.pkl'), 'wb') as f:
         pickle.dump(trajs, f)
 
     val_unseen_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['val_unseen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
     if agent == 'random':
-        trajs = train_random(dataset_cfg, val_unseen_env, int(n_iters/7))
+        trajs = train_random(dataset_cfg, val_unseen_env, int(n_iters*0.3))
     elif agent == 'teacher':
-        trajs = train_teacher(dataset_cfg, val_unseen_env, int(n_iters/7))
+        trajs = train_teacher(dataset_cfg, val_unseen_env, int(n_iters*0.3))
     with open(os.path.join(trajs_dir, f'val_unseen_trajs_{agent}_{dataset_cfg.name}.pkl'), 'wb') as f:
         pickle.dump(trajs, f)
         
