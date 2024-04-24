@@ -45,7 +45,7 @@ FPS = 16
 VIDEO_LEN = 80
 #FPS = 1
 #OUTFILE = "img_features/ResNet-152-imagenet_60.tsv"
-OUTFILE = f"ResNet-152-imagenet_{VIDEO_LEN}_{FPS}.tsv"
+OUTFILE = f"ResNet-152-imagenet_{VIDEO_LEN}_{FPS}_2048x7x7.tsv"
 #OUTFILE = "img_features/ResNet-152-imagenet_1.tsv"
 GRAPHS = "connectivity/"
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -92,7 +92,6 @@ def build_tsv(args):
     sim.setRenderingEnabled(True)
     sim.setDatasetPath(dataset_path)
     sim.setDepthEnabled(True)
-    sim.setDatasetPath(dataset_path)
     sim.setCameraResolution(WIDTH, HEIGHT)
     sim.setCameraVFOV(math.radians(VFOV))
     sim.setDiscretizedViewingAngles(True)
@@ -104,13 +103,13 @@ def build_tsv(args):
     
     # init a extractor
     # here we use a resnet 152 B as feature extractor, the output feature will be (2048,) 
-    extractor = TimmExtractor(model_name=MODEL_NAME, fps=VIDEO_LEN, device=device)
-    #extractor2 = TimmExtractor(model_name=MODEL_NAME, fps=VIDEO_LEN, device='cuda:1')
+    #extractor = TimmExtractor(model_name=MODEL_NAME, fps=VIDEO_LEN, device=device)
+    extractor = TimmExtractor(model_name=MODEL_NAME, fps=int(VIDEO_LEN/FPS), device=device, fuse='mean')
     
     tsv_path1 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_nomean_{viewpoint_s}-{viewpoint_e}.tsv")
     tsv_path2 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_mean_{viewpoint_s}-{viewpoint_e}.tsv")
     with open(tsv_path1, "a") as tsvfile1, open(tsv_path2, "a") as tsvfile2:
-        writer1 = csv.DictWriter(tsvfile1, delimiter="\t", fieldnames=TSV_FIELDNAMES)
+        #writer1 = csv.DictWriter(tsvfile1, delimiter="\t", fieldnames=TSV_FIELDNAMES)
         writer2 = csv.DictWriter(tsvfile2, delimiter="\t", fieldnames=TSV_FIELDNAMES)
         # Loop all the viewpoints in the simulator
         print(f"viewpoint:{viewpoint_s}--{viewpoint_e}")
@@ -126,8 +125,8 @@ def build_tsv(args):
         for _, (scanId, viewpointId) in enumerate(viewpointIds, start=len(data1)):
             # Loop all discretized views from this location
             
-            features1 = np.empty([VIEWPOINT_SIZE, int(VIDEO_LEN/GAP), FEATURE_SIZE], dtype=np.float32)
-            features2 = np.empty([VIEWPOINT_SIZE, int(VIDEO_LEN/FPS), FEATURE_SIZE], dtype=np.float32)
+            #features1 = np.empty([VIEWPOINT_SIZE, int(VIDEO_LEN/GAP), FEATURE_SIZE], dtype=np.float32)
+            features2 = np.empty([VIEWPOINT_SIZE, int(VIDEO_LEN/FPS), FEATURE_SIZE, 7, 7], dtype=np.float32)
             
             bar = tqdm(range(VIEWPOINT_SIZE))
             for ix in bar:
@@ -140,7 +139,7 @@ def build_tsv(args):
                 else:
                     sim.makeAction([0], [1.0], [0])
 
-                state, video= sim.getStepState(framesPerStep=VIDEO_LEN, gap=GAP)
+                state, video= sim.getStepState(frames=VIDEO_LEN, gap=GAP)
                 assert state.viewIndex == ix
 
                 video_len = int(VIDEO_LEN/GAP)
@@ -156,29 +155,31 @@ def build_tsv(args):
                         all_frames_same = False
                         break
                 if all_frames_same:
-                    extractor.load_video(video[0:2])
+                    extractor.load_video(video[0:int(VIDEO_LEN/FPS)])
                     feature = extractor.extract_features(keep_T=True)
-                    feature = feature.repeat(video_len/2, 0)
+                    #feature = feature.repeat(video_len/int(VIDEO_LEN/FPS), 0)
                 else:
                     extractor.load_video(video)
                     feature = extractor.extract_features(keep_T=True)
-                    print(feature.shape)
-                    exit()
-                assert feature.shape == (video_len, FEATURE_SIZE)
+                    #print(feature.shape)
+                    #exit()
+                assert feature.shape == (int(VIDEO_LEN/FPS), FEATURE_SIZE, 7, 7)
                 # extractor should load_video first to get video 
                 # video should be a numpy array with shape (F, W, H, C)
                 
                 #print(f"feature shape: {feature.shape}")
                 # the output features should be a numpy adarry with size (FEATURE_SIZE, )
+                """
                 features1[ix, :, :] = feature
                 for i in range(int(VIDEO_LEN/FPS)):
                     mean_feature = feature[i*int(FPS/GAP):(i+1)*int(FPS/GAP)].mean(0)
                     assert mean_feature.shape == (FEATURE_SIZE,)
                     features2[ix, i, :] = mean_feature
-
+                """
+                features2[ix, :, :] = feature
                 bar.set_description(f"Processing {_}th view point with {VIEWPOINT_SIZE} decrete view.")
             
-
+            """
             writer1.writerow(
                 {
                     "scanId": scanId,
@@ -189,6 +190,7 @@ def build_tsv(args):
                     "features": str(base64.b64encode(features1.tobytes()), "utf-8"), #TODO 
                 }
             )
+            """
             writer2.writerow(
                 {
                     "scanId": scanId,
@@ -216,7 +218,7 @@ def read_tsv(infile):
             if mean_flag:
                 item["features"] = np.frombuffer(
                     base64.b64decode(item["features"]), dtype=np.float32
-                ).reshape((VIEWPOINT_SIZE, int(VIDEO_LEN/FPS), FEATURE_SIZE))
+                ).reshape((VIEWPOINT_SIZE, int(VIDEO_LEN/FPS), FEATURE_SIZE, 7, 7))
             else:
                  item["features"] = np.frombuffer(
                     base64.b64decode(item["features"]), dtype=np.float32
@@ -234,9 +236,9 @@ if __name__ == "__main__":
     parser.add_argument('--pipeID', default=0)
     args = parser.parse_args()
     build_tsv(args)
-    tsv_path1 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_nomean_{args.viewpoint_s}-{args.viewpoint_e}.tsv")
+    #tsv_path1 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_nomean_{args.viewpoint_s}-{args.viewpoint_e}.tsv")
     tsv_path2 = os.path.join(args.img_feat, f"{OUTFILE.split('.')[0]}_mean_{args.viewpoint_s}-{args.viewpoint_e}.tsv")
     #data1 = read_tsv(tsv_path1)
-    data1 = read_tsv(tsv_path2)
+    #data1 = read_tsv(tsv_path2)
     #assert len(data1) == len(data2)
     print("Completed %d viewpoints" % len(data1))

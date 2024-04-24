@@ -59,7 +59,7 @@ class BaseFrameExtractor(ABC):
         compressed_video = np.zeros((self.fps, H, W, C), dtype=np.uint8)
         
         if self.fuse == 'mean':
-            print('Warning: Now you are using fuse method: {}'.format(self.fuse) + 'to extract frames.')
+            print('Warning: Now you are using fuse method: {} to extract frames.'.format(self.fuse))
             for i in range(self.fps):
                 # Determine the start and end frame indices for averaging
                 
