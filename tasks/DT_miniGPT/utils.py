@@ -220,7 +220,6 @@ def remove_global_nodes_and_find_path(G, humanLocations, currentViewpointId, goa
 
 # TODO: 局部最优策略
 def remove_local_nodes_and_find_path(G, humanLocations, currentViewpointId, goalViewpointId, radius):
-    # deleteAll = False 把最近的人从图中删除，deleteAll = True 把所有人从图中删除
     def euclidean_distance(x, y):
         return np.sqrt(np.sum((np.array(x) - np.array(y)) ** 2))
     # 创建要删除的节点列表

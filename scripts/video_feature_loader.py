@@ -59,7 +59,7 @@ class BaseFrameExtractor(ABC):
         compressed_video = np.zeros((self.fps, H, W, C), dtype=np.uint8)
         
         if self.fuse == 'mean':
-            print('Warning: Now you are using fuse method: {}'.format(self.fuse) + 'to extract frames.')
+            print('Warning: Now you are using fuse method: {} to extract frames.'.format(self.fuse))
             for i in range(self.fps):
                 # Determine the start and end frame indices for averaging
                 
@@ -113,8 +113,8 @@ class TorchVisionExtractor(BaseFrameExtractor):
 
 
 class TimmExtractor(BaseFrameExtractor):
-    def __init__(self, model_name, fps, device) -> None:
-        super().__init__(model_name, fps, device)
+    def __init__(self, model_name, fps, device, fuse) -> None:
+        super().__init__(model_name, fps, device, fuse)
         self.model = self._load_model()
     
     def _load_model(self):
@@ -122,10 +122,15 @@ class TimmExtractor(BaseFrameExtractor):
         self.transforms = create_transform(**resolve_data_config(model.pretrained_cfg, model=model, verbose=True))
         # for timm we should use a PIL image
         self.transforms = Compose([transforms.ToPILImage(), self.transforms])
-        model = model.reset_classifier(0, '')
+        model.reset_classifier(0, '')
         model = model.to(self.device)
         model.eval()
         return model
+    def _test_model(self):
+        # Test the model with a dummy input
+        dummy_input = torch.randn(1,4, 3, 224, 224)
+        output = self.model(dummy_input)
+        print(output.shape)
     
     def _test_model(self):
         # Test the model with a random input
@@ -264,10 +269,14 @@ if __name__ == '__main__':
     # Create a dummy video as a NumPy array with random values
     # Shape: (frame_num, HEIGHT, WIDTH, channels)
     dummy_video = np.random.randint(60, 256, (frame_num, WIDTH, HEIGHT, channels), dtype=np.uint8)
-
-    extractor = TorchVisionExtractor('resnet152','IMAGENET1K_V1', 16, device)
+    print(f'input video shape(Frames, H, W, C): {dummy_video.shape}')
+    extractor = TimmExtractor('resnet152', 16, device, fuse='mean')
     extractor.load_video(dummy_video)
-    print(extractor.extract_features(keep_T=True).shape)
+    output = extractor.extract_features(keep_T=True)
+    print(f'output feature shape (Frames, C, H, W): {output.shape}')
+    # IF you have a batch of video like (B,T,H,W,C). First reshapa to B*T, H, W, C then do not use mean fuse. 
+    # After get output, you can reshape to B,T, C, H, W. then use your now clip frames method to get target fps
+    # Your clip method can like _clip in BaseFrameExtractor class.
     
     '''extractor = HieraExtractor('hiera_base_16x224', 16, device)
     extractor.load_video(dummy_video)

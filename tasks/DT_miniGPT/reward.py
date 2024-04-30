@@ -63,6 +63,8 @@ class RewardCalculater():
         self.reward_strategy_2(reward_type=reward_type)
         self.reward_strategy_3(reward_type=reward_type)
         self.reward_strategy_4(reward_type=reward_type)
+        self.reward_strategy_5(reward_type=reward_type)
+        self.reward_strategy_6(reward_type=reward_type)
         
         return [self.final_reward, self.target_reward, self.path_reward, self.miss_penalty, self.human_reward]
     
@@ -138,7 +140,7 @@ class RewardCalculater():
         final_reward = self.get_final_reward(target_reward, path_reward, step_reward, human_reward, reward_type)
         self.append_rewards(final_reward, target_reward, path_reward, step_reward, human_reward, strategy_name='reward_strategy_3')
 
-    # 设置在目标处的 Reward + 靠近目标+1 + 避开人的 Reward. 碰到人给 -2
+    # 设置在目标处的 Reward + 靠近目标+1 + 远离-1 避开人的 Reward. 碰到人给 -2
     def reward_strategy_4(self, reward_type):
         # NOTE: All compare to reward 1
         # Add human reward
@@ -167,3 +169,57 @@ class RewardCalculater():
 
         final_reward = self.get_final_reward(target_reward, path_reward, step_reward, human_reward, reward_type)
         self.append_rewards(final_reward, target_reward, path_reward, step_reward, human_reward, strategy_name='reward_strategy_4')
+    # 设置在目标处的 Reward + 靠近目标+1 + 避开人的 Reward. 碰到人给 -2
+    def reward_strategy_5(self, reward_type):
+        # NOTE: All compare to reward 1
+        # Add human reward
+        # Initialize rewards and penalties
+        target_reward = 0.0
+        path_reward = 0.0
+        step_reward = 0.0
+        human_reward = 0.0  # Human interaction reward is calculated in the calculate method
+        dist = self.distance
+        # Check if the agent has stopped
+        if self.action == (0, 0, 0):
+            if dist < 3.0:
+                target_reward = 5.0
+            else:
+                target_reward = -5.0
+        
+        delta_distance = self.delta_distance
+        if delta_distance > 0:
+            path_reward = -1.0
+
+        crashed = self.is_crashed
+        if crashed:
+            human_reward = -2
+
+        final_reward = self.get_final_reward(target_reward, path_reward, step_reward, human_reward, reward_type)
+        self.append_rewards(final_reward, target_reward, path_reward, step_reward, human_reward, strategy_name='reward_strategy_5')
+
+    def reward_strategy_6(self, reward_type):
+        # NOTE: All compare to reward 1
+        # Add human reward
+        # Initialize rewards and penalties
+        target_reward = 0.0
+        path_reward = 0.0
+        step_reward = 0.0
+        human_reward = 0.0  # Human interaction reward is calculated in the calculate method
+        dist = self.distance
+        # Check if the agent has stopped
+        if self.action == (0, 0, 0):
+            if dist < 3.0:
+                target_reward = 5.0
+            else:
+                target_reward = -5.0
+        
+        delta_distance = self.delta_distance
+        if delta_distance > 0:
+            path_reward = -1.0
+
+        crashed = self.is_crashed
+        if crashed:
+            human_reward = -5
+
+        final_reward = self.get_final_reward(target_reward, path_reward, step_reward, human_reward, reward_type)
+        self.append_rewards(final_reward, target_reward, path_reward, step_reward, human_reward, strategy_name='reward_strategy_6')

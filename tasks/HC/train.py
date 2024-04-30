@@ -43,7 +43,7 @@ feedback_method = args.feedback_method # teacher or sample
 learning_rate = args.learning_rate
 weight_decay = args.weight_decay
 n_iters = args.n_iters
-model_prefix = args.model_prefix % (feedback_method)
+model_prefix = args.model_prefix
 actionLevel = args.action_level
 print(str(args)+"\n")
 def train(train_env, encoder, decoder, n_iters, log_every=100, val_envs={}):

@@ -34,12 +34,9 @@ class Config:
     # Dataset Size 
     max_eposide_length = 30
 
-
-
 def setup():
     torch.manual_seed(1)    
     torch.cuda.manual_seed(1)
-
 
 def train_random(dataset_cfg, train_env, n_iters, log_every=100, val_envs={}):
     """
@@ -85,16 +82,23 @@ def train_teacher(dataset_cfg, train_env, n_iters, log_every=100, val_envs={}):
     Returns:
     - trajs: A list of trajectories. Each trajectory is a list of dictionaries, where each dictionary represents the state of the environment and the agent's action at each step of the interaction. This data structure is useful for analyzing the agent's behavior and for training on the generated data.
     """
-    
+    train_env._set_action_level('LLA')
     agent = TeacherAgent(train_env, "")
     max_steps = dataset_cfg.max_eposide_length
     
-    print('Teacher Agent Begins')
+    print('Teacher Agent (Avoiding human) Begins')
     trajs = []
 
     for _ in tqdm(range(0, n_iters)):
-        
         # traj is a list of dictionaries, each of which is a episode, we have a batch of episodes
+
+        traj = agent.rollout(max_steps)
+        trajs.extend(traj)
+    
+    train_env._set_action_level('LLA-NA')
+    agent = TeacherAgent(train_env, "")
+    print('Teacher Agent (shortest path) Begins')
+    for _ in tqdm(range(0, n_iters)):
         traj = agent.rollout(max_steps)
         trajs.extend(traj)
     
@@ -132,17 +136,17 @@ def train_run(dataset_cfg, agent='random', gpu_id=0, n_iters=0):
 
     val_seen_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['val_seen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
     if agent == 'random':
-        trajs = train_random(dataset_cfg, val_seen_env, int(n_iters/14))
+        trajs = train_random(dataset_cfg, val_seen_env, int(n_iters*0.3))
     elif agent == 'teacher':
-        trajs = train_teacher(dataset_cfg, val_seen_env, int(n_iters/14))
+        trajs = train_teacher(dataset_cfg, val_seen_env, int(n_iters*0.3))
     with open(os.path.join(trajs_dir, f'val_seen_trajs_{agent}_{dataset_cfg.name}.pkl'), 'wb') as f:
         pickle.dump(trajs, f)
 
     val_unseen_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['val_unseen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
     if agent == 'random':
-        trajs = train_random(dataset_cfg, val_unseen_env, int(n_iters/7))
+        trajs = train_random(dataset_cfg, val_unseen_env, int(n_iters*0.3))
     elif agent == 'teacher':
-        trajs = train_teacher(dataset_cfg, val_unseen_env, int(n_iters/7))
+        trajs = train_teacher(dataset_cfg, val_unseen_env, int(n_iters*0.3))
     with open(os.path.join(trajs_dir, f'val_unseen_trajs_{agent}_{dataset_cfg.name}.pkl'), 'wb') as f:
         pickle.dump(trajs, f)
         

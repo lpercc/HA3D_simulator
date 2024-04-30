@@ -231,7 +231,6 @@ class TeacherAgent(BaseAgent):
             obs = self.env.step(actions)
         return traj
 
-
 class DecisionTransformerAgent(BaseAgent):
 
     # For now, the agent can't pick which forward move to make - just the one in the middle
