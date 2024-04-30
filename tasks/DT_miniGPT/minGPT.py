@@ -203,7 +203,7 @@ class GPT(nn.Module):
         elif args.fusion_type == 'bert':
             image_feature_dim = 2048
             text_feature_dim = 768
-            self.cls_token = nn.Parameter(torch.randn(1, 1, config.n_embd))
+            #self.cls_token = nn.Parameter(torch.randn(1, 1, config.n_embd))
             self.image_embedding = nn.Linear(image_feature_dim, config.n_embd)
             #REVIEW - Need position embedding? 
             self.image_pos_emb = nn.Parameter(torch.randn(1, config.n_embd)) 

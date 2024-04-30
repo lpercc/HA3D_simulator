@@ -16,10 +16,11 @@ class Param:
         self.parser.add_argument('--feedback_method', type=str, default='sample')
         self.parser.add_argument('--learning_rate', type=float, default=0.0001)
         self.parser.add_argument('--weight_decay', type=float, default=0.0005)
-        self.parser.add_argument('--n_iters', type=int, default=5000)
+        self.parser.add_argument('--n_iters', type=int, default=20000)
         self.parser.add_argument('--model_prefix', type=str, default='seq2seq_%s_imagenet')
         self.parser.add_argument('--action_level', type=str, default='LLA')
         self.parser.add_argument('--cuda', type=int, default=3)
         self.args = self.parser.parse_args()
+        self.args.model_prefix = f'seq2seq_{self.args.feedback_method}_{self.args.action_level}_imagenet'
 param = Param()
 args = param.args

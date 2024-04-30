@@ -164,7 +164,7 @@ def create_dataset(trajs,reward_strategy):
     start_index = 0
     for done_idx in done_idxs: 
         if done_idx == -1: 
-            rtgs[start_index: start_index + args.max_episode_len] = -100 #TODO: if not finish the episode, set the reward to -100 
+            rtgs[start_index: start_index + args.max_episode_len] = -100 #FIXME: if not finish the episode, set the reward to -100 
         else: 
             rtgs[start_index: start_index + done_idx + 1] = np.cumsum(rewards[start_index: start_index + done_idx + 1][::-1])[::-1]
         start_index += done_idx + 1
