@@ -44,20 +44,21 @@ class CrossModalityAttention(nn.Module):
     def forward(self, image_features, text_features):
         # image_features: (batch_size, image_feature_dim)
         # text_features: (batch_size, text_feature_dim)
-        
+        # trade hidden dim as length. 
         # Generate query from image features
-        query = self.image_query(image_features)  # (batch_size, hidden_dim)
+        query = self.image_query(image_features).transpose(-2,-1)  # (batch_size, hidden_dim, 5)
         
         # Generate key and value from text features
-        key = self.text_key(text_features)        # (batch_size, hidden_dim)
-        value = self.text_value(text_features)    # (batch_size, hidden_dim)
+        key = self.text_key(text_features).transpose(-2,-1)      # (batch_size, hidden_dim, 5)
+        value = self.text_value(text_features).transpose(-2,-1)    # (batch_size, hidden_dim, 5)
         
         # Calculate attention scores
-        attention_scores = torch.matmul(query, key.transpose(-2, -1)) / self.sqrt_dk
+        #print(query.shape, key.shape, value.shape)
+        attention_scores = torch.bmm(query, key.transpose(-2,-1)) / self.sqrt_dk # batch_size, hidden_dim, hidden_dim
         attention_weights = F.softmax(attention_scores, dim=-1)
         
         # Apply attention weights to the values
-        attended_text = torch.matmul(attention_weights, value)
+        attended_text = torch.bmm(attention_weights, value).transpose(-2,-1)
         
         return attended_text
 class GPTConfig:
@@ -186,6 +187,8 @@ class GPT(nn.Module):
             elif args.fusion_type == 'bert':
                 image_feature_dim = 2048
                 text_feature_dim = 768
+                # Here we use conv1d to make a sequence of feature. 
+                
                 #self.cls_token = nn.Parameter(torch.randn(1, 1, config.n_embd))
                 self.image_embedding = nn.Linear(image_feature_dim, config.n_embd)
                 #REVIEW - Need position embedding? 
@@ -289,10 +292,8 @@ class GPT(nn.Module):
         elif args.fusion_type == 'attention': 
             image_features = states[:, :, :2048]
             text_features = states[:, :, 2048:]
-            image_embeddings = F.normalize(self.image_embedding(image_features), dim=-1)
-            text_embeddings = F.normolize(self.text_embedding(text_features), dim=-1)
             #NOTE - Here we use text as query
-            state_embeddings = self.state_encoder(image_embeddings, text_embeddings, text_embeddings)
+            state_embeddings = self.state_encoder(image_features, text_features)
         elif args.fusion_type == 'bert':
             image_features = states[:, :, :2048]
             text_features = states[:, :, 2048:]
