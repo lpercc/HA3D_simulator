@@ -133,9 +133,9 @@ class AttnDecoderLSTM(nn.Module):
         action_embeds = action_embeds.squeeze()
         concat_input = torch.cat((action_embeds, feature), 1) # (batch, embedding_size+feature_size)
         drop = self.drop(concat_input)
-        h_1,c_1 = self.lstm(drop, (h_0,c_0))
-        h_1_drop = self.drop(h_1)
-        h_tilde, alpha = self.attention_layer(h_1_drop, ctx, ctx_mask)        
+        h_1,c_1 = self.lstm(drop, (h_0,c_0)) # use to decode only one step
+        h_1_drop = self.drop(h_1) # 
+        h_tilde, alpha = self.attention_layer(h_1_drop, ctx, ctx_mask) # do a attention between action+image feature and text feature
         logit = self.decoder2action(h_tilde)
         return h_1,c_1,alpha,logit
 
