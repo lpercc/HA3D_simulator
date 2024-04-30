@@ -37,7 +37,7 @@ class Param:
         self.parser.add_argument('--dataset_name', type=str, default='right_left_mix_teacher')
         self.parser.add_argument('--notes', type=str, default='')
         self.parser.add_argument('--bert_layers', type=int, default=1) # 1,2, 4, 6
-        self.parser.add_argument('--mask_text', type=bool, default=False)
+        self.parser.add_argument('--feature_type', type=str, default='fused')
 
         self.args = self.parser.parse_args()
         #self.warmup_tokens = self.args.warmup_tokens / 512 * self.args.batch_size

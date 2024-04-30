@@ -33,45 +33,33 @@ class GELU(nn.Module):
     def forward(self, input):
         return F.gelu(input)
     
-class CrossAttention(nn.Module):
-    def __init__(self, d_model, num_heads):
-        super(CrossAttention, self).__init__()
-        assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
-        
-        self.d_model = d_model
-        self.num_heads = num_heads
-        self.d_k = d_model // num_heads
-        
-        self.W_q = nn.Linear(d_model, d_model)
-        self.W_k = nn.Linear(d_model, d_model)
-        self.W_v = nn.Linear(d_model, d_model)
-        self.W_o = nn.Linear(d_model, d_model)
-        
-    def scaled_dot_product_attention(self, Q, K, V, mask=None):
-        attn_scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.d_k)
-        if mask is not None:
-            attn_scores = attn_scores.masked_fill(mask == 0, -1e9)
-        attn_probs = torch.softmax(attn_scores, dim=-1)
-        output = torch.matmul(attn_probs, V)
-        return output
-        
-    def split_heads(self, x):
-        batch_size, seq_length, d_model = x.size()
-        return x.view(batch_size, seq_length, self.num_heads, self.d_k).transpose(1, 2)
-        
-    def combine_heads(self, x):
-        batch_size, _, seq_length, d_k = x.size()
-        return x.transpose(1, 2).contiguous().view(batch_size, seq_length, self.d_model)
-        
-    def forward(self, Q, K, V, mask=None):
-        Q = self.split_heads(self.W_q(Q))
-        K = self.split_heads(self.W_k(K))
-        V = self.split_heads(self.W_v(V))
-        
-        attn_output = self.scaled_dot_product_attention(Q, K, V, mask)
-        output = self.W_o(self.combine_heads(attn_output))
-        return output
+class CrossModalityAttention(nn.Module):
+    def __init__(self, image_feature_dim, text_feature_dim, hidden_dim):
+        super(CrossModalityAttention, self).__init__()
+        self.image_query = nn.Linear(image_feature_dim, hidden_dim)
+        self.text_key = nn.Linear(text_feature_dim, hidden_dim)
+        self.text_value = nn.Linear(text_feature_dim, hidden_dim)
+        self.sqrt_dk = torch.sqrt(torch.tensor(hidden_dim, dtype=torch.float))
 
+    def forward(self, image_features, text_features):
+        # image_features: (batch_size, image_feature_dim)
+        # text_features: (batch_size, text_feature_dim)
+        
+        # Generate query from image features
+        query = self.image_query(image_features)  # (batch_size, hidden_dim)
+        
+        # Generate key and value from text features
+        key = self.text_key(text_features)        # (batch_size, hidden_dim)
+        value = self.text_value(text_features)    # (batch_size, hidden_dim)
+        
+        # Calculate attention scores
+        attention_scores = torch.matmul(query, key.transpose(-2, -1)) / self.sqrt_dk
+        attention_weights = F.softmax(attention_scores, dim=-1)
+        
+        # Apply attention weights to the values
+        attended_text = torch.matmul(attention_weights, value)
+        
+        return attended_text
 class GPTConfig:
     """ base GPT config, params common to all GPT versions """
     embd_pdrop = 0.1
@@ -187,33 +175,30 @@ class GPT(nn.Module):
         logger.info("number of parameters: %e", sum(p.numel() for p in self.parameters()))
 
         # our task, state 
-        if args.fusion_type == 'simple':
-            self.state_encoder = nn.Sequential(nn.Linear(2048+768, config.n_embd), nn.Tanh())
-        elif args.fusion_type == 'attention':
-            #TODO - Add complex fusion here
-            image_feature_dim = 2048
-            text_feature_dim = 768
-            
-            self.image_embedding = nn.Linear(image_feature_dim, config.n_embd)
-            # this is a learnable position embedding
-
-            self.text_embedding = nn.Identity()
-            self.state_encoder = CrossAttention(config.n_embd, 2)
-            #REVIEW - self.proj = nn.Linear(config.n_embd * 2, config.n_embd)
-        elif args.fusion_type == 'bert':
-            image_feature_dim = 2048
-            text_feature_dim = 768
-            #self.cls_token = nn.Parameter(torch.randn(1, 1, config.n_embd))
-            self.image_embedding = nn.Linear(image_feature_dim, config.n_embd)
-            #REVIEW - Need position embedding? 
-            self.image_pos_emb = nn.Parameter(torch.randn(1, config.n_embd)) 
-            self.text_embedding = nn.Identity()
-            self.text_pos_emb = nn.Parameter(torch.randn(1, config.n_embd))
-            encoder_layer = nn.TransformerEncoderLayer(d_model=config.n_embd * 2, nhead=2, batch_first=True)
-            self.state_encoder = nn.TransformerEncoder(encoder_layer, num_layers=args.bert_layers)
-            self.proj = nn.Linear(config.n_embd * 2, config.n_embd)
-        else: 
-            raise NotImplementedError('Fusion type not implemented')
+        if args.feature_type == 'fused': # set fused means the image feature only with batch_size, 2048 from resnet 152
+            if args.fusion_type == 'simple':
+                self.state_encoder = nn.Sequential(nn.Linear(2048+768, config.n_embd), nn.Tanh())
+            elif args.fusion_type == 'attention':
+                image_feature_dim = 2048
+                text_feature_dim = 768
+                self.state_encoder = CrossModalityAttention(image_feature_dim, text_feature_dim, config.n_embd)
+                #REVIEW - self.proj = nn.Linear(config.n_embd * 2, config.n_embd)
+            elif args.fusion_type == 'bert':
+                image_feature_dim = 2048
+                text_feature_dim = 768
+                #self.cls_token = nn.Parameter(torch.randn(1, 1, config.n_embd))
+                self.image_embedding = nn.Linear(image_feature_dim, config.n_embd)
+                #REVIEW - Need position embedding? 
+                self.image_pos_emb = nn.Parameter(torch.randn(1, config.n_embd)) 
+                self.text_embedding = nn.Identity()
+                self.text_pos_emb = nn.Parameter(torch.randn(1, config.n_embd))
+                encoder_layer = nn.TransformerEncoderLayer(d_model=config.n_embd * 2, nhead=2, batch_first=True)
+                self.state_encoder = nn.TransformerEncoder(encoder_layer, num_layers=args.bert_layers)
+                self.proj = nn.Linear(config.n_embd * 2, config.n_embd)
+            else: 
+                raise NotImplementedError('Fusion type not implemented')
+        elif args.feature_type == 'feature_map':
+            self.state_encoder = nn.Sequential(nn.Linear())
 
         self.ret_emb = nn.Sequential(nn.Linear(1, config.n_embd), nn.Tanh())
 
