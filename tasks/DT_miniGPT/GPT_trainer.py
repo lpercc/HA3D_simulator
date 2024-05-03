@@ -24,12 +24,16 @@ from transformers import BartModel, BartTokenizer
 from agent import DecisionTransformerAgent
 from env import HCBatch
 from eval import Evaluation
+from lstm_model import AttnDecoderLSTM
 logger = logging.getLogger(__name__)
 import json
 import random
 import cv2
 import torch
 from datetime import datetime
+
+from lstm_model import SoftDotAttention
+
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/results/')
 TENSORBOARD_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/tensorboard_logs/")
@@ -44,7 +48,7 @@ class Trainer:
         self.model_dir = model_dir
         # take over whatever gpus are on the system
         self.device = f'cuda:{self.args.cuda}' if torch.cuda.is_available() else 'cpu'
-        self.model = self.model.to(self.device) #TODO: Add dataparallel in server 
+        self.model = self.model.to(self.device)  
         self.scale_writer = SummaryWriter(os.path.join(TENSORBOARD_DIR, f'{args.experiment_id}_{self.args.fusion_type}_{self.args.feedback_method}_{self.args.reward_strategy}'))
         self.features = os.path.join(HC3D_SIMULATOR_PATH, f'img_features/{self.args.features}.tsv')
         self.tok = BartTokenizer.from_pretrained("facebook/bart-base")
@@ -53,10 +57,34 @@ class Trainer:
             'batch_size' : self.args.batch_size,
             'max_episode_len' : self.args.max_episode_len,
             'reward_strategy' : int(self.args.reward_strategy.split('_')[-1]),
-            'fusion_type' : int(['bert', 'simple', 'attention'].index(self.args.fusion_type)),
+            'fusion_type' : int(['bert', 'simple', 'lstm'].index(self.args.fusion_type)),
             'target_rtg' : self.args.target_rtg,
         } 
         print(f'Hyparams:{self.hparams}')
+        
+    def get_proper_feature(self, x, text_feature_type=0):
+        # text_feature_type: 0: embedding. 1:cls embedding, 2: light embedding
+        image_feature = [] 
+        text_feature = []
+        for features in x: 
+            image_feature.append(features[0])
+            text_feature.append(features[text_feature_type + 1])
+        image_feature_dt = torch.stack(image_feature, dim=1).float() # should be (batch_size, num_steps, feature_dim)
+        text_feature_dt = torch.stack(text_feature, dim=1).float()
+        # should be (batch_size, num_steps, feature_dim) or (batch_size, num_steps, sequence_length, feature_dim)
+        
+        assert image_feature_dt.shape == (image_feature[0].shape[0], len(x), image_feature[0].shape[-1])
+        
+        if text_feature_type == 1:
+            # use cls embedding, no sequence length 
+            assert text_feature_dt.shape == (text_feature[0].shape[0], len(x), text_feature[0].shape[-1])
+        else: 
+            assert text_feature_dt.shape == (text_feature[0].shape[0], len(x), text_feature[0].shape[-2], text_feature[0].shape[-1])
+            
+        
+        
+        return image_feature_dt, text_feature_dt 
+    
     def save_checkpoint(self, path):
         # DataParallel wrappers keep raw model object in .module attribute
         #raw_model = self.model.module if hasattr(self.model, "module") else self.model
@@ -80,27 +108,42 @@ class Trainer:
                     num_workers=self.args.num_workers)
             elif split == 'val_seen':
                 is_train = False
-                loader = DataLoader(self.val_seen_dataset, shuffle=True, pin_memory=True,
-                    batch_size=self.args.batch_size,
-                    num_workers=self.args.num_workers)
+                loader = DataLoader(self.val_seen_dataset, shuffle=True,
+                    batch_size=self.args.batch_size // 2,
+                    num_workers=self.args.num_workers,
+                    pin_memory=True)
             elif split == 'val_unseen':
                 is_train = False
-                loader = DataLoader(self.val_unseen_dataset, shuffle=True, pin_memory=True,
-                    batch_size=self.args.batch_size,
-                    num_workers=self.args.num_workers)
+                loader = DataLoader(self.val_unseen_dataset, shuffle=True,
+                    batch_size=self.args.batch_size // 2,
+                    num_workers=self.args.num_workers,
+                    pin_memory=True)
             self.model.train(is_train)
             losses = []
             pbar = tqdm(enumerate(loader), total=len(loader)) if is_train else enumerate(loader)
             for it, (x, y, _, r, t) in pbar: # states, actions, targets, rtgs, timesteps
                 # place data on the correct device
-                x = x.to(self.device) 
-                y = y.to(self.device)
-                r = r.to(self.device)
-                t = t.to(self.device)
-
-                # forward the model
-                with torch.set_grad_enabled(is_train):
-                    logits, loss = self.model(x, y, y, r, t)
+                image_state, text_state = self.get_proper_feature(x)
+                #print(image_state.shape, text_state.shape)
+                if image_state.ndim == text_state.ndim == 3: 
+                    x = torch.cat([image_state, text_state], dim=-1) # just concat in feat dim. Keep original setting. No sequence length here, 
+                    x = x.to(self.device)
+                    y = y.to(self.device)
+                    r = r.to(self.device)
+                    t = t.to(self.device)
+                    with torch.set_grad_enabled(is_train):
+                        logits, loss = self.model(x, y, y, r, t)
+                else:
+                    x_image = image_state.to(self.device) # 16, 5, 2048
+                    x_text = text_state.to(self.device) # 16, 5, 125, 768 
+                    y = y.to(self.device)
+                    r = r.to(self.device)
+                    t = t.to(self.device)
+                    with torch.set_grad_enabled(is_train):
+                        x = (x_image, x_text)
+                        logits, loss = self.model(x, y, y, r, t)
+                        
+                        
                     loss = loss.mean() # collapse all losses if they are scattered on multiple gpus
                     losses.append(loss.item())
 

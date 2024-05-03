@@ -75,7 +75,11 @@ class HCSimulator(MatterSim.Simulator):
             receiveMessage(self.pipe_R2S)
 
     def newEpisode(self, scanId, viewpointId, heading, elevation):
-        # one building one batch
+        if not isinstance(scanId, list):
+            scanId = [scanId]
+            viewpointId = [viewpointId]
+            heading = [heading]
+            elevation = [elevation]
         super().newEpisode(scanId, viewpointId, heading, elevation)
         if self.isRealTimeRender:
             #print("Loading episode ......")
@@ -114,6 +118,10 @@ class HCSimulator(MatterSim.Simulator):
 
     def makeAction(self, index, heading, elevation):
         self.frame_num += self.framesPerStep
+        if not isinstance(index, list):
+            index = [index]
+            heading = [heading]
+            elevation = [elevation]
         super().makeAction(index, heading, elevation)
         if self.isRealTimeRender:
             self.state = super().getState()[0]

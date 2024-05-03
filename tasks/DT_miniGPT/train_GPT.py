@@ -16,6 +16,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 import math
+import torch.utils
 from torch.utils.data import Dataset
 from minGPT import GPT, GPT1Config, GPTConfig
 from GPT_trainer import Trainer
@@ -34,7 +35,8 @@ from param import args
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 print(f"sim root dir:{HC3D_SIMULATOR_PATH}")
 MODEL_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/models")
-TRAJS_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/trajs")
+#TRAJS_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/trajs")
+TRAJS_DIR = "/datadrive/mount/minghanli/trajs"
 
 # Iterate through the args dictionary and print each entry's key (parameter name) and value
 for key, value in vars(args).items():
@@ -94,7 +96,7 @@ class StateActionReturnDataset(Dataset):
                 done_idx = min(int(i), done_idx)
                 break
         idx = done_idx - block_size
-        states = torch.tensor(np.array(self.data[idx:done_idx]), dtype=torch.float32).reshape(block_size, -1) # (block_size, feature_size)
+        states = self.data[idx:done_idx] # (block_size, feature_size)
         targets = torch.tensor(self.targets[idx:done_idx], dtype=torch.long).unsqueeze(1) # (block_size, 1)
         actions = torch.tensor(self.actions[idx:done_idx], dtype=torch.long).unsqueeze(1) # (block_size, 1)
         rtgs = torch.tensor(self.rtgs[idx:done_idx], dtype=torch.float32).unsqueeze(1) # (block_size, 1)
@@ -143,19 +145,19 @@ def create_dataset(trajs,reward_strategy):
     targets =  []
     done_idxs = []
     for t in trajs: 
-        states.extend(t['state_features'])
-        actions.extend(t['student_actions']) #TODO： 和其对齐
-        rewards.extend(t['final_reward'])
-        targets.extend(t['teacher_actions'])
-        done_idxs.append(len(t['student_actions']) - 1) # -1 because the index starts from 0
+            states.extend(t['state_features'])
+            actions.extend(t['student_actions'])
+            rewards.extend(t['final_reward'])
+            targets.extend(t['teacher_actions'])
+            done_idxs.append(len(t['student_actions']) - 1) # -1 because the index starts from 0
     
     # Convert to numpy arrays
-    states  = np.array(states)
+    # states  = np.array(states)
     targets = np.array(targets)
     rewards = [reward_dict[reward_strategy] for reward_dict in rewards]
     rewards = np.array(rewards)
     actions = np.array(actions)
-    print(f"states shape:{states.shape}, reward shape:{rewards.shape}   ")
+    #print(f"states shape:{states.shape}, reward shape:{rewards.shape}   ")
     assert np.sum(done_idxs) == len(actions) - len(done_idxs), "Error: sum of done_idxs is not equal to length of actions"
     
     
@@ -197,8 +199,13 @@ def create_dataset(trajs,reward_strategy):
     
     
     return states, actions, targets, rtgs,  done_idxs, time_steps
-    
-    
+
+def sample_dataset(dataset, scale):
+    size = len(dataset) // scale
+    subset_indices = torch.randperm(len(dataset))[:size]
+    subset_dataset = torch.utils.data.Subset(dataset, subset_indices)
+    return subset_dataset
+        
 if __name__ == '__main__':
     model_dir = os.path.join(MODEL_DIR, f'{args.experiment_id}_{args.model_name}_{args.feedback_method}_{args.reward_strategy}')
     
@@ -223,6 +230,7 @@ if __name__ == '__main__':
     
     val_unseen_states, val_unseen_actions, val_unseen_targets, val_unseen_rtgs,  val_unseen_done_idxs, val_unseen_time_steps = create_dataset(val_unseen_trajs, args.reward_strategy)
     val_unseen_dataset = StateActionReturnDataset(val_unseen_states, 5 * 3, val_unseen_actions, val_unseen_targets, val_unseen_done_idxs, val_unseen_rtgs, val_unseen_time_steps)
+    #
     # test the dataset 
     try: 
         try_data = train_states[0]
@@ -232,6 +240,11 @@ if __name__ == '__main__':
     mconf = GPT1Config(train_dataset.vocab_size, train_dataset.block_size,
                      model_type=args.model_type, max_timestep=max(train_time_steps))
     model = GPT(mconf)
+    
+    train_dataset = sample_dataset(train_dataset, scale=10)
+    val_seen_dataset = sample_dataset(val_seen_dataset, scale=50)
+    val_unseen_dataset = sample_dataset(val_unseen_dataset, scale=50)
+    print(f"train_dataset len:{len(train_dataset)} val_seen_dataset len:{len(val_seen_dataset)} val_unseen_dataset len:{len(val_unseen_dataset)}")
 
     # initialize a trainer instance and kick off training
     #trainer = Trainer(model, sub_train, val_seen_dataset, val_unseen_dataset, args, model_dir)
@@ -271,6 +284,4 @@ if __name__ == '__main__':
         trainer.save_checkpoint(model_save_path)
     else:
         raise NotImplementedError()
-    
-    
     

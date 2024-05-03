@@ -171,12 +171,17 @@ class HCBatch():
                     new_item['instr_encoding'] = tokenizer.encode_sentence(instr)
                 elif tokenizer and text_embedding_model:
                     with torch.no_grad(): 
-                        inputs = tokenizer(instr, return_tensors="pt")
+                        inputs = tokenizer(instr, padding='max_length', truncation=True, max_length=125, return_tensors="pt") # because now we use a sequence, so we need truncate or padding according to max_length. Dynamic padding is hart to work here because we do not have patch. 
                         inputs = inputs.to(device)
                         text_embedding_model = text_embedding_model.to(device)
                         outputs = text_embedding_model(**inputs)
+                        hidden_states = outputs[2] # The third is the hidden states for all layers. 
+                        # We use a light embedding layers and final layers
                         new_item['instr_encoding'] = inputs['input_ids'].squeeze(0).cpu().numpy()
-                        new_item['instr_embedding'] = outputs[0][:, 0, :].squeeze(0).cpu().numpy()
+                        new_item['instr_cls_embedding'] = outputs[0][:, 0, :].squeeze(0).cpu().numpy()
+                        new_item['instr_light_embedding'] = hidden_states[0].squeeze(0).cpu().numpy() # just use embedding layer
+                        new_item['instr_embedding'] = hidden_states[-1].squeeze(0).cpu().numpy() # use final outputs
+                        # queezee(0) to ignore batch size 
                 self.data.append(new_item)
         
 
@@ -373,11 +378,12 @@ class HCBatch():
                 'isCrashed' : state.isCrushed, # in the simulator, if the agent is crashed, it will be reset to the start point. Threshold is 1.0m.
                 'teacher' : teacher,
             })
-            if 'instr_encoding' in item:
-                obs[-1]['instr_encoding'] = item['instr_encoding']
+            #if 'instr_encoding' in item:
+                #obs[-1]['instr_encoding'] = item['instr_encoding']
             if 'instr_embedding' in item:
-                obs[-1]['instr_embedding'] = item['instr_embedding']
-                obs[-1]['state_features'] = np.concatenate([feature, item['instr_embedding']]) # 2048 + 768 = 2816 feature size
+                #obs[-1]['instr_embedding'] = item['instr_embedding']
+                obs[-1]['state_features'] = (feature, item['instr_embedding'], 
+                                            item['instr_cls_embedding'], item['instr_light_embedding']) # now state feature is a tuple with (image_feature, instr_embedding, instr_cls_embedding and instr_light_embedding)
             # add distance bewteen agent and goal viewpoint 
             obs[-1]['distance'] = self.distances[state.scanId][state.location.viewpointId][item['path'][-1]]
             #obs[-1]['human_distance'] = self._get_human_distance(state) # NOTE: add isCrashed here, so we do not need check human distance

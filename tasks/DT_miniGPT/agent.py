@@ -262,7 +262,30 @@ class DecisionTransformerAgent(BaseAgent):
         self.model = self.model.to(self.device)
         self.model.eval()
         self.max_steps = args.max_episode_len # max run 30 steps
+    
+    def get_proper_feature(self, x, text_feature_type=0):
+        # TODO 重复, 记得更改
+        # text_feature_type: 0: embedding. 1:cls embedding, 2: light embedding
+        image_feature = [] 
+        text_feature = []
+        for features in x: 
+            image_feature.append(features[0])
+            text_feature.append(features[text_feature_type + 1])
+        image_feature_dt = torch.stack(image_feature, dim=1).float() # should be (batch_size, num_steps, feature_dim)
+        text_feature_dt = torch.stack(text_feature, dim=1).float()
+        # should be (batch_size, num_steps, feature_dim) or (batch_size, num_steps, sequence_length, feature_dim)
         
+        assert image_feature_dt.shape == (image_feature[0].shape[0], len(x), image_feature[0].shape[-1])
+        
+        if text_feature_type == 1:
+            # use cls embedding, no sequence length 
+            assert text_feature_dt.shape == (text_feature[0].shape[0], len(x), text_feature[0].shape[-1])
+        else: 
+            assert text_feature_dt.shape == (text_feature[0].shape[0], len(x), text_feature[0].shape[-2], text_feature[0].shape[-1])
+            
+        
+        
+        return image_feature_dt, text_feature_dt 
 
     def _variable_from_obs(self, obs, return_whole=False):
         ''' Extracts the feature tensor from a list of observations. 
@@ -290,6 +313,43 @@ class DecisionTransformerAgent(BaseAgent):
 
         return states, actions, target_returns, timesteps
     
+    def _two_variable_from_obs(self, obs, return_whole=False):
+        ''' Extracts the feature tensor from a list of observations. 
+        - obs[np.array]: a list of observations.
+        '''
+        
+        image_states = []
+        text_states = []
+        
+        for ob in obs: 
+            state = ob['state_features']
+            image_states.append(state[0])
+            text_states.append(state[1])
+        
+        
+        if not return_whole:    
+            image_states = np.stack(image_states, axis=0) # (batch_size, feature_size)
+            text_states = np.stack(text_states, axis=0) # (batch_size, sequence_length, feature_size)
+            # form the shape 
+            image_states = image_states.reshape(len(obs), 1, -1) # (batch_size, 1, feature_size)
+            text_states = text_states.reshape(len(obs), 1, text_states.shape[-2], text_states.shape[-1]) # (batch_size, 1, sequence_length, feature_size)
+            target_returns = np.ones((len(obs), 1, 1)) * 0.5 # set the target return to 3.0, because we have sparse positive reward
+            timesteps = np.zeros((len(obs), 1, 1), dtype=np.int64) # set the timesteps to 0
+            actions = np.zeros((len(obs), 1, 1)) - 1 # set first time is None for action
+        else: 
+            image_states = np.stack(image_states, axis=0) # (batch_size, feature_size)
+            text_states = np.stack(text_states, axis=0) # (batch_size, sequence_length, feature_size)
+            image_states = image_states.reshape(len(obs), 1, -1) # (batch_size, 1, feature_size)
+            text_states = text_states.reshape(len(obs), 1, text_states.shape[-2], text_states.shape[-1]) # (batch_size, 1, sequence_length, feature_size)
+            image_states = np.repeat(image_states, self.max_steps, axis=1)
+            text_states = np.repeat(text_states, self.max_steps, axis=1)
+            target_returns = np.ones((len(obs), self.max_steps, 1)) * args.target_rtg # TODO: add to global config
+            timesteps = np.zeros((len(obs), self.max_steps, 1), dtype=np.int64) # set the timesteps to 0
+            timesteps = np.tile(np.arange(self.max_steps).reshape(1, -1, 1), (len(obs), 1, 1))
+            actions = np.zeros((len(obs), self.max_steps, 1)) # set first time is zero for action,
+
+        return image_states, text_states, actions, target_returns, timesteps
+    
     def _check_action_valid(self, ob):
         ''' if a action is go forward, check if the agent can go forward. If not, resample the action until the agent can go forward.
         '''
@@ -305,7 +365,10 @@ class DecisionTransformerAgent(BaseAgent):
     @torch.no_grad()
     def rollout(self):
         obs = np.array(self.env.reset())
-        states, actions, target_returns, timesteps = self._variable_from_obs(obs, True)
+        if args.fusion_type != 'simple':
+            image_states, text_states, actions, target_returns, timesteps = self._two_variable_from_obs(obs, True)
+        else:
+            states, actions, target_returns, timesteps = self._variable_from_obs(obs, True)
         print(f"target returns: {target_returns}")
         batch_size = len(obs)
         ended = [False for _ in range(batch_size)]
@@ -330,14 +393,23 @@ class DecisionTransformerAgent(BaseAgent):
             
             for i, ob in enumerate(obs):
                 # get the state, action, target_return, timestep for this observation
-                state = states[i:i+1, :step + 1, :] # size (1, step + 1, feature_size)
+                if args.fusion_type != 'simple':
+                    image_state = image_states[i:i+1, :step + 1, :] # size (1, step + 1, feature_size)
+                    text_state = text_states[i:i+1, :step + 1, :, :]
+                else:
+                    state = states[i:i+1, :step + 1, :] # size (1, step + 1, feature_size)
                 action = actions[i:i+1, :step + 1, :]  # size (1, step + 1, 1)
                 target_return = target_returns[i:i+1, :step + 1, :]  # size (1, step + 1, 1)
                 timestep = timesteps[i:i+1, :step + 1, :]  # size (1, step + 1, 1)
 
                 # inference the model
                 with torch.no_grad():
-                    state_t = torch.tensor(state, dtype=torch.float32).to(self.device)
+                    if args.fusion_type != 'simple':
+                        image_state_t = torch.tensor(image_state, dtype=torch.float32).to(self.device)
+                        text_state_t = torch.tensor(text_state, dtype=torch.float32).to(self.device)
+                        state_t = (image_state_t, text_state_t)
+                    else:
+                        state_t = torch.tensor(state, dtype=torch.float32).to(self.device)
                     action_t = torch.tensor(action, dtype=torch.long).to(self.device)
                     target_return_t = torch.tensor(target_return, dtype=torch.float32).to(self.device)
                     timestep_t = torch.tensor(timestep, dtype=torch.int64).to(self.device)
@@ -383,7 +455,10 @@ class DecisionTransformerAgent(BaseAgent):
             obs = self.env.step(actions_to_env)
             
             # get new states, actions, target_returns, timesteps
-            new_states, _, _, _ = self._variable_from_obs(obs)
+            if args.fusion_type != 'simple':
+                new_image_states, new_text_states, _,_, _ = self._two_variable_from_obs(obs, False)
+            else:
+                new_states, _, _, _ = self._variable_from_obs(obs, True)
             # calculate next rewards
             next_rewards = np.zeros((batch_size, 1, 1))
             for i, ob in enumerate(obs):
@@ -398,12 +473,14 @@ class DecisionTransformerAgent(BaseAgent):
             # updated stuffs should add to sequence 
             # # DONE: change to modify a numpy array in place instead of concatenate
             if step < self.max_steps - 1:
-                states[:, step+1, :] = new_states.reshape(batch_size, -1)
+                if args.fusion_type != 'simple':
+                    image_states[:, step+1, :] = new_image_states.squeeze(1)
+                    text_states[:, step+1, :, :] = new_text_states.squeeze(1)
+                else:
+                    states[:, step+1, :] = new_states.reshape(batch_size, -1)
                 target_returns[:, step+1, :] = target_returns[:, step, :].reshape(batch_size, -1) - next_rewards.reshape(batch_size, -1)
 
             for i, ob in enumerate(obs):
-                # 如果观察已结束，并且还没有记录过结束信息，则记录
-                #TODO - 改成方便 Json 解析的形式
                 if ended[i] and i not in ended_set:
                     print(f'ob{i} ended, recorded')
                     #FIXME - traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation'], ob['isCrashed']))

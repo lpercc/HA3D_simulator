@@ -23,7 +23,10 @@ import logging
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+
 from param import args
+
+from lstm_model import SoftDotAttention
 
 logger = logging.getLogger(__name__)
 
@@ -32,45 +35,6 @@ import numpy as np
 class GELU(nn.Module):
     def forward(self, input):
         return F.gelu(input)
-    
-class CrossAttention(nn.Module):
-    def __init__(self, d_model, num_heads):
-        super(CrossAttention, self).__init__()
-        assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
-        
-        self.d_model = d_model
-        self.num_heads = num_heads
-        self.d_k = d_model // num_heads
-        
-        self.W_q = nn.Linear(d_model, d_model)
-        self.W_k = nn.Linear(d_model, d_model)
-        self.W_v = nn.Linear(d_model, d_model)
-        self.W_o = nn.Linear(d_model, d_model)
-        
-    def scaled_dot_product_attention(self, Q, K, V, mask=None):
-        attn_scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.d_k)
-        if mask is not None:
-            attn_scores = attn_scores.masked_fill(mask == 0, -1e9)
-        attn_probs = torch.softmax(attn_scores, dim=-1)
-        output = torch.matmul(attn_probs, V)
-        return output
-        
-    def split_heads(self, x):
-        batch_size, seq_length, d_model = x.size()
-        return x.view(batch_size, seq_length, self.num_heads, self.d_k).transpose(1, 2)
-        
-    def combine_heads(self, x):
-        batch_size, _, seq_length, d_k = x.size()
-        return x.transpose(1, 2).contiguous().view(batch_size, seq_length, self.d_model)
-        
-    def forward(self, Q, K, V, mask=None):
-        Q = self.split_heads(self.W_q(Q))
-        K = self.split_heads(self.W_k(K))
-        V = self.split_heads(self.W_v(V))
-        
-        attn_output = self.scaled_dot_product_attention(Q, K, V, mask)
-        output = self.W_o(self.combine_heads(attn_output))
-        return output
 
 class GPTConfig:
     """ base GPT config, params common to all GPT versions """
@@ -187,7 +151,7 @@ class GPT(nn.Module):
         logger.info("number of parameters: %e", sum(p.numel() for p in self.parameters()))
 
         # our task, state 
-        if args.fusion_type == 'simple':
+        '''if args.fusion_type == 'simple':
             self.state_encoder = nn.Sequential(nn.Linear(2048+768, config.n_embd), nn.Tanh())
         elif args.fusion_type == 'attention':
             #TODO - Add complex fusion here
@@ -213,8 +177,21 @@ class GPT(nn.Module):
             self.state_encoder = nn.TransformerEncoder(encoder_layer, num_layers=args.bert_layers)
             self.proj = nn.Linear(config.n_embd * 2, config.n_embd)
         else: 
-            raise NotImplementedError('Fusion type not implemented')
+            raise NotImplementedError('Fusion type not implemented')'''
 
+        if args.fusion_type == 'simple':
+            self.state_encoder = nn.Sequential(nn.Linear(2048+768, config.n_embd), nn.Tanh())
+        elif args.fusion_type == 'lstm':
+            self.image_drop = nn.Dropout(0.2)
+            self.state_encoder = SoftDotAttention(2048, config.n_embd)
+        elif args.fusion_type == 'bert': 
+            transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=config.n_embd, nhead=8)
+            self.image_drop = nn.Dropout(0.2)
+            self.image_embedding = nn.Linear(2048, config.n_embd)
+            self.state_encoder = nn.TransformerEncoder(transformer_encoder_layer, num_layers=4)
+            
+            
+        
         self.ret_emb = nn.Sequential(nn.Linear(1, config.n_embd), nn.Tanh())
 
         self.action_embeddings = nn.Sequential(nn.Embedding(config.vocab_size, config.n_embd), nn.Tanh())
@@ -299,32 +276,33 @@ class GPT(nn.Module):
 
         
         assert self.model_type == 'reward_conditioned', "The model type should be reward_conditioned"
-        if args.fusion_type == 'simple':
-            state_embeddings = self.state_encoder(states.type(torch.float32)) # (batch , block_size // 3, n_embd)
-        elif args.fusion_type == 'attention': 
-            image_features = states[:, :, :2048]
-            text_features = states[:, :, 2048:]
-            image_embeddings = F.normalize(self.image_embedding(image_features), dim=-1)
-            text_embeddings = F.normolize(self.text_embedding(text_features), dim=-1)
-            #NOTE - Here we use text as query
-            state_embeddings = self.state_encoder(image_embeddings, text_embeddings, text_embeddings)
-        elif args.fusion_type == 'bert':
-            image_features = states[:, :, :2048]
-            text_features = states[:, :, 2048:]
-            #NOTE - sure the text_image_embedding is masked
-            text_embedding = F.normalize(self.text_embedding(text_features), dim=-1) + self.text_pos_emb
-            image_embedding = F.normalize(self.image_embedding(image_features), dim=-1) + self.image_pos_emb
-            text_image_embedding = torch.cat([text_embedding, image_embedding], dim=1) # cat on the sequence Length dim
-            state_embeddings = self.state_encoder(text_image_embedding)
-            
-            
         
+        if args.fusion_type == 'simple':
+            assert states.shape[-1] == 2048 + 768, "The input state shape is not correct"
+            state_embeddings = F.normalize(self.state_encoder(states.type(torch.float32)), dim=-1) # (batch , block_size // 3, n_embd)
+        elif args.fusion_type == 'lstm': 
+            # in this setting, input will be a tuple 
+            image_feat, text_feat = states
+            #NOTE - Here we use text as query
+            state_embeddings, _ = self.state_encoder(image_feat, text_feat)
+            #print(state_embeddings.size())
+        elif args.fusion_type == 'bert':
+            # in this setting, input will be a tuple 
+            image_feat, text_feat = states
+            
+            image_embeddings = self.image_embedding(image_feat)
+            image_embeddings = image_embeddings.reshape(-1, 1, image_embeddings.shape[-1])
+            text_embeddings = text_feat.reshape(-1, text_feat.shape[-2], text_feat.shape[-1]) # batchsize * 5, sequence_length , 768
+            state_embeddings = torch.concat([image_embeddings, text_embeddings], dim=1)
+            state_embeddings = self.state_encoder(image_embeddings, text_embeddings)
+            state_embeddings = self.proj(state_embeddings)
+            
         rtg_embeddings = self.ret_emb(rtgs.type(torch.float32)) # (batch, block_size // 3, n_embd)
         
         if actions is not None and self.model_type == 'reward_conditioned':
             action_embeddings = self.action_embeddings(actions.type(torch.long).squeeze(-1)) # (batch, block_size // 3, n_embd)
         elif actions is None and self.model_type == 'reward_conditioned':
-            action_embeddings = torch.zeros((states.shape[0], states.shape[1], self.config.n_embd), dtype=torch.float32, device=state_embeddings.device) # (batch, block_size // 3, n_embd)
+            action_embeddings = torch.zeros((state_embeddings.shape[0], state_embeddings.shape[1], self.config.n_embd), dtype=torch.float32, device=state_embeddings.device) # (batch, block_size // 3, n_embd)
             
         time_embeddings = self.time_emb(timesteps.type(torch.long).squeeze(-1)) # (batch, block_size // 3, n_embd)
             
@@ -417,7 +395,12 @@ class GPT(nn.Module):
         """
         
         # reshape the input tensors to have a batch 1 
-        states = states.reshape(1, -1, states.shape[-1])
+        if args.fusion_type == 'simple':
+            states = states.reshape(1, -1, states.shape[-1])
+        else: 
+            image_states, text_states = states
+            image_states = image_states.reshape(1, -1, image_states.shape[-1])
+            text_states = text_states.reshape(1, -1, text_states.shape[-2], text_states.shape[-1])
         actions = actions.reshape(1, -1, actions.shape[-1])
         rtgs = rtgs.reshape(1, -1, rtgs.shape[-1])
         timesteps = timesteps.reshape(1, -1, 1)
@@ -425,25 +408,36 @@ class GPT(nn.Module):
         # Pad the input tensors if max_length is specified 
         if self.config.max_length is not None: 
             # Truncate the input tensors to the max_length
-            states = states[:, -self.config.max_length:, :]
+            if args.fusion_type == 'simple':
+                states = states[:, -self.config.max_length:, :]
+            else:
+                image_states = image_states[:, -self.config.max_length:, :]
+                text_states = text_states[:, -self.config.max_length:, :, :]
+            #states = states[:, -self.config.max_length:, :]
             actions = actions[:, -self.config.max_length:, :]
             rtgs = rtgs[:, -self.config.max_length:, :]
             timesteps = timesteps[:, -self.config.max_length:, :]
             
             # Here we create a attention mask to indicate the valid positions in the padded sequences 
             # Size of the padding tensors: (1, max_length - states.shape[1], states.shape[-1]), size of original tensors: (1, states.shape[1], states.shape[-1]), final size: (1, max_length, states.shape[-1])
-            padding_states = torch.concatenate([torch.zeros((1, self.config.max_length - states.shape[1], states.shape[-1]), dtype=torch.float32, device=states.device), states], dim=1) 
+            if args.fusion_type == 'simple':
+                padding_states = torch.concatenate([torch.zeros((1, self.config.max_length - states.shape[1], states.shape[-1]), dtype=torch.float32, device=states.device), states], dim=1) 
+            else: 
+                padding_image_states = torch.concatenate([torch.zeros((1, self.config.max_length - image_states.shape[1], image_states.shape[-1]), dtype=torch.float32, device=image_states.device), image_states], dim=1)
+                padding_text_states = torch.concatenate([torch.zeros((1, self.config.max_length - text_states.shape[1], text_states.shape[-2], text_states.shape[-1]), dtype=torch.float32, device=text_states.device), text_states], dim=1)
+                padding_states = (padding_image_states, padding_text_states)
             padding_actions = torch.concatenate([torch.zeros((1, self.config.max_length - actions.shape[1], actions.shape[-1]), dtype=torch.int64, device=actions.device), actions], dim=1)
             padding_rtgs = torch.concatenate([torch.zeros((1, self.config.max_length - rtgs.shape[1], rtgs.shape[-1]), dtype=torch.float32, device=rtgs.device), rtgs], dim=1)
             padding_timesteps = torch.concatenate([torch.zeros((1, self.config.max_length - timesteps.shape[1], timesteps.shape[-1]), dtype=torch.int64, device=timesteps.device), timesteps], dim=1)
             
             # for a padding_tensor, we have a mask value of it 
-            attention_mask = torch.cat([torch.zeros((1, self.config.max_length - states.shape[1]), dtype=torch.int64, device=states.device), torch.ones((1, states.shape[1]), dtype=torch.int64, device=states.device)], dim=1).reshape(1, 1, 1, self.config.max_length)
+            #attention_mask = torch.cat([torch.zeros((1, self.config.max_length - states.shape[1]), dtype=torch.int64, device=states.device), torch.ones((1, states.shape[1]), dtype=torch.int64, device=states.device)], dim=1).reshape(1, 1, 1, self.config.max_length)
             
         else: 
             attention_mask = None
             
         # now we can run the model in inference mode, no need to pass labels
+        
         action_preds, _ = self.forward(padding_states, padding_actions, None, padding_rtgs, padding_timesteps)
         
         return action_preds

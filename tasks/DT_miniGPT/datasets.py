@@ -16,7 +16,7 @@ from tqdm import tqdm
 from env import HCBatch
 from agent import RandomAgent, TeacherAgent
 import pickle
-from transformers import BartTokenizer, BartModel
+from transformers import BertTokenizer, BertModel
 import sys
 
 from dataclasses import dataclass
@@ -25,11 +25,11 @@ from dataclasses import dataclass
 class Config:
     # Dataset Path and Name
     HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
-    TRAJS_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/trajs')
+    TRAJS_DIR = os.path.join(HC3D_SIMULATOR_PATH, '/datadrive/mount/minghanli/trajs')
     IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet_80_16_mean.tsv'
     features = IMAGENET_FEATURES
     batch_size = 100
-    name = 'right_left_mix_teacher' #LINK - should work wit param.py
+    name = 'new_text_feature' #LINK - should work wit param.py
     
     # Dataset Size 
     max_eposide_length = 30
@@ -123,9 +123,8 @@ def train_run(dataset_cfg, agent='random', gpu_id=0, n_iters=0):
         os.makedirs(trajs_dir)
     setup()
     device = f'cuda:{gpu_id}' if torch.cuda.is_available() else 'cpu'
-    
-    tok = BartTokenizer.from_pretrained('facebook/bart-base')
-    embedding_model = BartModel.from_pretrained('facebook/bart-base')
+    tok = BertTokenizer.from_pretrained('bert-base-uncased')
+    embedding_model = BertModel.from_pretrained('bert-base-uncased', output_hidden_states=True)
     train_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
     if agent == 'random':
         trajs = train_random(dataset_cfg, train_env, n_iters)
