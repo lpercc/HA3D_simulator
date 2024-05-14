@@ -17,3 +17,4 @@ models/
 trajs/
 nohup.out
 tensorboard_logs/
+sim_imgs/

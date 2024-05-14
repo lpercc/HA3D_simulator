@@ -20,7 +20,7 @@ import random
 
 WIDTH = 800
 HEIGHT = 600
-VFOV = 60
+VFOV = 120
 HFOV = VFOV*WIDTH/HEIGHT
 TEXT_COLOR = [230, 40, 40]
 ANGLEDELTA = 5 * math.pi / 180
@@ -159,7 +159,7 @@ class myMainWindow(Ui_Form,QMainWindow):
     def updatePath(self):
         self.pushButtonRandomBeginning.setEnabled(False)
         self.timer.stop()
-        self.sim.newEpisode([self.scanID], [self.pathItem['path'][0]], [0], [0])
+        self.sim.newEpisode([self.scanID], [self.pathItem['path'][0]], [self.pathItem['heading']], [0])
         self.timer.start()
         self.labelPathHeading.setText(f"{self.pathItem['heading']:.3f}")
         self.labelPathDistance.setText(f"{self.pathItem['distance']:.2f}")
@@ -241,11 +241,15 @@ class myMainWindow(Ui_Form,QMainWindow):
         elif event.key() == Qt.Key_B:
             sim.makeAction([0], [0], [0])
             print("Back")
+        elif event.key() == Qt.Key_C:
+            imgfile = f"sim_imgs/{self.agentState.scanId}_{self.pathItem['path_id']}_{self.agentState.step}.png"
+            cv2.imwrite(imgfile, self.agentState.rgb)
         super().keyPressEvent(event)
 
+
     def updateAgentState(self):
-        self.agentState = self.sim.getState()[0]
-        rgb = np.array(self.agentState.rgb, copy=False)
+        self.agentState = self.sim.getState(4)[0]
+        rgb = np.array(self.agentState.rgb, copy=True)
         drawCentering(rgb, 20)
         # 将 NumPy 数组转换为 QImage 对象
         height, width, channel = rgb.shape

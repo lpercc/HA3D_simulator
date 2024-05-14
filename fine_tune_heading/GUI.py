@@ -4,6 +4,7 @@ import json
 import time
 import trimesh
 import imageio.v2 as imageio
+sys.path.append('./')
 from src.render.renderer import get_renderer
 from src.render.rendermdm import render_first_frame, render_video
 from src.utils.concat_skybox import concat

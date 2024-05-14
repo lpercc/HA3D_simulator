@@ -132,7 +132,7 @@ class HCSimulator(MatterSim.Simulator):
                 #print(f"Waiting {data['function']}")
             receiveMessage(self.pipe_R2S)
             self.renderScene()
-        if self.frame_num >= 80:
+        if self.frame_num >= 120:
             self.frame_num = 0
     def renderScene(self):
         self.state = HCSimState(self.state)
@@ -155,6 +155,9 @@ class HCSimulator(MatterSim.Simulator):
     def getState(self, framesPerStep=1):
         states = []
         self.framesPerStep = framesPerStep
+        #self.frame_num += self.framesPerStep
+        if self.frame_num >= 120:
+            self.frame_num = 0
         if self.isRealTimeRender:
             data = {
                 'function':'get state',
@@ -194,7 +197,6 @@ class HCSimulator(MatterSim.Simulator):
                 else:
                     state.isCrushed = 0
                 states.append(state)
-
         return states
 
     def getHumanState(self, scanID=''):

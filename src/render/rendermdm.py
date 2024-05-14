@@ -23,7 +23,6 @@ def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle,
     #0.25mm per unit
     background_depth = cv2.imread(os.path.join(basic_data_dir, "data/v1/scans", scan_id, "matterport_panorama_depth", f"{view_id}.png"), cv2.IMREAD_GRAYSCALE)
     # convert M
-    background_depth = background_depth * 0.25 * 0.2
     #print(np.min(background_depth), np.max(background_depth))
     # Matterport3D坐标-->pyrende坐标
     cam_loc = (cam_loc[0], cam_loc[2], -cam_loc[1])
@@ -53,7 +52,7 @@ def render_first_frame(mesh, background, cam_loc, cam_angle, human_loc, human_an
     #0.25mm per unit
     background_depth = cv2.imread(os.path.join(basic_data_dir, "data/v1/scans", scan_id, "matterport_panorama_depth", f"{view_id}.png"), cv2.IMREAD_GRAYSCALE)
     # convert M
-    background_depth = background_depth * 0.25 * 0.2
+    background_depth = background_depth
     # Matterport3D坐标-->pyrende坐标
     cam_loc = (cam_loc[0], cam_loc[2], -cam_loc[1])
     human_loc = (human_loc[0], human_loc[2]-1.36, -human_loc[1])
