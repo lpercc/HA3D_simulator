@@ -117,7 +117,8 @@ def load_data(data_dir, trajs_type):
             if args.mode == 'debug':
                 train_trajs.extend(train_traj[:args.train_samples])
             else:
-                train_trajs.extend(train_traj)
+                sampled_trajs = random.sample(train_traj, args.train_samples)
+                train_trajs.extend(sampled_trajs)
 
         with open(os.path.join(data_dir, f"val_seen_trajs_{traj_type}_{args.dataset_name}.pkl"), 'rb') as f: #DONE: change to support pkl 
             val_seen_traj = pickle.load(f) # 
@@ -252,6 +253,7 @@ if __name__ == '__main__':
 
 
     if args.mode == 'val':
+        print(model_dir)
         for model_file in os.listdir(model_dir):
             if model_file.endswith(".pth"):
                 cpt_path = os.path.join(model_dir, model_file)

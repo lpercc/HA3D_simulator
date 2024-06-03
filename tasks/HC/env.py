@@ -14,7 +14,7 @@ import networkx as nx
 from scripts.video_feature_loader import TimmExtractor 
 import torch
 from utils import load_datasets, load_nav_graphs, relHumanAngle, remove_local_nodes_and_find_path, remove_global_nodes_and_find_path, horizontal_and_elevation_angles
-
+from param import args
 from tqdm import tqdm 
 import pickle
 
@@ -109,6 +109,7 @@ class EnvBatch():
                 long_id = self._make_id(state.scanId, state.location.viewpointId)
                 if self.features:
                     feature = self.features[long_id][state.viewIndex,state.step%STEPS,:]
+                    #feature = self.features[long_id][state.viewIndex,0,:]
                     feature_states.append((feature, state))
                 else:
                     feature_states.append((None, state))
@@ -237,7 +238,7 @@ class HCBatch():
         scanGraph = self.graphs[state.scanId]
         humanLocations = self.env.getHumanLocations(state.scanId)
 
-        path = remove_close_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
+        path = remove_local_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
         nextViewpointId = path[1]
         # Can we see the next viewpoint?
         for i,loc in enumerate(state.navigableLocations):
@@ -266,6 +267,8 @@ class HCBatch():
             path = remove_global_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
         elif strategy == 'local':
             path = remove_local_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId, radius)
+        elif strategy =='shortest':
+            path = self.paths[state.scanId][state.location.viewpointId][goalViewpointId]
         nextViewpointId = path[1]
         # Can we see the next viewpoint?
         for i,loc in enumerate(state.navigableLocations):
@@ -305,7 +308,7 @@ class HCBatch():
         scanGraph = self.graphs[state.scanId]
         humanLocations = self.env.getHumanLocations(state.scanId)
 
-        path = remove_close_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
+        path = remove_local_nodes_and_find_path(scanGraph, humanLocations, state.location.viewpointId, goalViewpointId)
         assert path[0] == state.location.viewpointId
         nextViewpointId = path[1]
         return nextViewpointId
@@ -356,13 +359,11 @@ class HCBatch():
         for i,(feature,state) in enumerate(self.env.getStates()):
             item = self.batch[i]
             if self.action_level == 'LLA':
-                teacher = self._shortest_path_action_avoid_human_LLA(state, item['path'][-1], strategy='local', radius=4.5)
+                teacher = self._shortest_path_action_avoid_human_LLA(state, item['path'][-1], strategy=args.teacher_strategy, radius=args.teacher_radius)
             elif self.action_level == 'sLLA':
                 teacher = self._shortest_path_action_avoid_human_sLLA(state, item['path'][-1])
             elif self.action_level == 'HLA':
                 teacher = self._shortest_path_action_avoid_human_HLA(state, item['path'][-1])
-            else:
-                teacher = self._shortest_path_action(state, item['path'][-1])
             obs.append({
                 'instr_id' : item['instr_id'],
                 'scan' : state.scanId,

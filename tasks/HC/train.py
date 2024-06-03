@@ -23,8 +23,8 @@ from utils import (
 
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 
-TRAIN_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/data/train_vocab.txt')
-TRAINVAL_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/data/trainval_vocab.txt')
+TRAIN_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/R2R/data/train_vocab.txt')
+TRAINVAL_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/R2R/data/trainval_vocab.txt')
 RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/results/')
 SNAPSHOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/snapshots/')
 PLOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/plots/')
@@ -45,8 +45,9 @@ weight_decay = args.weight_decay
 n_iters = args.n_iters
 model_prefix = args.model_prefix
 actionLevel = args.action_level
+random_rate = args.random_rate
 print(str(args)+"\n")
-def train(train_env, encoder, decoder, n_iters, log_every=100, val_envs={}):
+def train(train_env, encoder, decoder, n_iters, log_every=20000, val_envs={}):
     ''' Train on training set, validating on both seen and unseen. '''
 
     agent = Seq2SeqAgent(train_env, "", encoder, decoder, max_episode_len)
@@ -64,7 +65,7 @@ def train(train_env, encoder, decoder, n_iters, log_every=100, val_envs={}):
         data_log['iteration'].append(iter)
 
         # Train for log_every interval
-        agent.train(encoder_optimizer, decoder_optimizer, interval, feedback=feedback_method)
+        agent.train(encoder_optimizer, decoder_optimizer, interval, feedback=feedback_method, random_rate=random_rate)
         train_losses = np.array(agent.losses)
         assert len(train_losses) == interval
         train_loss_avg = np.average(train_losses)
@@ -187,7 +188,6 @@ def valid_teacher():
         #agent.test(use_dropout=False, feedback='argmax', iters=iters)
         agent.test_teacher(args.action_level)
         agent.write_results()
-        #agent.write_results()
         if env_name != '' and (not env_name.startswith('test')):
             score_summary, _ = evaluator.score(agent.results_path)
             loss_str = "Env name: %s" % env_name
@@ -195,10 +195,50 @@ def valid_teacher():
                 loss_str += ', %s: %.4f' % (metric, val)
             print(loss_str)
 
-            record_file = open(os.path.join(PLOT_DIR, f'teacher_{args.action_level}_local3_valid_log.txt'), 'a')
+            record_file = open(os.path.join(PLOT_DIR, f'teacher_{args.action_level}_{args.teacher_strategy}{args.teacher_radius}_valid_log.txt'), 'a')
             record_file.write(loss_str + '\n')
             record_file.close()
 
+def valid_agent():
+    setup()
+    device = f'cuda:{args.cuda}' if torch.cuda.is_available() else 'cpu'
+    # Create a batch training environment that will also preprocess text
+    vocab = read_vocab(TRAIN_VOCAB)
+    tok = Tokenizer(vocab=vocab, encoding_length=MAX_INPUT_LENGTH)
+    train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, device=device)
+
+    # Creat validation environments
+    val_envs = {split: (HCBatch(features, batch_size=batch_size, splits=[split],
+                tokenizer=tok, device=device), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
+
+    # Build models and train
+    enc_hidden_size = hidden_size//2 if bidirectional else hidden_size
+    encoder = EncoderLSTM(len(vocab), word_embedding_size, enc_hidden_size, padding_idx,
+                  dropout_ratio, bidirectional=bidirectional).cuda()
+    decoder = AttnDecoderLSTM(Seq2SeqAgent.n_inputs(), Seq2SeqAgent.n_outputs(),
+                  action_embedding_size, hidden_size, dropout_ratio).cuda()
+    torch.set_grad_enabled(False)
+
+    agent = Seq2SeqAgent(train_env, "", encoder, decoder, max_episode_len)
+    encoder_path = "tasks/R2R/snapshots/seq2seq_sample_imagenet_train_enc_iter_20000"
+    decoder_path = "tasks/R2R/snapshots/seq2seq_sample_imagenet_train_dec_iter_20000"
+    agent.load(encoder_path, decoder_path)
+    for env_name, (env, evaluator) in val_envs.items():
+        agent.env = env
+        agent.results_path = '%s%s_%s_iter_%s.json' % (RESULT_DIR, model_prefix, env_name, actionLevel)
+        agent.test(use_dropout=False, feedback='argmax')
+        #agent.test_teacher(args.action_level)
+        agent.write_results()
+        if env_name != '' and (not env_name.startswith('test')):
+            score_summary, _ = evaluator.score(agent.results_path)
+            loss_str = "Env name: %s" % env_name
+            for metric,val in score_summary.items():
+                loss_str += ', %s: %.4f' % (metric, val)
+            print(loss_str)
+
+            record_file = open(os.path.join(PLOT_DIR, f'train_on_r2r_mp3d_valid_log.txt'), 'a')
+            record_file.write(loss_str + '\n')
+            record_file.close()
 
 if __name__ == "__main__":
     if not os.path.exists(os.path.dirname(RESULT_DIR)):
@@ -210,4 +250,5 @@ if __name__ == "__main__":
     #eval_DT()
     train_val()
     #valid_teacher()
+    #valid_agent()
     #test_submission()

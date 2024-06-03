@@ -16,7 +16,7 @@ sys.path.append('./')
 HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
 HUMAN_VIEWPOINT = os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_pair/human_motion_text.json')
 NEW_DATA = True
-
+PLOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/plots/')
 
 class Evaluation(object):
     ''' Results submission format:  [{'instr_id': string, 'trajectory':[(viewpoint_id, heading_rads, elevation_rads),] } ] '''
@@ -52,26 +52,40 @@ class Evaluation(object):
                 near_d = d
         return near_id
     
-    def _get_human_distance(self, gt, path):
+    def _get_hit_score(self, gt, path):
         ''' 计算当前路径上, 与人碰撞的次数, 则计为 1, 否则计为 0 
         path id 是当前 eval 的 path
         path 是之前的 trajectory. 
         '''
         hits = []
         flag = 0
+        hits_se = []
+        flag_se = 0    
+        hits_sek = []
+        flag_sek = 0
+
         for i, ob in enumerate(path): 
+            #不减去有人的起点、终点、关键点
             if ob[3]:
                 hits.append(1)
                 flag = 1
             else:
                 hits.append(0)
+            #减去有人的起点、终点
+            if ob[3] and (ob[0] != gt['crux_points'][0]) and (ob[0] != gt['crux_points'][-1]) :
+                hits_se.append(1)
+                flag_se = 1
+            else:
+                hits_se.append(0)
+            #减去有人的起点、终点、关键点
+            if ob[3] and ob[0] not in gt['crux_points']:
+                hits_sek.append(1)
+                flag_sek = 1
+            else:
+                hits_sek.append(0)   
 
-        penalty = 0           
-        for human in gt['human']:
-            if human['human_rel_pos'] == 'Beginning' or human['human_rel_pos'] == 'End':
-                penalty += 1
-        return hits, flag, penalty
-                
+        return hits, flag, hits_se, flag_se, hits_sek, flag_sek
+           
         # 我要每一次都做一次 loop 吗? 所有路径上看一遍有没有人? 
         # 这里需要知道当前路径的 Viewpoint ID, 然后索引这周边人的位置, 计算距离. 
         # 假设人 viewpointID 也在联通图中
@@ -94,10 +108,15 @@ class Evaluation(object):
         
         
         if NEW_DATA:
-            hits, hit, penalty = self._get_human_distance(gt, path)
-            total_hits = sum(hits) - penalty
-            self.scores['total_hits'].append(total_hits)
+            hits, hit, hits_se, hit_se, hits_sek, hit_sek = self._get_hit_score(gt, path)
+            self.scores['total_hits'].append(sum(hits))
             self.scores['hit'].append(hit)
+            
+            self.scores['total_hits_se'].append(sum(hits_se))
+            self.scores['hit_se'].append(hit_se)
+            
+            self.scores['total_hits_sek'].append(sum(hits_sek))
+            self.scores['hit_sek'].append(hit_sek)
             
             
         self.scores['nav_errors'].append(self.distances[gt['scan']][final_position][goal])
@@ -136,6 +155,12 @@ class Evaluation(object):
         if NEW_DATA:
             total_hits_rate = float(sum(self.scores['total_hits']))/float(len(self.scores['total_hits'])) # 新的 Metric, hits rate, 总共撞击的次数 / 总的运行次数
             hits_rate = float(sum(self.scores['hit']))/float(len(self.scores['hit'])) # 新的 Metric, hits rate, 总共撞击的次数 / 总的运行次数
+            
+            total_hits_se_rate = float(sum(self.scores['total_hits_se']))/float(len(self.scores['total_hits_se'])) # 新的 Metric, hits rate, 总共撞击的次数 / 总的运行次数
+            hits_se_rate = float(sum(self.scores['hit_se']))/float(len(self.scores['hit_se'])) # 新的 Metric, hits rate, 总共撞击的次数 / 总的运行次数
+            
+            total_hits_sek_rate = float(sum(self.scores['total_hits_sek']))/float(len(self.scores['total_hits_sek'])) # 新的 Metric, hits rate, 总共撞击的次数 / 总的运行次数
+            hits_sek_rate = float(sum(self.scores['hit_sek']))/float(len(self.scores['hit_sek'])) # 新的 Metric, hits rate, 总共撞击的次数 / 总的运行次数
     
             
             num_successes_nohits = len([i for i, h in zip(self.scores['nav_errors'], self.scores['total_hits']) if i < self.error_margin and h == 0]) # 新的 Metric, 没有撞击到人才算成功
@@ -169,6 +194,10 @@ class Evaluation(object):
                 'spl': np.average(spls),
                 'total_hits_rate': total_hits_rate,
                 'hits_rate': hits_rate, # 新的 Metric, hits rate, 单次撞击的次数的总和 / 总的运行次数
+                'total_hits_se_rate': total_hits_se_rate,
+                'hits_se_rate': hits_se_rate, # 新的 Metric, hits rate, 单次撞击的次数的总和 / 总的运行次数
+                'total_hits_sek_rate': total_hits_sek_rate,
+                'hits_sek_rate': hits_sek_rate, # 新的 Metric, hits rate, 单次撞击的次数的总和 / 总的运行次数
                 'politeness_rate': politeness_rate,
                 'successes_nohits_rate': float(num_successes_nohits)/float(len(self.scores['nav_errors'])),
                 'hits_weighted_success_rate': float(weighted_num_successes)/float(len(self.scores['nav_errors'])),
@@ -227,17 +256,18 @@ def eval_simple_agents():
 
 def eval_seq2seq():
     ''' Eval sequence to sequence models on val splits (iteration selected from training error) '''
-    outfiles = [
-        RESULT_DIR + 'seq2seq_sample_imagenet_%s_iter_100.json',
-        RESULT_DIR + 'seq2seq_sample_imagenet_%s_iter_200.json'
-    ]
     print('eval_seq2seq')
-    for outfile in outfiles:
-        for split in ['val_seen', 'val_unseen']:
-            ev = Evaluation([split])
-            score_summary, _ = ev.score(outfile % split)
-            print('\n%s' % outfile)
-            pp.pprint(score_summary)
+    for split in ['val_seen', 'val_unseen']:
+        ev = Evaluation([split])
+        score_summary, _ = ev.score(os.path.join(RESULT_DIR, f'seq2seq_sample_noavoid_imagenet_{split}_iter_20000.json'))
+        log_str = "Env name: %s" % split
+        for metric,val in score_summary.items():
+            log_str += ', %s: %.4f' % (metric, val)
+        print(log_str)
+
+        record_file = open(os.path.join(PLOT_DIR, f'seq2seq_sample_noavoid_imagenet_iter_20000_valid_log.txt'), 'a')
+        record_file.write(log_str + '\n')
+        record_file.close()
 
 
 if __name__ == '__main__':

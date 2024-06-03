@@ -93,7 +93,7 @@ class SoftDotAttention(nn.Module):
         attn = torch.bmm(context, target).squeeze(2)  # batch x seq_len
         if mask is not None:
             # -Inf masking prior to the softmax 
-            attn.data.masked_fill_(mask, -float('inf'))              
+            attn.data.masked_fill_(mask.bool(), -float('inf'))              
         attn = self.sm(attn)
         attn3 = attn.view(attn.size(0), 1, attn.size(1))  # batch x 1 x seq_len
 

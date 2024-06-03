@@ -160,5 +160,11 @@ def train_val():
 
 
 if __name__ == "__main__":
+    if not os.path.exists(os.path.dirname(RESULT_DIR)):
+        os.makedirs(os.path.dirname(RESULT_DIR))
+    if not os.path.exists(os.path.dirname(SNAPSHOT_DIR)):
+        os.makedirs(os.path.dirname(SNAPSHOT_DIR))
+    if not os.path.exists(os.path.dirname(PLOT_DIR)):
+        os.makedirs(os.path.dirname(PLOT_DIR))
     train_val()
     #test_submission()

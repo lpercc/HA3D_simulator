@@ -278,7 +278,7 @@ class GPT(nn.Module):
         assert self.model_type == 'reward_conditioned', "The model type should be reward_conditioned"
         
         if args.fusion_type == 'simple':
-            assert states.shape[-1] == 2048 + 768, "The input state shape is not correct"
+            assert states.shape[-1] == 2048+768, "The states feature shape is not correct"
             state_embeddings = F.normalize(self.state_encoder(states.type(torch.float32)), dim=-1) # (batch , block_size // 3, n_embd)
         elif args.fusion_type == 'lstm': 
             # in this setting, input will be a tuple 

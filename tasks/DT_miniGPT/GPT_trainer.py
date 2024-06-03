@@ -72,7 +72,6 @@ class Trainer:
         image_feature_dt = torch.stack(image_feature, dim=1).float() # should be (batch_size, num_steps, feature_dim)
         text_feature_dt = torch.stack(text_feature, dim=1).float()
         # should be (batch_size, num_steps, feature_dim) or (batch_size, num_steps, sequence_length, feature_dim)
-        
         assert image_feature_dt.shape == (image_feature[0].shape[0], len(x), image_feature[0].shape[-1])
         
         if text_feature_type == 1:
@@ -123,7 +122,7 @@ class Trainer:
             pbar = tqdm(enumerate(loader), total=len(loader)) if is_train else enumerate(loader)
             for it, (x, y, _, r, t) in pbar: # states, actions, targets, rtgs, timesteps
                 # place data on the correct device
-                image_state, text_state = self.get_proper_feature(x)
+                image_state, text_state = self.get_proper_feature(x, 1)
                 #print(image_state.shape, text_state.shape)
                 if image_state.ndim == text_state.ndim == 3: 
                     x = torch.cat([image_state, text_state], dim=-1) # just concat in feat dim. Keep original setting. No sequence length here, 
@@ -144,8 +143,8 @@ class Trainer:
                         logits, loss = self.model(x, y, y, r, t)
                         
                         
-                    loss = loss.mean() # collapse all losses if they are scattered on multiple gpus
-                    losses.append(loss.item())
+                loss = loss.mean() # collapse all losses if they are scattered on multiple gpus
+                losses.append(loss.item())
 
                 if is_train:
                     # backprop and update the parameters
@@ -178,7 +177,9 @@ class Trainer:
                 logger.info(f"{split} loss: {val_loss}")
                 return val_loss
             else: 
-                return losses
+                print(losses)
+                train_loss = np.mean(losses)
+                return train_loss
         
         best_return = -float('inf')
 
@@ -186,8 +187,7 @@ class Trainer:
 
         for epoch in range(1, self.args.epochs+1):
 
-            losses = run_one_epoch('train',)
-            train_loss = np.mean(losses)
+            train_loss = run_one_epoch('train',)
             print("Train Loss: ", train_loss)
             val_seen_loss = run_one_epoch('val_seen')
             val_unseen_loss = run_one_epoch('val_unseen')

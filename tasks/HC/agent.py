@@ -387,6 +387,32 @@ class Seq2SeqAgent(BaseAgent):
                 a[i] = self.model_actions.index('<end>')
         return Variable(a, requires_grad=False).cuda()
 
+    def _random_action_(self, obs, ended, random_rate):
+        ''' Extract teacher actions into variable. '''
+        a = torch.LongTensor(len(obs))
+        num_samples = int(len(obs) * random_rate)
+        for i,ob in enumerate(obs):
+            # Supervised teacher only moves one axis at a time
+            ix,heading_chg,elevation_chg = ob['teacher']
+            if heading_chg > 0:
+                a[i] = self.model_actions.index('right')
+            elif heading_chg < 0:
+                a[i] = self.model_actions.index('left')
+            elif elevation_chg > 0:
+                a[i] = self.model_actions.index('up')
+            elif elevation_chg < 0:
+                a[i] = self.model_actions.index('down')
+            elif ix > 0:
+                a[i] = self.model_actions.index('forward')
+            elif ended[i]:
+                a[i] = self.model_actions.index('<ignore>')
+            else:
+                a[i] = self.model_actions.index('<end>')
+            if i < num_samples and not ended[i]:
+                a[i] = np.random.choice(len(self.model_actions)-2)
+        return Variable(a, requires_grad=False).cuda()
+
+
     def teacher_rollout(self, actionLevel):
         obs = np.array(self.env.reset())
         batch_size = len(obs)
@@ -468,8 +494,8 @@ class Seq2SeqAgent(BaseAgent):
                 if len(ob['navigableLocations']) <= 1:
                     logit[i, self.model_actions.index('forward')] = -float('inf')
 
-            # Supervised training
-            target = self._teacher_low_level_action(perm_obs, ended)
+            # weak Supervised training
+            target = self._random_action_(perm_obs, ended, self.random_rate)
             self.loss += self.criterion(logit, target)
 
             # Determine next model inputs
@@ -538,20 +564,24 @@ class Seq2SeqAgent(BaseAgent):
             if looped:
                 break
     
-    def train(self, encoder_optimizer, decoder_optimizer, n_iters, feedback='teacher'):
+    def train(self, encoder_optimizer, decoder_optimizer, n_iters, feedback='teacher', random_rate=0):
         ''' Train for a given number of iterations '''
         assert feedback in self.feedback_options
         self.feedback = feedback
+        self.random_rate = random_rate
+        print(f"random rate:{self.random_rate}")
         self.encoder.train()
         self.decoder.train()
         self.losses = []
-        for iter in range(1, n_iters + 1):
+        pbar = tqdm(range(1, n_iters + 1),total=n_iters)
+        for iter in pbar:
             encoder_optimizer.zero_grad()
             decoder_optimizer.zero_grad()
             self.rollout()
             self.loss.backward()
             encoder_optimizer.step()
             decoder_optimizer.step()
+            pbar.set_description(f"Iter {iter}:")
 
     def save(self, encoder_path, decoder_path):
         ''' Snapshot models '''

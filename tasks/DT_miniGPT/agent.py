@@ -294,8 +294,10 @@ class DecisionTransformerAgent(BaseAgent):
         
         states = []
         
-        for ob in obs: 
-            state = ob['state_features']
+        for ob in obs:
+            #NOTE - lmh change  
+            image_state, _, text_state, _ = ob['state_features']
+            state = np.concatenate([image_state, text_state])
             states.append(state)
         
         

@@ -151,6 +151,131 @@ def getAllHumanLocations(scanIDs=[]):
         json.dump(allHumanLocations, j, indent=4)
     return allHumanLocations
 
+# 统计人类运动轨迹长度
+def statisticAllHumanTrajLen():
+    import matplotlib.pyplot as plt
+    def calculate_distance(p1, p2):
+        return np.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2 + (p2[2] - p1[2])**2)
+    total_length = 0
+    length_list = list()
+    allHumanLocations = getAllHumanLocations()
+    assert len(allHumanLocations) == 90  # 90个建筑
+
+    # 分类统计
+    counts = {
+        "No movement": 0,
+        "Short distance": 0,
+        "Long distance": 0,
+        "Very long distance": 0
+    }
+
+    # 计算总的人物数量
+    total_human = sum(len(trajectories) for trajectories in allHumanLocations.values())
+    print(f"Total human counts: {total_human}")
+
+    # 判断一个人物的总帧数=120
+    for trajectories in allHumanLocations.values():
+        for trajectory in trajectories:
+            assert len(trajectory) == 120
+
+    # 遍历所有人物
+    for trajectories in allHumanLocations.values():
+        for trajectory in trajectories:
+            # 计算每个人的运动轨迹长度
+            traj_length = 0
+            for i in range(len(trajectory) - 1):
+                traj_length += calculate_distance(trajectory[i], trajectory[i + 1])
+            length_list.append(traj_length)
+            total_length += traj_length
+
+            # 分类计数
+            if traj_length < 1:
+                counts["No movement"] += 1
+            elif 1 <= traj_length < 5:
+                counts["Short distance"] += 1
+            elif 5 <= traj_length < 15:
+                counts["Long distance"] += 1
+            elif traj_length >= 15:
+                counts["Very long distance"] += 1
+
+    print(f"Total trajectory length: {total_length}")
+    
+    for category, count in counts.items():
+        print(f"{category}: {count} ({count / total_human * 100:.2f}%)")
+
+    # 画饼图
+    labels = counts.keys()
+    sizes = counts.values()
+    plt.figure(figsize=(10, 8))
+    plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
+    plt.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    plt.title('Distribution of Human Trajectory Lengths')
+    plt.savefig('statistic/trajectory_distribution_pie_chart.jpg')
+    plt.close()
+
+    # 画length_list的直方图
+    n, bins, patches = plt.hist(length_list, bins=range(int(min(length_list)), int(max(length_list)) + 2), edgecolor='black')
+    plt.xlabel('Trajectory Length')
+    plt.ylabel('Number of Human')
+    for i in range(len(patches)):
+        plt.text(patches[i].get_x()+patches[i].get_width()/2.,
+                patches[i].get_height(),
+                '%d' % n[i],
+                ha = 'center', va='bottom')
+    plt.title('Histogram of Human Trajectory Lengths')
+    plt.savefig('statistic/trajectory_lengths.jpg')
+    plt.show()
+
+    # 保存文件
+    # length_list保存json文件
+    with open('statistic/length_list.json', 'w') as f:
+        json.dump(length_list, f)
+
+# 统计人类对环境的影响
+## 直接影响：人类经过的视点
+## 间接影响：可见人的视点
+def get_human_impact_scope():
+    def calculate_distance(p1, p2):
+        return np.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2 + (p2[2] - p1[2])**2)
+        
+    all_viewpoints_locations = list()
+    all_human_location = list()
+    direct_impact_viewpoints = list()
+    indirect_impact_viewpoints = list()
+    
+    allHumanLocations = getAllHumanLocations()
+    viewpoints_num = 10567
+    assert len(allHumanLocations) == 90  # 90个建筑
+    # 遍历所有建筑
+    for scan in allHumanLocations.keys():
+        # 获取建筑场景所有视点信息（视点之间的关系）
+        with open(os.path.join(HC3D_SIMULATOR_PATH, 'con/pos_info/{}_pos_info.json'.format(scan)), 'r') as f:
+            pos_data = json.load(f)
+        with open(os.path.join(HC3D_SIMULATOR_PATH, 'con/con_info/{}_con_info.json'.format(scan)), 'r') as f:
+            connection_data = json.load(f)
+        # 遍历人的轨迹
+        human_location_list = list()
+        for trajectories in allHumanLocations[scan]:
+            for trajectory in trajectories:
+                for viewpoint in pos_data.keys():
+                    if calculate_distance(trajectory, pos_data[viewpoint])<1 and (viewpoint not in direct_impact_viewpoints):
+                        print(viewpoint)
+                        direct_impact_viewpoints.append(viewpoint)
+                        visible_points = connection_data[viewpoint]['visible']
+                        for point in visible_points:
+                            if point not in indirect_impact_viewpoints:
+                                indirect_impact_viewpoints.append(point)
+                            if viewpoint not in indirect_impact_viewpoints:
+                                indirect_impact_viewpoints.append(viewpoint)
+
+
+    
+
+    
+    print(f"直接影响（人类经过的视点/总视点）：{len(direct_impact_viewpoints)/viewpoints_num}({len(direct_impact_viewpoints)}/{viewpoints_num})")
+    print(f"间接影响（可见人的视点/总视点）：{len(indirect_impact_viewpoints)/viewpoints_num}({len(indirect_impact_viewpoints)}/{viewpoints_num})")
+
+
 # 计算数据集中每条路径的可见人物
 def get_human_on_path(data_dir_path):
     print(f"**********************{data_dir_path}*****************************")
@@ -320,7 +445,6 @@ def read_VLN_data(file_path):
     with open(file_path, 'r') as f:
         r2r_data= json.load(f)
     r2r_data_path_num = len(r2r_data)
-    print("R2R dataset:")
     print(f"total path:{r2r_data_path_num}")
     print(f"total instructions:{r2r_data_path_num * 3}")
     
@@ -379,6 +503,9 @@ def count_common_elements(list1, list2):
 # 获取path上的关键点，抵达目标的必经点
 def get_crux_on_path(data_file):
     data = read_VLN_data(data_file)
+    crux_num = 0
+    crux_num_without_se = 0
+    path_point_num = 0
     #遍历每条路径
     for j,data_item in enumerate(data):
         scan_id = data_item["scan"]
@@ -403,24 +530,30 @@ def get_crux_on_path(data_file):
             next_unobstructed_points = connection_data[next_viewpoint]['unobstructed']
 
             #计算重合点>1?（为关键点？）
-            if count_common_elements(unobstructed_points, next_unobstructed_points) == 1:
+            if count_common_elements(unobstructed_points, next_unobstructed_points) == 0:
                 crux_list.append(next_viewpoint)
 
         # 写入原来的数据字典
         data[j]["crux_points"] = crux_list
-    print(data_file)
-    with open(data_file.split(".")[0]+'_crux_'+".json", 'w') as f:
+        crux_num += len(crux_list)
+        crux_num_without_se += len(crux_list)-2
+        path_point_num += len(data_item["path"])
+    print(f"{data_file}, \n \
+            关键点数/路径总点：{crux_num}/{path_point_num}={crux_num/path_point_num}, \n \
+            关键点数(除去终点起点)/路径总点：{crux_num_without_se}/{path_point_num}={crux_num_without_se/path_point_num}")
+    with open(data_file, 'w') as f:
         json.dump(data, f, indent=4)
 
 # 获取每类区域的人物数量
 def count_human_of_region():
     region = {}
-
+    human_num = 0
     with open(os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_pair/human_motion_text.json'), 'r') as f:
         human_view_data = json.load(f)
     
-    for i, scanId in enumerate(human_view_data):
+    for i, scanId in enumerate(human_view_data.keys()):
         print(f"{i}th scan {scanId}")
+        human_num += len(human_view_data[scanId])
         for human_viewpointId in human_view_data[scanId]:
             print(f"**Human viewpoint {human_viewpointId}")
             #print(human_view_data[scanId][human_viewpointId])
@@ -431,6 +564,8 @@ def count_human_of_region():
                 region[human_region] = 1
     print(region)
     print(len(region))
+    print(human_num)
+    print(sum(region.values()))
 
 # 计算agent前进的下一个点
 def forwardViewpointIdx(navigableLocations):
@@ -462,16 +597,19 @@ def read_position_data(file_path):
 
 if __name__ == '__main__':
     #count_points_seen_human()
-       
-    data_folder = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/R2R/data')
-    #files = [f for f in os.listdir(data_folder) if f.endswith('.json')]
-    #for file in files:
-        #get_crux_on_path(os.path.join(data_folder,file)) 
-    #get_human_on_path(os.path.join(data_folder,"R2R_train.json"))
-    #get_human_on_path(os.path.join(data_folder,"R2R_val_seen.json"))
-    #get_human_on_path(os.path.join(data_folder,"R2R_val_unseen.json"))
+    """
+    data_folder = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/data')
+    files = [f for f in os.listdir(data_folder) if f.startswith('HC') and f.endswith('.json')]
+    for file in files:
+        get_crux_on_path(os.path.join(data_folder,file)) 
+    """
+    data_folder = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/data')
+    get_human_on_path(os.path.join(data_folder,"HC_train.json"))
+    get_human_on_path(os.path.join(data_folder,"HC_val_seen.json"))
+    get_human_on_path(os.path.join(data_folder,"HC_val_unseen.json"))
     #get_human_on_path(os.path.join(data_folder,"path.json"))
-    count_human_of_region()
+    #count_human_of_region()
 
     #count_points_seen_human()
-    
+    #statisticAllHumanTrajLen()
+    #get_human_impact_scope()
