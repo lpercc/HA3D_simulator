@@ -38,23 +38,23 @@
 
 <div class="w3-container" id="paper">
   <div class="w3-content" style="max-width:850px">
-    <h2 class="w3-center w3-padding-32"><b>Matterport3D: Learning from RGB-D Data in Indoor Environments</b></h2>
+    <h2 class="w3-center w3-padding-32"><b>Human-Aware Vision and Language Navigation: Developing the HA3D Simulator for Adaptive Responses in Dynamic Environments</b></h2>
     <center><img src="./HA3D.jpg" style="width: 100%;"></center>
     <h3><b>Abstract</b></h3>
     <p>
-    Access to large, diverse RGB-D datasets is critical for training RGB-D scene understanding algorithms. However, existing datasets still cover only a limited number of views or a restricted scale of spaces. In this paper, we introduce Matterport3D, a large-scale RGB-D dataset containing 10,800 panoramic views from 194,400 RGB-D images of 90 building-scale scenes.  Annotations are provided with surface reconstructions, camera poses, and 2D and 3D semantic segmentations. The precise global alignment and comprehensive, diverse panoramic set of views over entire buildings enable a variety of supervised and self-supervised computer vision tasks, including keypoint matching, view overlap prediction, normal prediction from color, semantic segmentation, and scene classification.
+    The vision of agents navigating according to instructions is still far from realization, as current embodied agents often rely on three impractical assumptions: Panoramic Action Space (limits directional granularity), Optimal Expert (unrealistic expectations), and Navigation in a Static Environment (ignores dynamic changes) in Vision and Language Navigation (VLN). These assumptions lead to an overestimation of agents' navigation performance in simulators, which compromises their ability to transfer from Simulation to Reality (Sim2Real). To enable and encourage the exploration of Sim2Real in VLN, we relax these assumptions by suggesting that agents should act in a 'human-aware' way, operating in egocentric action space, learning from sub-optimal experts, and interacting with human-involved dynamic environments, termed `Human-Aware VLN (HA-VLN)' task. This approach allows for Sim2Real without the need for training additional models or adaptors. To support this task, we developed the Human-Aware 3D Simulator (HA3D Simulator), which provides an environment that integrates natural human activities with real-world imagery and collects a human motion dataset with 435 human motion models. Based on this simulator, we introduce a benchmark dataset for fine-grained vision and language navigation tasks considering human integration -- Human-Aware Room-to-Room (HA-R2R) dataset, a more human-like, complex instruction dataset with 21,567 instructions and around 4,500 open-vocabulary words. We introduce a baseline agent named VLN-DT, designed specifically to tackle the increased difficulties posed by our relaxed assumptions. Our findings reveal that current state-of-the-art embodied agents experience a significant performance drop in our task, with losses ranging from a minimum of 19.35\% to a maximum of 71.83\%. This suggests that even advanced agents struggle in dynamic environments involving human activities, indicating an overestimation of their Sim2Real capabilities. We also show that VLN-DT can achieve comparable performance trained on 100\% random data and highlight the weak robustness of traditional VLN agents.
     </p>
     <h3 class="w3-left-align"><b>Paper</b></h3>
-    A. Chang, A. Dai, T. Funkhouser, M. Halber, M. Niessner, M. Savva, S. Song, A. Zeng, Y. Zhang<br>
-    <b><a href="https://arxiv.org/pdf/1709.06158.pdf">Matterport3D: Learning from RGB-D Data in Indoor Environments</a></b><br>
-    International Conference on 3D Vision (3DV 2017)<br>
-    Paper | <a href="https://arxiv.org/pdf/1709.06158.pdf"> arXiv (low res) </a> | Supplemental Material
+    Minghan Li, Heng Li, Zhi-Qi Cheng<br>
+    <b><a href="https://arxiv.org/pdf/xxxx.xxxxx.pdf">Human-Aware Vision and Language Navigation: Developing the HA3D Simulator for Adaptive Responses in Dynamic Environments</a></b><br>
+    XXX<br>
+    Paper | <a href="https://arxiv.org/pdf/xxxx.xxxxx.pdf"> arXiv (low res) </a> | Supplemental Material
     <pre class="w3-panel w3-leftbar w3-light-grey" style="white-space: pre-wrap; font-family: monospace;">
-@article{Matterport3D,
-  title={Matterport3D: Learning from RGB-D Data in Indoor Environments},
-  author={Chang, Angel and Dai, Angela and Funkhouser, Thomas and Halber, Maciej and Niessner, Matthias and Savva, Manolis and Song, Shuran and Zeng, Andy and Zhang, Yinda},
-  journal={International Conference on 3D Vision (3DV)},
-  year={2017}
+@article{xxx,
+  title={Human-Aware Vision and Language Navigation: Developing the HA3D Simulator for Adaptive Responses in Dynamic Environments},
+  author={Minghan Li, Heng Li, Zhi-Qi Cheng},
+  journal={xxx},
+  year={2024}
 }</pre>
   </div>
 </div>
@@ -62,21 +62,21 @@
 <div class="w3-container" id="download">
   <div class="w3-content" style="max-width:850px">
     <h3 class="w3-left-align"><b>Dataset Download</b></h3>
-    <p>Please fill and sign the <a href="http://kaldir.vc.in.tum.de/matterport/MP_TOS.pdf">Terms of Use</a> agreement form and send it to <a href="mailto:matterport3d@googlegroups.com">matterport3d@googlegroups.com</a> to request access to the dataset.</p>
+    <p>Please fill and sign the <a href="https://github.com/lpercc/HA3D_simulator">XXX@gmail.com</a> to request access to the dataset.</p>
   </div>
 </div>
 
 <div class="w3-container" id="code">
   <div class="w3-content" style="max-width:850px">
     <h3 class="w3-left-align"><b>Code</b></h3>
-    <p>Please check the <a href="https://github.com/niessner/Matterport">git repository</a> for a detailed introduction to the dataset and code for several vision tasks.</p>
+    <p>Please check the <a href="https://github.com/lpercc/HA3D_simulator">git repository</a> for a detailed introduction to the dataset and code for several vision tasks.</p>
   </div>
 </div>
 
 <div class="w3-container" id="explore">
   <div class="w3-content" style="max-width:850px">
     <h3 class="w3-left-align"><b>Explore the dataset</b></h3>
-    <p>Use the web interface <a href="https://aspis.cmpt.sfu.ca/scene-toolkit/scans/matterport3d/houses">here</a> to browse the dataset.</p>
+    <p>Use the web interface <a href="https://github.com/lpercc/HA3D_simulator">here</a> to browse the dataset.</p>
   </div>
 </div>
 
@@ -84,7 +84,7 @@
   <div class="w3-content" style="max-width:850px">
     <h3 class="w3-left-align"><b>Changelog</b></h3>
     <ul>
-      <li><b>2018-06-29</b>: Updated .house files to fix problem with room bboxes (also fixes membership of objects in rooms)</li>
+      <li><b>2024-06-03</b>: Create webpage</li>
     </ul>
   </div>
 </div>
@@ -92,7 +92,7 @@
 <div class="w3-container" id="contact">
   <div class="w3-content" style="max-width:850px">
     <h3 class="w3-left-align"><b>Contact</b></h3>
-    Please contact us at <a href="mailto:matterport3d@googlegroups.com">matterport3d@googlegroups.com</a> if you have any questions.
+    Please contact us at <a href="XXX@gmail.com">matterport3d@googlegroups.com</a> if you have any questions.
   </div>
 </div>
 
