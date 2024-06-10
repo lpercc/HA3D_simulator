@@ -6,6 +6,33 @@
   <title>Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="./w3.css">
+  <style>
+    .video-container-title1 video {
+      width: 100%; /* 保持原有的宽度 */
+      transform: scale(1.2); /* 放大20% */
+      transform-origin: center center; /* 确保视频从中心放大 */
+    }
+    .video-container-title2 video {
+      width: 40%; /* 保持原有的宽度 */
+      transform: scale(1.0);
+      transform-origin: center center; /* 确保视频从中心放大 */
+    }
+    .video-container_3 {
+      display: flex; /* 使用Flexbox布局 */
+      justify-content: space-around; /* 视频之间平均分配空间 */
+      align-items: center; /* 垂直居中 */
+    }
+    video {
+      width: 30%; /* 每个视频占容器宽度的30% */
+      margin: 5px; /* 添加一些外边距 */
+    }
+    .video-container-simGUI video {
+      width: 80%; /* 保持原有的宽度 */
+      transform: scale(1.0);
+      transform-origin: center center; /* 确保视频从中心放大 */
+    }
+
+  </style>
 </head>
 
 <body>
@@ -39,7 +66,20 @@
 <div class="w3-container" id="paper">
   <div class="w3-content" style="max-width:850px">
     <h2 class="w3-center w3-padding-32"><b>Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions</b></h2>
-    <center><img src="./HA3D.jpg" style="width: 100%;"></center>
+    <h3 class="w3-center w3-padding-32"><b>Panoramas Observation</b></h3>
+    <div class="w3-center video-container-title1">
+      <video controls>
+        <source src="29hnd4uzFmX_beaaf39947ee40f7822ed8a383bf6472.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+    <h3 class="w3-center w3-padding-32"><b>Egocentric(60-degree) Observation</b></h3>
+    <div class="w3-center video-container-title2">
+      <video controls>
+        <source src="29hnd4uzFmX_beaaf39947ee40f7822ed8a383bf6472_agent.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
     <h3><b>Abstract</b></h3>
     <p>
     Vision-and-Language Navigation (VLN) aims to develop embodied agents that navigate based on human instructions. However, current VLN frameworks often rely on static environments and optimal expert supervision, limiting their real-world applicability. To address this, we introduce Human-Aware Vision-and-Language Navigation (HA-VLN), extending traditional VLN by incorporating dynamic human activities and relaxing key assumptions. We propose the Human-Aware 3D (HA3D) simulator, which combines dynamic human activities with the Matterport3D dataset, and the Human-Aware Room-to-Room (HA-R2R) dataset, extending R2R with human activity descriptions. To tackle HA-VLN challenges, we present the Expert-Supervised Cross-Modal (VLN-CM) and Non-Expert-Supervised Decision Transformer (VLN-DT) agents, utilizing cross-modal fusion and diverse training strategies for effective navigation in dynamic human environments. A comprehensive evaluation, including metrics considering human activities, and systematic analysis of HA-VLN's unique challenges, underscores the need for further research to enhance HA-VLN agents' real-world robustness and adaptability. Ultimately, this work provides benchmarks and insights for future research on embodied AI and Sim2Real transfer, paving the way for more realistic and applicable VLN systems in human-populated environments.
@@ -59,26 +99,46 @@
   </div>
 </div>
 
-<div class="w3-container" id="dadaset">
+<div class="w3-container" id="dataset">
   <div class="w3-content" style="max-width:850px">
-    <h3 class="w3-left-align"><b>Dataset Demo</b></h3>
-    <p>HAPS Dataset</p>
-  </div>
-  <div class="w3-content" style="max-width:850px">
-    <h3 class="w3-left-align"><b>Dataset Download</b></h3>
+    <h3 class="w3-left-align"><b>Dataset</b></h3>
     <p>Dataset download link <a href="https://drive.google.com/drive/folders/1aswHATnKNViqw6QenAwdQRTwXQQE5jd3?usp=drive_link">Google drive</a></p>
+    <h4 class="w3-left-align"><b>HAPS</b></h4>
+    <p>Animation of the human motion skeletons</p>
+    <div class=".video-container_3">
+      <video controls>
+        <source src="samples_07_to_13.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <video controls>
+        <source src="samples_28_to_34.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <video controls>
+        <source src="samples_42_to_48.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
   </div>
 </div>
 
 <div class="w3-container" id="simulator">
   <div class="w3-content" style="max-width:850px">
     <h3 class="w3-left-align"><b>Explore the Simulator</b></h3>
-      <!-- Video insertion starts here -->
-      <video width="100%" controls>
-          <source src="simulator_demo3.webm" type="video/webm">
-          Your browser does not support the video tag.
+    <div class=".video-container_3">
+      <video controls>
+        <source src="sim1.webm" type="video/webm">
+        Your browser does not support the video tag.
       </video>
-      <!-- Video insertion ends here -->
+      <video controls>
+        <source src="sim2.webm" type="video/webm">
+        Your browser does not support the video tag.
+      </video>
+      <video controls>
+        <source src="sim3.webm" type="video/webm">
+        Your browser does not support the video tag.
+      </video>
+    </div>
   </div>
 </div>
 
@@ -93,7 +153,7 @@
   <div class="w3-content" style="max-width:850px">
     <h3 class="w3-left-align"><b>Real-world</b></h3>
     <p>We use <a href="https://www.unitree.com/go1">Unitree GO1</a> to validate in a real environment.</p>
-    <p>video of the robot's navigation can be found at <a href="XXX"></a> </p>
+    <p>video of the robot's navigation can be found at <a href="https://www.bilibili.com/video/BV1wm421V7Ui/?share_source=copy_web&vd_source=d4988b5cd2fc432c567c0aa979ea211e">link</a></p>
   </div>
 </div>
 

@@ -114,6 +114,8 @@ class HCSimulator(MatterSim.Simulator):
 
     def makeAction(self, index, heading, elevation):
         self.frame_num += self.framesPerStep
+        if self.frame_num >= 120:
+            self.frame_num = 0
         super().makeAction(index, heading, elevation)
         if self.isRealTimeRender:
             self.state = super().getState()[0]
@@ -132,8 +134,6 @@ class HCSimulator(MatterSim.Simulator):
                 #print(f"Waiting {data['function']}")
             receiveMessage(self.pipe_R2S)
             self.renderScene()
-        if self.frame_num >= 80:
-            self.frame_num = 0
     def renderScene(self):
         self.state = HCSimState(self.state)
         #self.background = cv2.cvtColor(self.state.rgb, cv2.COLOR_BGR2RGB).astype(np.uint8)
@@ -156,6 +156,9 @@ class HCSimulator(MatterSim.Simulator):
         states = []
         self.framesPerStep = framesPerStep
         if self.isRealTimeRender:
+            self.frame_num += self.framesPerStep
+            if self.frame_num >= 120:
+                self.frame_num = 0
             data = {
                 'function':'get state',
                 'frame_num':self.frame_num
