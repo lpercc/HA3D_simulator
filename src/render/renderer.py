@@ -148,7 +148,7 @@ class Renderer:
 
         return image
     
-    def newHumans(self, human_list, color=[1, 0.2, 0]):
+    def newHumans(self, human_list, color=[0.65, 0.8, 0]):
         self.human_list = []
         self.human_location = []
         material = pyrender.MetallicRoughnessMaterial(
@@ -252,6 +252,7 @@ class Renderer:
         # 创建输出图像，其中白色背景被 background 替换
         # 注意这里只处理RGB通道，不处理alpha通道
         output_img = np.where(mask_3d, rgb, background)
+        cv2.imwrite("./output_img.jpg",output_img)
         image = output_img.astype(np.uint8)
         return image,human_depth
 

@@ -248,7 +248,7 @@ class myMainWindow(Ui_Form,QMainWindow):
 
 
     def updateAgentState(self):
-        self.agentState = self.sim.getState(4)[0]
+        self.agentState = self.sim.getState()[0]
         rgb = np.array(self.agentState.rgb, copy=True)
         drawCentering(rgb, 20)
         # 将 NumPy 数组转换为 QImage 对象

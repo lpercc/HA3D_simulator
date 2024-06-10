@@ -155,7 +155,7 @@ class HCSimulator(MatterSim.Simulator):
     def getState(self, framesPerStep=1):
         states = []
         self.framesPerStep = framesPerStep
-        #self.frame_num += self.framesPerStep
+        self.frame_num += self.framesPerStep
         if self.frame_num >= 120:
             self.frame_num = 0
         if self.isRealTimeRender:
