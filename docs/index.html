@@ -3,7 +3,7 @@
 
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <title>Human-Aware Vision and Language Navigation: Developing the HA3D Simulator for Adaptive Responses in Dynamic Environments</title>
+  <title>Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="./w3.css">
 </head>
@@ -17,13 +17,16 @@
       <a href="#paper" class="w3-button w3-block w3-black">Paper</a>
     </div>
     <div class="w3-col s2">
-      <a href="#download" class="w3-button w3-block w3-black">Download</a>
+      <a href="#dadaset" class="w3-button w3-block w3-black">Dataset</a>
+    </div>
+    <div class="w3-col s2">
+      <a href="#simulator" class="w3-button w3-block w3-black">Simulator</a>
     </div>
     <div class="w3-col s2">
       <a href="https://github.com/lpercc/HA3D_simulator" class="w3-button w3-block w3-black">Code</a>
     </div>
     <div class="w3-col s2">
-      <a href="#explore" class="w3-button w3-block w3-black">Explore</a>
+      <a href="#Real-world" class="w3-button w3-block w3-black">Real-world</a>
     </div>
     <div class="w3-col s2">
       <a href="#changelog" class="w3-button w3-block w3-black">Changelog</a>
@@ -38,42 +41,39 @@
 
 <div class="w3-container" id="paper">
   <div class="w3-content" style="max-width:850px">
-    <h2 class="w3-center w3-padding-32"><b>Human-Aware Vision and Language Navigation: Developing the HA3D Simulator for Adaptive Responses in Dynamic Environments</b></h2>
+    <h2 class="w3-center w3-padding-32"><b>Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions</b></h2>
     <center><img src="./HA3D.jpg" style="width: 100%;"></center>
     <h3><b>Abstract</b></h3>
     <p>
-    The vision of agents navigating according to instructions is still far from realization, as current embodied agents often rely on three impractical assumptions: Panoramic Action Space (limits directional granularity), Optimal Expert (unrealistic expectations), and Navigation in a Static Environment (ignores dynamic changes) in Vision and Language Navigation (VLN). These assumptions lead to an overestimation of agents' navigation performance in simulators, which compromises their ability to transfer from Simulation to Reality (Sim2Real). To enable and encourage the exploration of Sim2Real in VLN, we relax these assumptions by suggesting that agents should act in a 'human-aware' way, operating in egocentric action space, learning from sub-optimal experts, and interacting with human-involved dynamic environments, termed `Human-Aware VLN (HA-VLN)' task. This approach allows for Sim2Real without the need for training additional models or adaptors. To support this task, we developed the Human-Aware 3D Simulator (HA3D Simulator), which provides an environment that integrates natural human activities with real-world imagery and collects a human motion dataset with 435 human motion models. Based on this simulator, we introduce a benchmark dataset for fine-grained vision and language navigation tasks considering human integration -- Human-Aware Room-to-Room (HA-R2R) dataset, a more human-like, complex instruction dataset with 21,567 instructions and around 4,500 open-vocabulary words. We introduce a baseline agent named VLN-DT, designed specifically to tackle the increased difficulties posed by our relaxed assumptions. Our findings reveal that current state-of-the-art embodied agents experience a significant performance drop in our task, with losses ranging from a minimum of 19.35\% to a maximum of 71.83\%. This suggests that even advanced agents struggle in dynamic environments involving human activities, indicating an overestimation of their Sim2Real capabilities. We also show that VLN-DT can achieve comparable performance trained on 100\% random data and highlight the weak robustness of traditional VLN agents.
+    Vision-and-Language Navigation (VLN) aims to develop embodied agents that navigate based on human instructions. However, current VLN frameworks often rely on static environments and optimal expert supervision, limiting their real-world applicability. To address this, we introduce Human-Aware Vision-and-Language Navigation (HA-VLN), extending traditional VLN by incorporating dynamic human activities and relaxing key assumptions. We propose the Human-Aware 3D (HA3D) simulator, which combines dynamic human activities with the Matterport3D dataset, and the Human-Aware Room-to-Room (HA-R2R) dataset, extending R2R with human activity descriptions. To tackle HA-VLN challenges, we present the Expert-Supervised Cross-Modal (VLN-CM) and Non-Expert-Supervised Decision Transformer (VLN-DT) agents, utilizing cross-modal fusion and diverse training strategies for effective navigation in dynamic human environments. A comprehensive evaluation, including metrics considering human activities, and systematic analysis of HA-VLN's unique challenges, underscores the need for further research to enhance HA-VLN agents' real-world robustness and adaptability. Ultimately, this work provides benchmarks and insights for future research on embodied AI and Sim2Real transfer, paving the way for more realistic and applicable VLN systems in human-populated environments.
     </p>
     <h3 class="w3-left-align"><b>Paper</b></h3>
-    Minghan Li, Heng Li, Zhi-Qi Cheng<br>
-    <b><a href="https://arxiv.org/pdf/xxxx.xxxxx.pdf">Human-Aware Vision and Language Navigation: Developing the HA3D Simulator for Adaptive Responses in Dynamic Environments</a></b><br>
+    Minghan Li, Heng Li, Zhi-Qi Cheng, Yifei Dong, Yuxuan Zhou, Jun-Yan He, Qi Dai, Teruko Mitamura, Alexander G Hauptmann<br>
+    <b><a href="https://arxiv.org/pdf/xxxx.xxxxx.pdf">Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions</a></b><br>
     XXX<br>
     Paper | <a href="https://arxiv.org/pdf/xxxx.xxxxx.pdf"> arXiv (low res) </a> | Supplemental Material
     <pre class="w3-panel w3-leftbar w3-light-grey" style="white-space: pre-wrap; font-family: monospace;">
 @article{xxx,
-  title={Human-Aware Vision and Language Navigation: Developing the HA3D Simulator for Adaptive Responses in Dynamic Environments},
-  author={Minghan Li, Heng Li, Zhi-Qi Cheng},
+  title={Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions},
+  author={Minghan Li, Heng Li, Zhi-Qi Cheng, Yifei Dong, Yuxuan Zhou, Jun-Yan He, Qi Dai, Teruko Mitamura, Alexander G Hauptmann},
   journal={xxx},
   year={2024}
 }</pre>
   </div>
 </div>
 
-<div class="w3-container" id="download">
+<div class="w3-container" id="dadaset">
+  <div class="w3-content" style="max-width:850px">
+    <h3 class="w3-left-align"><b>Dataset Demo</b></h3>
+    <p>HAPS Dataset</p>
+  </div>
   <div class="w3-content" style="max-width:850px">
     <h3 class="w3-left-align"><b>Dataset Download</b></h3>
-    <p>Please fill and sign the <a href="https://github.com/lpercc/HA3D_simulator">XXX@gmail.com</a> to request access to the dataset.</p>
+    <p>Dataset download link <a href="https://drive.google.com/drive/folders/1aswHATnKNViqw6QenAwdQRTwXQQE5jd3?usp=drive_link">Google drive</a></p>
   </div>
 </div>
 
-<div class="w3-container" id="code">
-  <div class="w3-content" style="max-width:850px">
-    <h3 class="w3-left-align"><b>Code</b></h3>
-    <p>Please check the <a href="https://github.com/lpercc/HA3D_simulator">git repository</a> for a detailed introduction to the dataset and code for several vision tasks.</p>
-  </div>
-</div>
-
-<div class="w3-container" id="explore">
+<div class="w3-container" id="simulator">
   <div class="w3-content" style="max-width:850px">
     <h3 class="w3-left-align"><b>Explore the Simulator</b></h3>
       <!-- Video insertion starts here -->
@@ -83,10 +83,20 @@
       </video>
       <!-- Video insertion ends here -->
   </div>
-  
+</div>
+
+<div class="w3-container" id="code">
   <div class="w3-content" style="max-width:850px">
-    <h3 class="w3-left-align"><b>Explore the dataset</b></h3>
-    <p>Use the web interface <a href="https://github.com/lpercc/HA3D_simulator">here</a> to browse the dataset.</p>
+    <h3 class="w3-left-align"><b>Code</b></h3>
+    <p>Please check the <a href="https://github.com/lpercc/HA3D_simulator">git repository</a> for a detailed introduction to the dataset and code for HA-VLN task.</p>
+  </div>
+</div>
+
+<div class="w3-container" id="real-world">
+  <div class="w3-content" style="max-width:850px">
+    <h3 class="w3-left-align"><b>Real-world</b></h3>
+    <p>We use <a href="https://www.unitree.com/go1">Unitree GO1</a> to validate in a real environment.</p>
+    <p>video of the robot's navigation can be found at <a href="XXX"></a> </p>
   </div>
 </div>
 
@@ -102,7 +112,7 @@
 <div class="w3-container" id="contact">
   <div class="w3-content" style="max-width:850px">
     <h3 class="w3-left-align"><b>Contact</b></h3>
-    Please contact us at <a href="XXX@gmail.com">matterport3d@googlegroups.com</a> if you have any questions.
+    Please contact us at <a href="lperlpm@gmail.com">lperlpm@gmail.com</a> if you have any questions.
   </div>
 </div>
 
