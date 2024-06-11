@@ -1,84 +1,111 @@
-# HC3D Simulator
+Sure! Here's an enhanced and more engaging version of your README file with emojis and proper GitHub Markdown code formatting:
 
-HC3D Simulator is for add 3D human in real-world environment
-The development of the simulator is based on：Matterport3D Simulator API, MDM
+```markdown
+# 🕹️ HC3D Simulator
 
-## Set environment
-Set an environment variable to the location of the **unzipped** dataset, where <PATH> is the full absolute path (not a relative path or symlink) to the directory containing the individual matterport scan directories (17DRP5sb8fy, 2t7WUuJeko7, etc):
+HC3D Simulator integrates 3D human models into real-world environments. Built upon Matterport3D Simulator API and MDM, this simulator offers a robust platform for immersive 3D simulations.
+
+## Table of Contents
+- [🔧 Setup Environment](#setup-environment)
+- [🐍 Create Conda Environment](#create-conda-environment)
+- [📥 Download Dataset](#download-dataset)
+- [🔄 Dataset Preprocessing](#dataset-preprocessing)
+- [🏗️ Build Matterport3D Simulator](#build-matterport3d-simulator)
+- [🚀 Run HC3D Simulator](#run-hc3d-simulator)
+- [🕺 Human Motion Generation](#human-motion-generation)
+- [🌆 Human-Scene Fusion](#human-scene-fusion)
+- [🖥️ Offscreen Rendering](#offscreen-rendering)
+- [📊 Training](#training)
+
+## 🔧 Setup Environment
+First, set an environment variable to the location of the **unzipped** dataset. Replace `<PATH>` with the full absolute path to the directory containing the individual Matterport scan directories.
+
 ```bash
 vim ~/.bashrc
 export HC3D_SIMULATOR_DTAT_PATH=/your/path/to/store/data
 source ~/.bashrc
 echo $HC3D_SIMULATOR_DTAT_PATH
 ```
+
+Expected directory structure:
+```
 /your/path/to/store/data
---data
---human_motion_meshes
-## Create conda environment
+├── data
+└── human_motion_meshes
+```
+
+## 🐍 Create Conda Environment
+Set up a Conda environment for the simulator.
+
 ```bash
 conda create --name hc3d_simulator python=3.10
 conda activate hc3d_simulator
 pip install -r requirements.txt
 ```
 
-## Download dataset
-To use the simulator you must first download the [Matterport3D Dataset](https://niessner.github.io/Matterport/) which is available after requesting access [here](https://niessner.github.io/Matterport/). The download script that will be provided allows for downloading of selected data types. At minimum you must download the `matterport_skybox_images`. If you wish to use depth outputs then also download `undistorted_depth_images` and `undistorted_camera_parameters`.
-download Matterport3D dataset from https://niessner.github.io/Matterport/
-get download_mp.py
+## 📥 Download Dataset
+To use the simulator, download the [Matterport3D Dataset](https://niessner.github.io/Matterport/) (access required).
+
 ```bash
 python2 download_mp.py -o $HC3D_SIMULATOR_DTAT_PATH/dataset --type matterport_skybox_images undistorted_camera_parameters undistorted_depth_images
 python scripts/unzip_data.py
 ```
 
-## Dataset Preprocessing
+## 🔄 Dataset Preprocessing
+Speed up data loading and reduce memory usage by preprocessing the `matterport_skybox_images`.
 
-To make data loading faster and to reduce memory usage we preprocess the `matterport_skybox_images` by downscaling and combining all cube faces into a single image. While still inside the docker container, run the following script:
-```
+```bash
 ./scripts/downsize_skybox.py
-```
-
-This will take a while depending on the number of processes used (which is a setting in the script). 
-
-After completion, the `matterport_skybox_images` subdirectories in the dataset will contain image files with filename format `<PANO_ID>_skybox_small.jpg`. By default images are downscaled by 50% and 20 processes are used.
-
-Precompute matching depth skybox images by running this script:
-```
 ./scripts/depth_to_skybox.py
 ```
 
-## Build Matterport3D Simulator
-see Matterport3DSimulator/README
+This script downscales and combines all cube faces into a single image, resulting in filenames like `<PANO_ID>_skybox_small.jpg`.
 
-## HC3D Simulator
-create pipe
-```bash
-mkdir pipe
-mkfifo ./pipe/my_S2R_pipe
-mkfifo ./pipe/my_R2S_pipe
-```
-run renderer
-```bash
-python HC3DRender.py --pipeID 0
-```
-Open another terminal and run HC3D Simulator GUI
-```bash
-python GUI.py
-```
+## 🏗️ Build Matterport3D Simulator
+Follow the instructions in the [Matterport3DSimulator/README](Matterport3DSimulator/README).
 
-## Human motion generation
-see human_motion_model/README
-## human-scene fusion
-see human-viewpoint_pair/README
+## 🚀 Run HC3D Simulator
+1. Create pipes:
+    ```bash
+    mkdir pipe
+    mkfifo ./pipe/my_S2R_pipe
+    mkfifo ./pipe/my_R2S_pipe
+    ```
 
+2. Run the renderer:
+    ```bash
+    python HC3DRender.py --pipeID 0
+    ```
 
+3. In a new terminal, start the HC3D Simulator GUI:
+    ```bash
+    python GUI.py
+    ```
+
+## 🕺 Human Motion Generation
+Refer to the [human_motion_model/README](human_motion_model/README) for detailed instructions.
+
+## 🌆 Human-Scene Fusion
+Refer to the [human-viewpoint_pair/README](human-viewpoint_pair/README) for detailed instructions.
+
+## 🖥️ Offscreen Rendering
 Pyrender supports three backends for offscreen rendering:
-  Pyglet, the same engine that runs the viewer. This requires an active display manager, so you can’t run it on a headless server.
-  OSMesa, a software renderer.
-  EGL, which allows for GPU-accelerated rendering without a display manager.
-  default is EGL
-pyrender offscreen rendering https://pyrender.readthedocs.io/en/latest/examples/offscreen.html
+- **Pyglet**: Requires an active display manager.
+- **OSMesa**: Software renderer.
+- **EGL**: GPU-accelerated rendering without a display manager (default).
 
-## train
+More details: [Pyrender Offscreen Rendering](https://pyrender.readthedocs.io/en/latest/examples/offscreen.html)
+
+## 📊 Training
+Train the model using the following command:
+
 ```bash
-python tasks/DT_miniGPT/train_GPT.py --experiment_id time --cuda 2 --reward_strategy 1 --epochs 15 --fusion_type simple --target_rtg 5 --mode train 
+python tasks/DT_miniGPT/train_GPT.py --experiment_id time --cuda 2 --reward_strategy 1 --epochs 15 --fusion_type simple --target_rtg 5 --mode train
 ```
+
+---
+
+Feel free to contribute, report issues, or request features!
+```
+
+This version adds emojis to make the README more visually appealing and engaging, while still maintaining clear and organized instructions.
