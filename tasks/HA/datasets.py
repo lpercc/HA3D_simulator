@@ -3,7 +3,7 @@ Author: Dylan Li dylan.h.li@outlook.com
 Date: 2024-03-17 21:42:00
 LastEditors: Dylan Li dylan.h.li@outlook.com
 LastEditTime: 2024-03-30 22:46:08
-FilePath: /HC3D_simulator/tasks/HC/datasets.py
+FilePath: /HA3D_simulator/tasks/HA/datasets.py
 Description: 
 
 Copyright (c) 2024 by Heng Li, All Rights Reserved. 
@@ -17,7 +17,7 @@ from tqdm import tqdm
 from dataclasses import dataclass
 
 from utils import write_vocab,build_vocab
-from env import HCBatch
+from env import HABatch
 from agent import RandomAgent, TeacherAgent
 import pickle
 
@@ -30,12 +30,12 @@ if module_path not in sys.path:
     
 @dataclass
 class Config:
-    TRAIN_VOCAB: str = 'tasks/HC/data/train_vocab.txt'
-    TRAINVAL_VOCAB: str = 'tasks/HC/data/trainval_vocab.txt'
-    RESULT_DIR: str = 'tasks/HC/results/'
-    SNAPSHOT_DIR: str = 'tasks/HC/snapshots/'
-    PLOT_DIR: str = 'tasks/HC/plots/'
-    TRAJS_DIR: str = 'tasks/HC/trajs'
+    TRAIN_VOCAB: str = 'tasks/HA/data/train_vocab.txt'
+    TRAINVAL_VOCAB: str = 'tasks/HA/data/trainval_vocab.txt'
+    RESULT_DIR: str = 'tasks/HA/results/'
+    SNAPSHOT_DIR: str = 'tasks/HA/snapshots/'
+    PLOT_DIR: str = 'tasks/HA/plots/'
+    TRAJS_DIR: str = 'tasks/HA/trajs'
     IMAGENET_FEATURES: str = 'img_features/ResNet-152-imagenet_80_16_mean.tsv'
     features: str = IMAGENET_FEATURES
     batch_size: int = 100
@@ -149,7 +149,7 @@ def train_run(iter, dataset_cfg, agent='random', gpu_id=0):
     embedding_model = BartModel.from_pretrained('facebook/bart-base')
     
     for i in range(iter):
-        train_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+        train_env = HABatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
         if agent == 'random':
             trajs = train_random(train_env, dataset_cfg.n_iters)
         elif agent == 'teacher':

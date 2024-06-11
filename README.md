@@ -1,23 +1,23 @@
-# HC3D Simulator
+# HA3D Simulator
 
-HC3D Simulator is for add 3D human in real-world environment
+HA3D Simulator is for add 3D human in real-world environment
 The development of the simulator is based on：Matterport3D Simulator API, MDM
 
 ## Set environment
 Set an environment variable to the location of the **unzipped** dataset, where <PATH> is the full absolute path (not a relative path or symlink) to the directory containing the individual matterport scan directories (17DRP5sb8fy, 2t7WUuJeko7, etc):
 ```bash
 vim ~/.bashrc
-export HC3D_SIMULATOR_DTAT_PATH=/your/path/to/store/data
+export HA3D_SIMULATOR_DTAT_PATH=/your/path/to/store/data
 source ~/.bashrc
-echo $HC3D_SIMULATOR_DTAT_PATH
+echo $HA3D_SIMULATOR_DTAT_PATH
 ```
 /your/path/to/store/data
 --data
 --human_motion_meshes
 ## Create conda environment
 ```bash
-conda create --name hc3d_simulator python=3.10
-conda activate hc3d_simulator
+conda create --name ha3d_simulator python=3.10
+conda activate ha3d_simulator
 pip install -r requirements.txt
 ```
 
@@ -26,7 +26,7 @@ To use the simulator you must first download the [Matterport3D Dataset](https://
 download Matterport3D dataset from https://niessner.github.io/Matterport/
 get download_mp.py
 ```bash
-python2 download_mp.py -o $HC3D_SIMULATOR_DTAT_PATH/dataset --type matterport_skybox_images undistorted_camera_parameters undistorted_depth_images
+python2 download_mp.py -o $HA3D_SIMULATOR_DTAT_PATH/dataset --type matterport_skybox_images undistorted_camera_parameters undistorted_depth_images
 python scripts/unzip_data.py
 ```
 
@@ -49,7 +49,7 @@ Precompute matching depth skybox images by running this script:
 ## Build Matterport3D Simulator
 see Matterport3DSimulator/README
 
-## HC3D Simulator
+## HA3D Simulator
 create pipe
 ```bash
 mkdir pipe
@@ -58,9 +58,9 @@ mkfifo ./pipe/my_R2S_pipe
 ```
 run renderer
 ```bash
-python HC3DRender.py --pipeID 0
+python HA3DRender.py --pipeID 0
 ```
-Open another terminal and run HC3D Simulator GUI
+Open another terminal and run HA3D Simulator GUI
 ```bash
 python GUI.py
 ```
@@ -68,7 +68,7 @@ python GUI.py
 ## Human motion generation
 see human_motion_model/README
 ## human-scene fusion
-see human-viewpoint_pair/README
+see human-viewpoint_annotation/README
 
 
 Pyrender supports three backends for offscreen rendering:

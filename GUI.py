@@ -507,13 +507,13 @@ class myMainWindow(Ui_Form,QMainWindow):
 
 
 if __name__ == '__main__':
-    simulatorDataPath = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+    simulatorDataPath = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
     datasetPath = os.path.join('./tasks/R2R/data', 'path.json')
     scanIDList = readScanIDList("./connectivity/scans.txt")
     app = QApplication(sys.argv)
-    import HC3DSim
+    import HA3DSim
     import cv2
-    sim = HC3DSim.HCSimulator()
+    sim = HA3DSim.HASimulator()
     #sim.setRenderingEnabled(False)
     sim.setRenderingEnabled(True)
     sim.setDatasetPath(simulatorDataPath)

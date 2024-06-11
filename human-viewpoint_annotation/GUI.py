@@ -465,13 +465,13 @@ def compute(pos_data,average_area):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     GRAPHS = 'connectivity/'
-    data_dir = os.getenv("HC3D_SIMULATOR_DTAT_PATH")
+    data_dir = os.getenv("HA3D_SIMULATOR_DTAT_PATH")
     # 每个建筑场景编号
     with open(GRAPHS+'scans.txt') as f:
         scans = [scan.strip() for scan in f.readlines()]
     with open('human-viewpoint_pair/human_motion_text.json', 'r') as f:
         human_motion_data = json.load(f)
-    with open('human_motion_model/region_motion_text.json', 'r') as f:
+    with open('human-viewpoint_pair/human_motion_model/region_motion_text.json', 'r') as f:
         region_motion_data = json.load(f)
     viewpoint_image_dir = os.path.join(data_dir,"data/v1/scans")
     model_video_dir = os.path.join(data_dir,"samples_humanml_trans_enc_512_000200000_seed10")

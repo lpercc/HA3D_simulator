@@ -148,7 +148,7 @@ class Renderer:
 
         return image
     
-    def newHumans(self, human_list, color=[0.65, 0.8, 0]):
+    def newHumans(self, human_list, color=[0.7, 0.9, 0]):
         self.human_list = []
         self.human_location = []
         material = pyrender.MetallicRoughnessMaterial(

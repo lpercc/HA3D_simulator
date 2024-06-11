@@ -38,8 +38,8 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_dir", type=str, default="save/humanml_trans_enc_512/samples_humanml_trans_enc_512_000200000_seed10_HC-VLN_human_motion_prompts", help='stick figure mp4 file to be rendered.')
-    parser.add_argument("--output_dir", type=str, default=os.path.join(os.getenv('HC3D_SIMULATOR_DTAT_PATH'),"human_motion_meshes"))
+    parser.add_argument("--input_dir", type=str, default="save/humanml_trans_enc_512/samples_humanml_trans_enc_512_000200000_seed10_HA-VLN_human_motion_prompts", help='stick figure mp4 file to be rendered.')
+    parser.add_argument("--output_dir", type=str, default=os.path.join(os.getenv('HA3D_SIMULATOR_DTAT_PATH'),"human_motion_meshes"))
     parser.add_argument("--cuda", type=bool, default=True, help='')
     parser.add_argument("--device", type=int, default=0, help='')
     args = parser.parse_args()

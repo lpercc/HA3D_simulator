@@ -1,3 +1,4 @@
 {
-    "AllAutocomplete.showCurrentDocument": false
+    "AllAutocomplete.showCurrentDocument": false,
+    "ros.distro": "humble"
 }

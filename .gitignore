@@ -1,4 +1,5 @@
 __pycache__/
+.vscode/
 build/
 my_S2R_pipe*
 my_R2S_pipe*

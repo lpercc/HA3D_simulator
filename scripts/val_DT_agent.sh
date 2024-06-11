@@ -9,4 +9,4 @@ flag="  --model_name miniGPT
         --context_length 30
         --cuda $1"
 
-CUDA_VISIBLE_DEVICES="0,1,2,3" python tasks/HC/val_DT.py $flag
+CUDA_VISIBLE_DEVICES="0,1,2,3" python tasks/HA/val_DT.py $flag

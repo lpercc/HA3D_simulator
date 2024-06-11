@@ -31,10 +31,10 @@ import argparse
 from tqdm import tqdm
 from dataclasses import dataclass
 from param import args
-HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
-print(f"sim root dir:{HC3D_SIMULATOR_PATH}")
-MODEL_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/models")
-TRAJS_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/trajs")
+HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
+print(f"sim root dir:{HA3D_SIMULATOR_PATH}")
+MODEL_DIR = os.path.join(HA3D_SIMULATOR_PATH, "tasks/DT_miniGPT/models")
+TRAJS_DIR = os.path.join(HA3D_SIMULATOR_PATH, "tasks/DT_miniGPT/trajs")
 
 # Iterate through the args dictionary and print each entry's key (parameter name) and value
 for key, value in vars(args).items():

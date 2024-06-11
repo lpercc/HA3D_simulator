@@ -1,5 +1,5 @@
 import os
-HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
+HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
 import argparse
 import sys
 import utils
@@ -13,15 +13,15 @@ from torch import optim
 import torch.nn.functional as F
 import math
 from model import EncoderLSTM, AttnDecoderLSTM
-sys.path.append(HC3D_SIMULATOR_PATH)
+sys.path.append(HA3D_SIMULATOR_PATH)
 from scripts.video_feature_loader import TimmExtractor
 from utils import read_vocab,Tokenizer,padding_idx
 
 MODEL_NAME = "resnet152.a1_in1k"
 FPS = 16
 FEATURE_SIZE = 2048
-TRAIN_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/data/train_vocab.txt')
-TRAINVAL_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/data/trainval_vocab.txt')
+TRAIN_VOCAB = os.path.join(HA3D_SIMULATOR_PATH, 'tasks/HA/data/train_vocab.txt')
+TRAINVAL_VOCAB = os.path.join(HA3D_SIMULATOR_PATH, 'tasks/HA/data/trainval_vocab.txt')
 MAX_INPUT_LENGTH = 80
 
 class AgentLLA():
@@ -149,7 +149,7 @@ class AgentLLA():
         self.decoder.eval()
 
 class UnitreeRobot():
-    ''' Implements the HC sim2real task, using Unitree four legs robot'''
+    ''' Implements the HA sim2real task, using Unitree four legs robot'''
     model_actions = ['left', 'right', 'up', 'down', 'forward', '<end>', '<start>', '<ignore>']
     env_actions = [
       (0,-1, 0), # left
@@ -277,8 +277,8 @@ def main(args):
     dropout_ratio = 0.5
     enc_hidden_size = hidden_size//2 if bidirectional else hidden_size
     results_path = ''
-    encoder_path = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/snapshots/seq2seq_sample_imagenet_train_enc_iter_20000')
-    decoder_path = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/snapshots/seq2seq_sample_imagenet_train_dec_iter_20000')
+    encoder_path = os.path.join(HA3D_SIMULATOR_PATH, 'tasks/HA/snapshots/seq2seq_sample_imagenet_train_enc_iter_20000')
+    decoder_path = os.path.join(HA3D_SIMULATOR_PATH, 'tasks/HA/snapshots/seq2seq_sample_imagenet_train_dec_iter_20000')
     train_vocab = read_vocab(TRAIN_VOCAB)
     tokenizer = Tokenizer(vocab=train_vocab, encoding_length=MAX_INPUT_LENGTH)
     extractor = TimmExtractor(model_name=MODEL_NAME, fps=FPS, device=device)

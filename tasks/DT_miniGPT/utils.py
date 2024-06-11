@@ -3,7 +3,7 @@ Author: Dylan Li dylan.h.li@outlook.com
 Date: 2024-03-26 15:23:17
 LastEditors: Dylan Li dylan.h.li@outlook.com
 LastEditTime: 2024-03-30 22:45:30
-FilePath: /HC3D_simulator/tasks/HC/DT/utils.py
+FilePath: /HA3D_simulator/tasks/HA/DT/utils.py
 Description: 
 
 Copyright (c) 2024 by Heng Li, All Rights Reserved. 
@@ -33,7 +33,7 @@ import math
 from collections import Counter
 import networkx as nx
 
-HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
+HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
 # padding, unknown word, end of sentence
 base_vocab = ['<PAD>', '<UNK>', '<EOS>']
 padding_idx = base_vocab.index('<PAD>')
@@ -95,7 +95,7 @@ def load_nav_graphs(scans):
 
     graphs = {}
     for scan in scans:
-        with open(os.path.join(HC3D_SIMULATOR_PATH, 'connectivity/%s_connectivity.json' % scan)) as f:
+        with open(os.path.join(HA3D_SIMULATOR_PATH, 'connectivity/%s_connectivity.json' % scan)) as f:
             G = nx.Graph()
             positions = {}
             data = json.load(f)
@@ -115,7 +115,7 @@ def load_datasets(splits):
     data = []
     for split in splits:
         assert split in ['train', 'val_seen', 'val_unseen', 'test']
-        with open(os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/data/HC_%s.json' % split)) as f:
+        with open(os.path.join(HA3D_SIMULATOR_PATH, 'tasks/HA/data/HA_%s.json' % split)) as f:
             data += json.load(f)
     random.seed(10)
     random.shuffle(data)

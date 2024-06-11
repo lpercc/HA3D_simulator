@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 from agent import Seq2SeqAgent
-from env import HCBatch
+from env import HABatch
 from eval import Evaluation
 from model import AttnDecoderLSTM, EncoderLSTM
 from torch import optim
@@ -21,17 +21,17 @@ from utils import (
     write_vocab,
 )
 
-HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
+HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
 
-TRAIN_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/data/train_vocab.txt')
-TRAINVAL_VOCAB = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/data/trainval_vocab.txt')
-RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/results/')
-SNAPSHOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/snapshots/')
-PLOT_DIR = os.path.join(HC3D_SIMULATOR_PATH, f'tasks/HC/plots/')
+TRAIN_VOCAB = os.path.join(HA3D_SIMULATOR_PATH, f'tasks/HA/data/train_vocab.txt')
+TRAINVAL_VOCAB = os.path.join(HA3D_SIMULATOR_PATH, f'tasks/HA/data/trainval_vocab.txt')
+RESULT_DIR = os.path.join(HA3D_SIMULATOR_PATH, f'tasks/HA/results/')
+SNAPSHOT_DIR = os.path.join(HA3D_SIMULATOR_PATH, f'tasks/HA/snapshots/')
+PLOT_DIR = os.path.join(HA3D_SIMULATOR_PATH, f'tasks/HA/plots/')
 
 MAX_INPUT_LENGTH = args.max_input_length
 
-features = os.path.join(HC3D_SIMULATOR_PATH, f'img_features/{args.features}.tsv')
+features = os.path.join(HA3D_SIMULATOR_PATH, f'img_features/{args.features}.tsv')
 batch_size = args.batch_size
 max_episode_len = args.max_episode_len
 word_embedding_size = args.word_embedding_size
@@ -120,7 +120,7 @@ def test_submission():
     # Create a batch training environment that will also preprocess text
     vocab = read_vocab(TRAINVAL_VOCAB)
     tok = Tokenizer(vocab=vocab, encoding_length=MAX_INPUT_LENGTH)
-    train_env = HCBatch(features, batch_size=batch_size, splits=['train', 'val_seen', 'val_unseen'], tokenizer=tok)
+    train_env = HABatch(features, batch_size=batch_size, splits=['train', 'val_seen', 'val_unseen'], tokenizer=tok)
 
     # Build models and train
     enc_hidden_size = hidden_size//2 if bidirectional else hidden_size
@@ -131,7 +131,7 @@ def test_submission():
     train(train_env, encoder, decoder, n_iters)
 
     # Generate test submission
-    test_env = HCBatch(features, batch_size=batch_size, splits=['test'], tokenizer=tok)
+    test_env = HABatch(features, batch_size=batch_size, splits=['test'], tokenizer=tok)
     agent = Seq2SeqAgent(test_env, "", encoder, decoder, max_episode_len)
     agent.results_path = '%s%s_%s_iter_%d.json' % (RESULT_DIR, model_prefix, 'test', 20000)
     agent.test(use_dropout=False, feedback='argmax')
@@ -145,10 +145,10 @@ def train_val():
     # Create a batch training environment that will also preprocess text
     vocab = read_vocab(TRAIN_VOCAB)
     tok = Tokenizer(vocab=vocab, encoding_length=MAX_INPUT_LENGTH)
-    train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, device=device)
+    train_env = HABatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, device=device)
 
     # Creat validation environments
-    val_envs = {split: (HCBatch(features, batch_size=batch_size, splits=[split],
+    val_envs = {split: (HABatch(features, batch_size=batch_size, splits=[split],
                 tokenizer=tok, device=device), Evaluation([split])) for split in ['val_seen', 'val_unseen']}
 
     # Build models and train
@@ -165,10 +165,10 @@ def valid_teacher():
     # Create a batch training environment that will also preprocess text
     vocab = read_vocab(TRAIN_VOCAB)
     tok = Tokenizer(vocab=vocab, encoding_length=MAX_INPUT_LENGTH)
-    train_env = HCBatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, device=device)
+    train_env = HABatch(features, batch_size=batch_size, splits=['train'], tokenizer=tok, device=device)
 
     # Creat validation environments
-    val_envs = {split: (HCBatch(features, batch_size=batch_size, splits=[split],
+    val_envs = {split: (HABatch(features, batch_size=batch_size, splits=[split],
                 tokenizer=tok, device=device), Evaluation([split])) for split in ['train', 'val_seen', 'val_unseen']}
 
     # Build models and train

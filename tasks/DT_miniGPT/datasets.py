@@ -3,7 +3,7 @@ Author: Dylan Li dylan.h.li@outlook.com
 Date: 2024-03-17 21:42:00
 LastEditors: Dylan Li dylan.h.li@outlook.com
 LastEditTime: 2024-03-30 22:46:08
-FilePath: /HC3D_simulator/tasks/HC/datasets.py
+FilePath: /HA3D_simulator/tasks/HA/datasets.py
 Description: 
 
 Copyright (c) 2024 by Heng Li, All Rights Reserved. 
@@ -13,7 +13,7 @@ from multiprocessing import Process
 import os
 import numpy as np
 from tqdm import tqdm
-from env import HCBatch
+from env import HABatch
 from agent import RandomAgent, TeacherAgent
 import pickle
 from transformers import BartTokenizer, BartModel
@@ -24,8 +24,8 @@ from dataclasses import dataclass
 @dataclass
 class Config:
     # Dataset Path and Name
-    HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
-    TRAJS_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/trajs')
+    HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
+    TRAJS_DIR = os.path.join(HA3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/trajs')
     IMAGENET_FEATURES = 'img_features/ResNet-152-imagenet_80_16_mean.tsv'
     features = IMAGENET_FEATURES
     batch_size = 100
@@ -126,7 +126,7 @@ def train_run(dataset_cfg, agent='random', gpu_id=0, n_iters=0):
     
     tok = BartTokenizer.from_pretrained('facebook/bart-base')
     embedding_model = BartModel.from_pretrained('facebook/bart-base')
-    train_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+    train_env = HABatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['train'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
     if agent == 'random':
         trajs = train_random(dataset_cfg, train_env, n_iters)
     elif agent == 'teacher':
@@ -134,7 +134,7 @@ def train_run(dataset_cfg, agent='random', gpu_id=0, n_iters=0):
     with open(os.path.join(trajs_dir, f'train_trajs_{agent}_{dataset_cfg.name}.pkl'), 'wb') as f:
         pickle.dump(trajs, f)
 
-    val_seen_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['val_seen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+    val_seen_env = HABatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['val_seen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
     if agent == 'random':
         trajs = train_random(dataset_cfg, val_seen_env, int(n_iters*0.3))
     elif agent == 'teacher':
@@ -142,7 +142,7 @@ def train_run(dataset_cfg, agent='random', gpu_id=0, n_iters=0):
     with open(os.path.join(trajs_dir, f'val_seen_trajs_{agent}_{dataset_cfg.name}.pkl'), 'wb') as f:
         pickle.dump(trajs, f)
 
-    val_unseen_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['val_unseen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+    val_unseen_env = HABatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['val_unseen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
     if agent == 'random':
         trajs = train_random(dataset_cfg, val_unseen_env, int(n_iters*0.3))
     elif agent == 'teacher':
@@ -174,7 +174,7 @@ def train_run_quick_test(dataset_cfg, agent='random', gpu_id=0, n_iters=0):
     tok = BartTokenizer.from_pretrained('facebook/bart-base')
     embedding_model = BartModel.from_pretrained('facebook/bart-base')
 
-    val_seen_env = HCBatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['val_seen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
+    val_seen_env = HABatch(dataset_cfg.features, batch_size=dataset_cfg.batch_size, splits=['val_seen'], tokenizer=tok, text_embedding_model=embedding_model, device=device)
     if agent == 'random':
         trajs = train_random(dataset_cfg, val_seen_env, int(n_iters/14))
     elif agent == 'teacher':

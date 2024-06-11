@@ -2,9 +2,9 @@
 
 import sys
 import os
-HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
-sys.path.append(HC3D_SIMULATOR_PATH)
-import HC3DSim
+HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
+sys.path.append(HA3D_SIMULATOR_PATH)
+import HA3DSim
 import csv
 import numpy as np
 import math
@@ -77,9 +77,9 @@ class EnvBatch():
         
         self.batch_size = batch_size
         if not MODELING_ONLY:
-            dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+            dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
             self.sim.setDatasetPath(dataset_path)
-        self.sim = HC3DSim.HCSimulator()
+        self.sim = HA3DSim.HASimulator()
         self.sim.setRenderingEnabled(self.renderingFlag)
         self.sim.setDiscretizedViewingAngles(True)
         self.sim.setBatchSize(self.batch_size)
@@ -152,7 +152,7 @@ class EnvBatch():
 
 
 
-class HCBatch():
+class HABatch():
     ''' Implements the Room to Room navigation task, using discretized viewpoints and pretrained features '''
 
     def __init__(self, feature_store, batch_size=100, seed=10, splits=['train'], tokenizer=None, text_embedding_model=None, device='cpu'):
@@ -192,7 +192,7 @@ class HCBatch():
         self.ix = 0
         self.batch_size = batch_size
         self._load_nav_graphs()
-        print('HCBatch loaded with %d instructions, using splits: %s' % (len(self.data), ",".join(splits)))
+        print('HABatch loaded with %d instructions, using splits: %s' % (len(self.data), ",".join(splits)))
 
     def _load_nav_graphs(self):
         ''' Load connectivity graph for each scan, useful for reasoning about shortest paths '''

@@ -13,7 +13,7 @@ from env import R2RBatch
 from utils import load_datasets, load_nav_graphs
 from agent import BaseAgent
 sys.path.append('./')
-HUMAN_VIEWPOINT = './human-viewpoint_pair/human_motion_text.json'
+HUMAN_VIEWPOINT = './human-viewpoint_annotation/human_motion_text.json'
 NEW_DATA = True
 
 

@@ -28,7 +28,7 @@ if FILL_HOLES:
 # Note: Matterport camera is really y=up, x=right, -z=look.
 SKYBOX_WIDTH = 1024
 SKYBOX_HEIGHT = 1024
-base_dir = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+base_dir = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
 skybox_template = '%s/%s/matterport_skybox_images/%s_skybox%d_sami.jpg'
 color_template = '%s/%s/undistorted_color_images/%s_i%s.jpg'
 depth_template = '%s/%s/undistorted_depth_images/%s_d%s.png'

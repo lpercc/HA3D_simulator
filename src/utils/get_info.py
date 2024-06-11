@@ -24,7 +24,7 @@ def print_file_and_line_quick():
 def get_human_info(basic_data_dir, scan_id, agent_view_id):
     motion_dir = os.path.join(basic_data_dir,"human_motion_meshes")
         # 一共90个建筑场景数据
-    with open(os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_pair/human_motion_text.json'), 'r') as f:
+    with open(os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_annotation/human_motion_text.json'), 'r') as f:
         human_view_data = json.load(f)
             # 获取建筑场景所有视点信息（视点之间的关系）
     with open(os.path.join(HC3D_SIMULATOR_PATH, 'con/pos_info/{}_pos_info.json'.format(scan_id)), 'r') as f:
@@ -61,7 +61,7 @@ def getHumanOfScan(scan_id):
     human_item = {}
     motion_dir = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"),"human_motion_meshes")
         # 一共90个建筑场景数据
-    with open(os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_pair/human_motion_text.json'), 'r') as f:
+    with open(os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_annotation/human_motion_text.json'), 'r') as f:
         human_view_data = json.load(f)
             # 获取建筑场景所有视点信息（视点之间的关系）
     with open(os.path.join(HC3D_SIMULATOR_PATH, 'con/pos_info/{}_pos_info.json'.format(scan_id)), 'r') as f:
@@ -154,7 +154,7 @@ def getAllHumanLocations(scanIDs=[]):
 # 计算数据集中每条路径的可见人物
 def get_human_on_path(data_dir_path):
     print(f"**********************{data_dir_path}*****************************")
-    with open(os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_pair/human_motion_text.json'), 'r') as f:
+    with open(os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_annotation/human_motion_text.json'), 'r') as f:
         human_view_data = json.load(f)
     human_count = 0
     for scan in human_view_data:
@@ -416,7 +416,7 @@ def get_crux_on_path(data_file):
 def count_human_of_region():
     region = {}
 
-    with open(os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_pair/human_motion_text.json'), 'r') as f:
+    with open(os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_annotation/human_motion_text.json'), 'r') as f:
         human_view_data = json.load(f)
     
     for i, scanId in enumerate(human_view_data):

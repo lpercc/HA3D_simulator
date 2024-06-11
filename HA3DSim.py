@@ -8,7 +8,7 @@ from src.utils.get_info import getHumanOfScan, relHumanAngle, getAllHumanLocatio
 import math
 import argparse
 import pickle
-HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
+HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
 def receiveMessage(pipe_R2S):
     with open(pipe_R2S, 'rb') as pipe_r2s:
         while True:
@@ -21,7 +21,7 @@ def receiveMessage(pipe_R2S):
                 break
 
 
-class HCSimulator(MatterSim.Simulator):
+class HASimulator(MatterSim.Simulator):
     def __init__(self, pipeID=0):
         self.isRealTimeRender = False
         self.state = None
@@ -33,8 +33,8 @@ class HCSimulator(MatterSim.Simulator):
         self.WIDTH = 640
         self.HEIGHT = 480
         self.VFOV = math.radians(60)
-        self.pipe_S2R = os.path.join(HC3D_SIMULATOR_PATH, f'pipe/my_S2R_pipe{pipeID}')
-        self.pipe_R2S = os.path.join(HC3D_SIMULATOR_PATH, f'pipe/my_R2S_pipe{pipeID}')
+        self.pipe_S2R = os.path.join(HA3D_SIMULATOR_PATH, f'pipe/my_S2R_pipe{pipeID}')
+        self.pipe_R2S = os.path.join(HA3D_SIMULATOR_PATH, f'pipe/my_R2S_pipe{pipeID}')
         print(f"Simulator PIPE {pipeID}")
         self.frame_num = 0
         self.framesPerStep = 16
@@ -135,7 +135,7 @@ class HCSimulator(MatterSim.Simulator):
         if self.frame_num >= 120:
             self.frame_num = 0
     def renderScene(self):
-        self.state = HCSimState(self.state)
+        self.state = HASimState(self.state)
         #self.background = cv2.cvtColor(self.state.rgb, cv2.COLOR_BGR2RGB).astype(np.uint8)
         self.background = self.state.rgb.astype(np.uint8)
         self.background_depth = np.squeeze(self.state.depth, axis=-1)
@@ -185,7 +185,7 @@ class HCSimulator(MatterSim.Simulator):
             states.append(self.state)
         else:
             for state in super().getState():
-                state = HCSimState(state)
+                state = HASimState(state)
                 humanLocations = self.getHumanState(state.scanId)
                 relHeading, relElevation, minDistance = relHumanAngle(humanLocations, 
                                                     [state.location.x, state.location.y, state.location.z], 
@@ -239,7 +239,7 @@ class HCSimulator(MatterSim.Simulator):
         return state, np.array(agentViewFrames, copy=False)
 
 
-class HCSimState():
+class HASimState():
     def __init__(self,o_state):
 
         self.scanId = o_state.scanId
@@ -315,8 +315,8 @@ def main(args):
     HEIGHT = 600
     VFOV = math.radians(60)
     batch_size = 1
-    dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
-    sim = HCSimulator()
+    dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+    sim = HASimulator()
     sim.setRenderingEnabled(True)
     sim.setBatchSize(batch_size)
     sim.setDatasetPath(dataset_path)

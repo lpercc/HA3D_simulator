@@ -1,4 +1,4 @@
-# Room-to-Room (HC) Navigation Task
+# Room-to-Room (HA) Navigation Task
 
 
 ## Download Data
@@ -7,7 +7,7 @@ Data consists of train/val-seen/val-unseen/test splits. There are two validation
 
 To download, from the top level directory, run:
 ```
-./tasks/HC/data/download.sh
+./tasks/HA/data/download.sh
 ```
 
 Data is formatted as follows:
@@ -44,7 +44,7 @@ For the test set, only the first path_id (starting location) is included. We wil
 
 Python 3, [PyTorch](http://pytorch.org/), [NetworkX](https://networkx.github.io/), [pandas](https://pandas.pydata.org/), etc. These should already be installed in the docker image, or can be installed by running:
 ```
-pip3 install -r tasks/HC/requirements.txt
+pip3 install -r tasks/HA/requirements.txt
 ```
 
 
@@ -54,17 +54,17 @@ There is a test server and leaderboard available at [EvalAI](https://evalai.clou
 
 To train the baseline seq2seq model with student-forcing:
 ```
-python3 tasks/HC/train.py
+python3 tasks/HA/train.py
 ```
 
 To run some simple learning free baselines:
 ```
-python3 tasks/HC/eval.py
+python3 tasks/HA/eval.py
 ```
 
 Generate figures from the paper:
 ```
-python3 tasks/HC/plot.py
+python3 tasks/HA/plot.py
 ```
 
 The simple baselines include:

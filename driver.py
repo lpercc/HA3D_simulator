@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import os
 import sys
-import HC3DSim
+import HA3DSim
 
 TARGET_FPS = 20  # 目标帧率
 FRAME_DURATION = 1.0 / TARGET_FPS  # 目标帧持续时间
@@ -25,7 +25,7 @@ def compute_fps(time_diff, rgb):
     if time_diff < FRAME_DURATION:
         time.sleep(FRAME_DURATION - time_diff)
 
-dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
 WIDTH = 800
 HEIGHT = 600
 VFOV = math.radians(60)
@@ -37,7 +37,7 @@ cv2.namedWindow('Python Depth')
 
 
 #sim = MatterSim.Simulator()
-sim = HC3DSim.HCSimulator()
+sim = HA3DSim.HASimulator()
 #sim.setRenderingEnabled(False)
 sim.setRealTimeRender(True)
 sim.setDatasetPath(dataset_path)

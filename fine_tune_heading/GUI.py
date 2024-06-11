@@ -353,7 +353,7 @@ class myMainWindow(Ui_Form,QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     GRAPHS = 'connectivity/'
-    data_dir = os.getenv("HC3D_SIMULATOR_DTAT_PATH")
+    data_dir = os.getenv("HA3D_SIMULATOR_DTAT_PATH")
     # 每个建筑场景编号
     with open(GRAPHS+'scans.txt') as f:
         scan_list = [scan.strip() for scan in f.readlines()]

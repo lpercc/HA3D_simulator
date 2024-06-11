@@ -6,7 +6,7 @@
     and VFOV parameters. """
 
 import sys
-sys.path.append("../HC-VLN_simulator")
+sys.path.append('./')
 from tqdm import tqdm
 import dynamicMatterSim
 import numpy as np

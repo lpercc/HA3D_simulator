@@ -9,7 +9,7 @@ follow the MDM repo README, after step 3 (https://github.com/GuyTevet/motion-dif
 run the script
 ```bash
 #generate from human motion text prompts
-python -m sample.generate --model_path ./save/humanml_trans_enc_512/model000200000.pt --input_text ../HC-VLN_human_motion_prompts.txt --output_dir $HC3D_SIMULATOR_DTAT_PATH/samples_humanml_trans_enc_512_000200000_seed10 --num_repetitions 3 --batch_size 145
+python -m sample.generate --model_path ./save/humanml_trans_enc_512/model000200000.pt --input_text ../HA-VLN_human_motion_prompts.txt --output_dir $HA3D_SIMULATOR_DTAT_PATH/samples_humanml_trans_enc_512_000200000_seed10 --num_repetitions 3 --batch_size 145
 ```
 You may also define:
   --device id.
@@ -19,5 +19,5 @@ You may also define:
 ## Render SMPL mesh
 ```bash
 cp ../skeleton2smpl.py ./visualize
-python -m visualize.skeleton2smpl --input_dir $HC3D_SIMULATOR_DTAT_PATH/samples_humanml_trans_enc_512_000200000_seed10 --output_dir $HC3D_SIMULATOR_DTAT_PATH/human_motion_meshes
+python -m visualize.skeleton2smpl --input_dir $HA3D_SIMULATOR_DTAT_PATH/samples_humanml_trans_enc_512_000200000_seed10 --output_dir $HA3D_SIMULATOR_DTAT_PATH/human_motion_meshes
 ```

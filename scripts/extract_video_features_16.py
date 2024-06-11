@@ -8,7 +8,7 @@
 import sys
 from tqdm import tqdm
 sys.path.append('./')
-import HC3DSim
+import HA3DSim
 import numpy as np
 import json
 import math
@@ -87,8 +87,8 @@ def build_tsv(args):
     # Set up the simulator
     viewpoint_s = int(args.viewpoint_s)
     viewpoint_e = int(args.viewpoint_e)
-    dataset_path = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
-    sim = HC3DSim.HCSimulator(pipeID = args.pipeID)
+    dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+    sim = HA3DSim.HASimulator(pipeID = args.pipeID)
     sim.setRenderingEnabled(True)
     sim.setDatasetPath(dataset_path)
     sim.setDepthEnabled(True)

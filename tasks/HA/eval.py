@@ -9,12 +9,12 @@ import numpy as np
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-from env import HCBatch
+from env import HABatch
 from utils import load_datasets, load_nav_graphs
 from agent import BaseAgent
 sys.path.append('./')
-HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
-HUMAN_VIEWPOINT = os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_pair/human_motion_text.json')
+HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
+HUMAN_VIEWPOINT = os.path.join(HA3D_SIMULATOR_PATH, 'human-viewpoint_pair/human_motion_text.json')
 NEW_DATA = True
 
 
@@ -207,12 +207,12 @@ class Evaluation(object):
         return bleu_score, precisions
 
 
-RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/HC/results/')
+RESULT_DIR = os.path.join(HA3D_SIMULATOR_PATH, 'tasks/HA/results/')
 
 def eval_simple_agents():
     ''' Run simple baselines on each split. '''
     for split in ['train', 'val_seen', 'val_unseen', 'test']:
-        env = HCBatch(None, batch_size=1, splits=[split])
+        env = HABatch(None, batch_size=1, splits=[split])
         ev = Evaluation([split])
 
         for agent_type in ['Stop', 'Shortest', 'Random']:

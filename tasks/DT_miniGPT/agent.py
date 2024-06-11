@@ -14,7 +14,7 @@ from param import args
 
 
 class BaseAgent(object):
-    ''' Base class for an HC agent to generate and save trajectories. '''
+    ''' Base class for an HA agent to generate and save trajectories. '''
 
     def __init__(self, env, results_path):
         self.env = env

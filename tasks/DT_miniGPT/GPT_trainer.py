@@ -22,7 +22,7 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from transformers import BartModel, BartTokenizer
 from agent import DecisionTransformerAgent
-from env import HCBatch
+from env import HABatch
 from eval import Evaluation
 logger = logging.getLogger(__name__)
 import json
@@ -30,9 +30,9 @@ import random
 import cv2
 import torch
 from datetime import datetime
-HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
-RESULT_DIR = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/results/')
-TENSORBOARD_DIR = os.path.join(HC3D_SIMULATOR_PATH, "tasks/DT_miniGPT/tensorboard_logs/")
+HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
+RESULT_DIR = os.path.join(HA3D_SIMULATOR_PATH, 'tasks/DT_miniGPT/results/')
+TENSORBOARD_DIR = os.path.join(HA3D_SIMULATOR_PATH, "tasks/DT_miniGPT/tensorboard_logs/")
 class Trainer: 
     
     def __init__(self, model, train_dataset, val_seen_dataset, val_unseen_dataset, args, model_dir):
@@ -46,7 +46,7 @@ class Trainer:
         self.device = f'cuda:{self.args.cuda}' if torch.cuda.is_available() else 'cpu'
         self.model = self.model.to(self.device) #TODO: Add dataparallel in server 
         self.scale_writer = SummaryWriter(os.path.join(TENSORBOARD_DIR, f'{args.experiment_id}_{self.args.fusion_type}_{self.args.feedback_method}_{self.args.reward_strategy}'))
-        self.features = os.path.join(HC3D_SIMULATOR_PATH, f'img_features/{self.args.features}.tsv')
+        self.features = os.path.join(HA3D_SIMULATOR_PATH, f'img_features/{self.args.features}.tsv')
         self.tok = BartTokenizer.from_pretrained("facebook/bart-base")
         self.embedding_model = BartModel.from_pretrained("facebook/bart-base")
         self.hparams = {
@@ -172,7 +172,7 @@ class Trainer:
 
     def val(self):
         """Init a env to evaluate decision transformer"""
-        self.val_envs = {split: (HCBatch(self.features,                                        
+        self.val_envs = {split: (HABatch(self.features,                                        
                                 batch_size=300 if self.args.batch_size > 300 else self.args.batch_size, 
                                 splits=[split],
                                 tokenizer=self.tok, 

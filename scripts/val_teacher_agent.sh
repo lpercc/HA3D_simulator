@@ -9,4 +9,4 @@ flag="  --model_name teacher
         --cuda $1"
          
 
-CUDA_VISIBLE_DEVICES="0,1,2,3" python tasks/HC/train.py $flag
+CUDA_VISIBLE_DEVICES="0,1,2,3" python tasks/HA/train.py $flag
