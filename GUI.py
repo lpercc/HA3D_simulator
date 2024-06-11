@@ -14,6 +14,7 @@ from src.utils.drawImage import drawCentering
 import math
 import numpy as np
 import random
+from multiprocessing import Process
 #sys.path.append('../')
 
 #from src.utils.get_info import print_file_and_line_quick
@@ -504,16 +505,23 @@ class myMainWindow(Ui_Form,QMainWindow):
     def generateInstructions(self):
         pass
 
-
+def runProgram(command, suppress_output=False):
+    if suppress_output:
+        command += " >/dev/null 2>&1"
+    print(command)
+    os.system(f'python {command}')
 
 if __name__ == '__main__':
     simulatorDataPath = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
     datasetPath = os.path.join('./tasks/R2R/data', 'path.json')
     scanIDList = readScanIDList("./connectivity/scans.txt")
+    pipeID = 0
+    # Create child processes
+    Process(target=runProgram, args=(f"HA3DRender.py --pipeID {pipeID}", False)).start()
     app = QApplication(sys.argv)
     import HA3DSim
     import cv2
-    sim = HA3DSim.HASimulator()
+    sim = HA3DSim.HASimulator(pipeID)
     #sim.setRenderingEnabled(False)
     sim.setRenderingEnabled(True)
     sim.setDatasetPath(simulatorDataPath)

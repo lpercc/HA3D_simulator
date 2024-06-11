@@ -88,6 +88,15 @@ def build_tsv(args):
     viewpoint_s = int(args.viewpoint_s)
     viewpoint_e = int(args.viewpoint_e)
     dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+    # Create child processes
+    from multiprocessing import Process
+    def runProgram(command, suppress_output=False):
+        if suppress_output:
+            command += " >/dev/null 2>&1"
+        print(command)
+        os.system(f'python {command}')
+    Process(target=runProgram, args=(f"HA3DRender.py --pipeID {args.pipeID}", False)).start()
+    
     sim = HA3DSim.HASimulator(pipeID = args.pipeID)
     sim.setRenderingEnabled(True)
     sim.setDatasetPath(dataset_path)

@@ -1,12 +1,11 @@
-
-import MatterSim
+import HA3DSim
 import time
 import math
 import cv2
 import numpy as np
 import os
 import sys
-import HA3DSim
+from multiprocessing import Process
 
 TARGET_FPS = 20  # 目标帧率
 FRAME_DURATION = 1.0 / TARGET_FPS  # 目标帧持续时间
@@ -25,6 +24,13 @@ def compute_fps(time_diff, rgb):
     if time_diff < FRAME_DURATION:
         time.sleep(FRAME_DURATION - time_diff)
 
+def runProgram(command, suppress_output=False):
+    if suppress_output:
+        command += " >/dev/null 2>&1"
+    print(command)
+    os.system(f'python {command}')
+
+
 dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
 WIDTH = 800
 HEIGHT = 600
@@ -35,11 +41,12 @@ TEXT_COLOR = [230, 40, 40]
 cv2.namedWindow('Python RGB')
 cv2.namedWindow('Python Depth')
 
-
+pipeID = 0
+# Create child processes
+Process(target=runProgram, args=(f"HA3DRender.py --pipeID {pipeID}", False)).start()
 #sim = MatterSim.Simulator()
-sim = HA3DSim.HASimulator()
-#sim.setRenderingEnabled(False)
-sim.setRealTimeRender(True)
+sim = HA3DSim.HASimulator(pipeID)
+sim.setRenderingEnabled(True)
 sim.setDatasetPath(dataset_path)
 sim.setCameraResolution(WIDTH, HEIGHT)
 sim.setCameraVFOV(VFOV)

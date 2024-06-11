@@ -5,7 +5,7 @@ import trimesh
 import inspect
 from tqdm import tqdm 
 import numpy as np
-HC3D_SIMULATOR_PATH = os.environ.get("HC3D_SIMULATOR_PATH")
+HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
 def print_file_and_line_quick():
     # 快速获取当前行号
     line_no = inspect.stack()[1][2]
@@ -24,13 +24,13 @@ def print_file_and_line_quick():
 def get_human_info(basic_data_dir, scan_id, agent_view_id):
     motion_dir = os.path.join(basic_data_dir,"human_motion_meshes")
         # 一共90个建筑场景数据
-    with open(os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_annotation/human_motion_text.json'), 'r') as f:
+    with open(os.path.join(HA3D_SIMULATOR_PATH, 'human-viewpoint_annotation/human_motion_text.json'), 'r') as f:
         human_view_data = json.load(f)
             # 获取建筑场景所有视点信息（视点之间的关系）
-    with open(os.path.join(HC3D_SIMULATOR_PATH, 'con/pos_info/{}_pos_info.json'.format(scan_id)), 'r') as f:
+    with open(os.path.join(HA3D_SIMULATOR_PATH, 'con/pos_info/{}_pos_info.json'.format(scan_id)), 'r') as f:
         pos_data = json.load(f)
         #print(len(pos_data))
-    with open(os.path.join(HC3D_SIMULATOR_PATH, 'con/con_info/{}_con_info.json'.format(scan_id)), 'r') as f:
+    with open(os.path.join(HA3D_SIMULATOR_PATH, 'con/con_info/{}_con_info.json'.format(scan_id)), 'r') as f:
         connection_data = json.load(f)
 
     human_heading = None
@@ -59,15 +59,15 @@ def get_human_info(basic_data_dir, scan_id, agent_view_id):
 def getHumanOfScan(scan_id):
     human_list = []
     human_item = {}
-    motion_dir = os.path.join(os.environ.get("HC3D_SIMULATOR_DTAT_PATH"),"human_motion_meshes")
+    motion_dir = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"),"human_motion_meshes")
         # 一共90个建筑场景数据
-    with open(os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_annotation/human_motion_text.json'), 'r') as f:
+    with open(os.path.join(HA3D_SIMULATOR_PATH, 'human-viewpoint_annotation/human_motion_text.json'), 'r') as f:
         human_view_data = json.load(f)
             # 获取建筑场景所有视点信息（视点之间的关系）
-    with open(os.path.join(HC3D_SIMULATOR_PATH, 'con/pos_info/{}_pos_info.json'.format(scan_id)), 'r') as f:
+    with open(os.path.join(HA3D_SIMULATOR_PATH, 'con/pos_info/{}_pos_info.json'.format(scan_id)), 'r') as f:
         pos_data = json.load(f)
         #print(len(pos_data))
-    with open(os.path.join(HC3D_SIMULATOR_PATH, 'con/con_info/{}_con_info.json'.format(scan_id)), 'r') as f:
+    with open(os.path.join(HA3D_SIMULATOR_PATH, 'con/con_info/{}_con_info.json'.format(scan_id)), 'r') as f:
         connection_data = json.load(f)
     human_heading = 0
     human_loc = []
@@ -130,14 +130,14 @@ def getHumanLocations(scan_id):
 
 ## get human all locations of each building
 def getAllHumanLocations(scanIDs=[]):
-    file_path = os.path.join(HC3D_SIMULATOR_PATH, "tasks/HC/data/human_locations.json")
+    file_path = os.path.join(HA3D_SIMULATOR_PATH, "tasks/HA/data/human_locations.json")
     if os.path.exists(file_path):
         with open(file_path, 'r') as j:
             data = json.load(j)
             if len(data) == 90:
                 return data
     allHumanLocations = dict()
-    with open(os.path.join(HC3D_SIMULATOR_PATH, "connectivity/scans.txt")) as f:
+    with open(os.path.join(HA3D_SIMULATOR_PATH, "connectivity/scans.txt")) as f:
         if len(scanIDs) != 0:
             scans = scanIDs
         else:
@@ -147,14 +147,14 @@ def getAllHumanLocations(scanIDs=[]):
             # get all human locations in the scan building 
             humanLocationOfScan = getHumanLocations(scan)
             allHumanLocations[scan] = humanLocationOfScan
-    with open(os.path.join(HC3D_SIMULATOR_PATH, "tasks/HC/data/human_locations.json"), 'w') as j:
+    with open(os.path.join(HA3D_SIMULATOR_PATH, "tasks/HA/data/human_locations.json"), 'w') as j:
         json.dump(allHumanLocations, j, indent=4)
     return allHumanLocations
 
 # 计算数据集中每条路径的可见人物
 def get_human_on_path(data_dir_path):
     print(f"**********************{data_dir_path}*****************************")
-    with open(os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_annotation/human_motion_text.json'), 'r') as f:
+    with open(os.path.join(HA3D_SIMULATOR_PATH, 'human-viewpoint_annotation/human_motion_text.json'), 'r') as f:
         human_view_data = json.load(f)
     human_count = 0
     for scan in human_view_data:
@@ -184,10 +184,10 @@ def get_human_on_path(data_dir_path):
         scan_id = r2r_data_item["scan"]
         path = r2r_data_item["path"]
         path_id = r2r_data_item["path_id"]
-        with open(os.path.join(HC3D_SIMULATOR_PATH, 'con/pos_info/{}_pos_info.json'.format(scan_id)), 'r') as f:
+        with open(os.path.join(HA3D_SIMULATOR_PATH, 'con/pos_info/{}_pos_info.json'.format(scan_id)), 'r') as f:
             pos_data = json.load(f)
             #print(len(pos_data))
-        with open(os.path.join(HC3D_SIMULATOR_PATH, 'con/con_info/{}_con_info.json'.format(scan_id)), 'r') as f:
+        with open(os.path.join(HA3D_SIMULATOR_PATH, 'con/con_info/{}_con_info.json'.format(scan_id)), 'r') as f:
             connection_data = json.load(f)
     
         path_visible_points = get_visible_points(path, connection_data)
@@ -296,7 +296,7 @@ def horizontal_and_elevation_angles(point1, point2):
 def load_viewpointids():
     GRAPHS = "connectivity/"
     viewpointIds = []
-    with open(os.path.join(HC3D_SIMULATOR_PATH, GRAPHS + "scans.txt")) as f:
+    with open(os.path.join(HA3D_SIMULATOR_PATH, GRAPHS + "scans.txt")) as f:
         scans = [scan.strip() for scan in f.readlines()]
         for scan in scans:
             with open(GRAPHS + scan + "_connectivity.json") as j:
@@ -382,7 +382,7 @@ def get_crux_on_path(data_file):
     #遍历每条路径
     for j,data_item in enumerate(data):
         scan_id = data_item["scan"]
-        with open(os.path.join(HC3D_SIMULATOR_PATH, 'con/con_info/{}_con_info.json'.format(scan_id)), 'r') as f:
+        with open(os.path.join(HA3D_SIMULATOR_PATH, 'con/con_info/{}_con_info.json'.format(scan_id)), 'r') as f:
             connection_data = json.load(f)
         # 初始化并加入起点
         crux_list = [data_item["path"][0]]
@@ -416,7 +416,7 @@ def get_crux_on_path(data_file):
 def count_human_of_region():
     region = {}
 
-    with open(os.path.join(HC3D_SIMULATOR_PATH, 'human-viewpoint_annotation/human_motion_text.json'), 'r') as f:
+    with open(os.path.join(HA3D_SIMULATOR_PATH, 'human-viewpoint_annotation/human_motion_text.json'), 'r') as f:
         human_view_data = json.load(f)
     
     for i, scanId in enumerate(human_view_data):
@@ -463,7 +463,7 @@ def read_position_data(file_path):
 if __name__ == '__main__':
     #count_points_seen_human()
        
-    data_folder = os.path.join(HC3D_SIMULATOR_PATH, 'tasks/R2R/data')
+    data_folder = os.path.join(HA3D_SIMULATOR_PATH, 'tasks/R2R/data')
     #files = [f for f in os.listdir(data_folder) if f.endswith('.json')]
     #for file in files:
         #get_crux_on_path(os.path.join(data_folder,file)) 

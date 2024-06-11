@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export HC3D_SIMULATOR_PATH=$(pwd)
+export HA3D_SIMULATOR_PATH=$(pwd)
 
 flag="--model_name miniGPT 
         --features ResNet-152-imagenet_80_16_mean
