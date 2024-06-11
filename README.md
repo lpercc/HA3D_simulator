@@ -9,7 +9,6 @@ HC3D Simulator integrates 3D human models into real-world environments. Built up
 - [🐍 Create Conda Environment](#create-conda-environment)
 - [📥 Download Dataset](#download-dataset)
 - [🔄 Dataset Preprocessing](#dataset-preprocessing)
-- [🏗️ Build Matterport3D Simulator](#build-matterport3d-simulator)
 - [🚀 Run HC3D Simulator](#run-hc3d-simulator)
 - [🕺 Human Motion Generation](#human-motion-generation)
 - [🌆 Human-Scene Fusion](#human-scene-fusion)
@@ -60,23 +59,23 @@ Speed up data loading and reduce memory usage by preprocessing the `matterport_s
 
 This script downscales and combines all cube faces into a single image, resulting in filenames like `<PANO_ID>_skybox_small.jpg`.
 
-## 🏗️ Build Matterport3D Simulator
-Follow the instructions in the [Matterport3DSimulator/README](Matterport3DSimulator/README).
-
 ## 🚀 Run HC3D Simulator
-1. Create pipes:
+1. Build Matterport3D Simulator:
+    Follow the instructions in the [Matterport3DSimulator/README](Matterport3DSimulator/README).
+
+3. Create pipes:
     ```bash
     mkdir pipe
     mkfifo ./pipe/my_S2R_pipe
     mkfifo ./pipe/my_R2S_pipe
     ```
 
-2. Run the renderer:
+4. Run the renderer:
     ```bash
     python HC3DRender.py --pipeID 0
     ```
 
-3. In a new terminal, start the HC3D Simulator GUI:
+5. In a new terminal, start the HC3D Simulator GUI:
     ```bash
     python GUI.py
     ```
