@@ -232,7 +232,23 @@ class TeacherAgent(BaseAgent):
         return traj
 
 class DecisionTransformerAgent(BaseAgent):
+    """
+    A Decision Transformer agent that uses a trained autoregressive transformer to make decisions based on observations from an environment.
 
+    Attributes:
+        model_actions (list): A list of possible actions the model can predict.
+        env_actions (list): Corresponding environment actions for model actions.
+        indexed_to_teacher_action (dict): Mapping from model action indices to environment actions.
+        reward_strategy (str): Strategy to use for calculating rewards.
+        model (torch.nn.Module): The trained model used for making predictions.
+        device (str): The device (CPU or GPU) on which the model is running.
+        max_steps (int): Maximum number of steps the agent can take in an episode.
+
+    Main Methods:
+        __init__(env, results_path, model): Initializes the agent with the environment, path for results, and model.
+        set_reward(reward_strategy): Sets the reward calculation strategy.
+        rollout(): Executes an episode in the environment using the model.
+    """
     # For now, the agent can't pick which forward move to make - just the one in the middle
     model_actions = ['left', 'right', 'up', 'down', 'forward', '<end>', '<start>', '<ignore>']
     env_actions = [
@@ -265,9 +281,16 @@ class DecisionTransformerAgent(BaseAgent):
         
 
     def _variable_from_obs(self, obs, return_whole=False):
-        ''' Extracts the feature tensor from a list of observations. 
-        - obs[np.array]: a list of observations.
-        '''
+    """
+    Processes observations to extract or compute states, actions, target returns, and timesteps.
+
+    Args:
+        obs (list): A list of observations from the environment.
+        return_whole (bool): Whether to return data for all timesteps or just the current one.
+
+    Returns:
+        tuple: A tuple containing states, actions, target returns, and timesteps.
+    """
         
         states = []
         
@@ -278,23 +301,22 @@ class DecisionTransformerAgent(BaseAgent):
         
         if not return_whole:    
             states = np.array(states, dtype=np.float32).reshape(len(obs), 1, -1)# (batch_size, 1, feature_size)
-            target_returns = np.ones((len(obs), 1, 1)) * 0.5 # set the target return to 3.0, because we have sparse positive reward
-            timesteps = np.zeros((len(obs), 1, 1), dtype=np.int64) # set the timesteps to 0
-            actions = np.zeros((len(obs), 1, 1)) - 1 # set first time is None for action
+            target_returns = np.ones((len(obs), 1, 1)) * 0.5 
+            timesteps = np.zeros((len(obs), 1, 1), dtype=np.int64) 
+            actions = np.zeros((len(obs), 1, 1)) - 1 
         else: 
             states = np.repeat(np.array(states, dtype=np.float32).reshape(len(obs), 1, -1), self.max_steps, axis=1)
-            target_returns = np.ones((len(obs), self.max_steps, 1)) * args.target_rtg # TODO: add to global config
-            timesteps = np.zeros((len(obs), self.max_steps, 1), dtype=np.int64) # set the timesteps to 0
+            target_returns = np.ones((len(obs), self.max_steps, 1)) * args.target_rtg 
+            timesteps = np.zeros((len(obs), self.max_steps, 1), dtype=np.int64) 
             timesteps = np.tile(np.arange(self.max_steps).reshape(1, -1, 1), (len(obs), 1, 1))
-            actions = np.zeros((len(obs), self.max_steps, 1)) # set first time is zero for action,
-
+            actions = np.zeros((len(obs), self.max_steps, 1)) 
         return states, actions, target_returns, timesteps
     
     def _check_action_valid(self, ob):
         ''' if a action is go forward, check if the agent can go forward. If not, resample the action until the agent can go forward.
         '''
         
-        if len(ob['navigableLocations']) >= 2:  # 设置为大于等于 2, 因为自身也被算作 navigableLocations
+        if len(ob['navigableLocations']) >= 2:  
             return True 
         else: 
             return False
@@ -342,33 +364,28 @@ class DecisionTransformerAgent(BaseAgent):
                     target_return_t = torch.tensor(target_return, dtype=torch.float32).to(self.device)
                     timestep_t = torch.tensor(timestep, dtype=torch.int64).to(self.device)
                     
-                    # if the first time. we need to set the action to None, because it can not exceed the max length of the sequence, so we can only use forward. 
+                    
                     if step == 0: 
                         predict_action , _ = self.model.forward(state_t, actions=None, targets=None, rtgs=target_return_t, timesteps=timestep_t)
-                        next_actions_logit = predict_action[:, -1, :] # shape (batch_size, n_actions)
-                        # here, model predcit the logits, we need to sample the action from the logits.
-                        next_action = self.model.sample_from_logits(next_actions_logit, temperature=1.0, sample=False, top_k=None) # size (batch_size, 1)
-                        # check if the action is valid 
-                        # only when the action is forward, we need to check if the agent can go forward.
+                        next_actions_logit = predict_action[:, -1, :] 
+                        next_action = self.model.sample_from_logits(next_actions_logit, temperature=1.0, sample=False, top_k=None) 
                         can_forward = self._check_action_valid(ob)
-                        while next_action[0].item() == 5 and not can_forward: # NOTE: must set with sample = True, because we need to sample the action again.
-                            next_actions_logit[:, 5] = -float('inf') # set the forward action to -inf   
-                            next_action = self.model.sample_from_logits(next_actions_logit, temperature=1.0, sample=True, top_k=None) #TODO: chang to sample from no main distribution.
+                        while next_action[0].item() == 5 and not can_forward:
+                            next_actions_logit[:, 5] = -float('inf') 
+                            next_action = self.model.sample_from_logits(next_actions_logit, temperature=1.0, sample=True, top_k=None) 
                         
-                        actions[i:i+1, 0, :] = next_action.unsqueeze(1).cpu().detach().numpy() # set the action to the last action
-                        if next_action[0].item() == 4: # if the action is stop, we need to set the ended flag to True
+                        actions[i:i+1, 0, :] = next_action.unsqueeze(1).cpu().detach().numpy() 
+                        if next_action[0].item() == 4: 
                             ended[i] = True
-                    else: # if not the first time, we predict as teacher force way then padding to max length
+                    else: 
                         predict_action = self.model.get_action_prediction(state_t, actions=action_t, rtgs=target_return_t, timesteps=timestep_t)
                         next_actions_logit = predict_action[:, -1, :] # shape (batch_size, 1, n_actions)
-                        # here, model predcit the logits, we need to sample the action from the logits.
-                        #NOTE - Set sample and top_k = False, then we choose top1 action
                         next_action = self.model.sample_from_logits(next_actions_logit, temperature=1.0, sample=False, top_k=None)
                         can_forward = self._check_action_valid(ob)
-                        while next_action[0] == 5 and not can_forward: # NOTE: must set with sample = True, because we need to sample the action again.
-                            next_actions_logit[:, 5] = -float('inf') # set the forward action to -inf 
+                        while next_action[0] == 5 and not can_forward: 
+                            next_actions_logit[:, 5] = -float('inf')
                             next_action = self.model.sample_from_logits(next_actions_logit, temperature=1.0, sample=True, top_k=None)
-                        actions[i:i+1, step, :] = next_action.unsqueeze(1).cpu().detach().numpy() # set the action to the last action
+                        actions[i:i+1, step, :] = next_action.unsqueeze(1).cpu().detach().numpy() 
                         if next_action[0].item() == 4:
                             ended[i] = True
                     
@@ -393,22 +410,18 @@ class DecisionTransformerAgent(BaseAgent):
                 rwdclter = RewardCalculater()
                 rwdclter._set_ob(distance, is_crashed, actions_to_env[i], delta_distance)
                 reward = rwdclter.calculate()
-                #NOTE: 此处和 Reward 的策略要一致, [0] is for final reward
                 next_rewards[i][0][0] = reward[0][self.reward_strategy] 
-            # updated stuffs should add to sequence 
-            # # DONE: change to modify a numpy array in place instead of concatenate
+
             if step < self.max_steps - 1:
                 states[:, step+1, :] = new_states.reshape(batch_size, -1)
                 target_returns[:, step+1, :] = target_returns[:, step, :].reshape(batch_size, -1) - next_rewards.reshape(batch_size, -1)
 
             for i, ob in enumerate(obs):
-                # 如果观察已结束，并且还没有记录过结束信息，则记录
-                #TODO - 改成方便 Json 解析的形式
+
                 if ended[i] and i not in ended_set:
                     print(f'ob{i} ended, recorded')
                     #FIXME - traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation'], ob['isCrashed']))
-                    ended_set.add(i) # 将结束的观察添加到集合中
-                # 如果观察还没有结束，则记录其路径信息
+                    ended_set.add(i) 
                 elif not ended[i]:
                     traj[i]['path'].append((ob['viewpoint'], ob['heading'], ob['elevation'], ob['isCrashed']))
             
@@ -421,7 +434,6 @@ class DecisionTransformerAgent(BaseAgent):
         return traj
 
 def get_indexed_teacher_action(teacher_action):
-    # TODO: change name and move to utils
     if teacher_action == (0, 0, 0):
         return 4 #stop
     elif teacher_action == (0, 1, 0): # turn right 
