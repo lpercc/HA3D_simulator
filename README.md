@@ -14,7 +14,7 @@ HC3D Simulator integrates 3D human models into real-world environments. Built up
 - [🕺 Human Motion Generation](#human-motion-generation)
 - [🌆 Human-Scene Fusion](#human-scene-fusion)
 - [🖥️ Offscreen Rendering](#offscreen-rendering)
-- [📊 Training](#training)
+- [📊 Training and Evalution](#training)
 
 ## 🔧 Setup Environment
 First, set an environment variable to the location of the **unzipped** dataset. Replace `<PATH>` with the full absolute path to the directory containing the individual Matterport scan directories.
@@ -95,8 +95,13 @@ Pyrender supports three backends for offscreen rendering:
 
 More details: [Pyrender Offscreen Rendering](https://pyrender.readthedocs.io/en/latest/examples/offscreen.html)
 
-## 📊 Training
-Train the model using the following command:
+## 📊 Training and Evaluation
+Train the VLN-DT model using the following command:
+
+<details>
+  <summary>How to reproduce the results in the paper</summary>
+  <p>Please refer to [task/README](task/README) for more details.</p>
+</details>
 
 ```bash
 python tasks/DT_miniGPT/train_GPT.py --experiment_id time --cuda 2 --reward_strategy 1 --epochs 15 --fusion_type simple --target_rtg 5 --mode train
