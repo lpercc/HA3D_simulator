@@ -7,11 +7,15 @@ from .renderer import get_renderer
 import trimesh
 import cv2
 
+from src.utils.concat_skybox import concat
+DOWNSIZED_WIDTH = 512
+DOWNSIZED_HEIGHT = 512
 
-basic_data_dir = os.getenv('VLN_DATA_DIR')
+
+basic_data_dir = os.environ.get("HA3D_SIMULATOR_DATA_PATH")
 
 def get_rotation(theta=np.pi):
-    import utils.rotation_conversions as geometry
+    import src.utils.rotation_conversions as geometry
     import torch
     axis = torch.tensor([0, 1, 0], dtype=torch.float)
     axisangle = theta*axis
@@ -21,7 +25,8 @@ def get_rotation(theta=np.pi):
 def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_video_path, view_id,scan_id,human_view_id,color=[0, 0.8, 0.5]):
     writer = imageio.get_writer(output_video_path, fps=20)
     #0.25mm per unit
-    background_depth = cv2.imread(os.path.join(basic_data_dir, "data/v1/scans", scan_id, "matterport_panorama_depth", f"{view_id}.png"), cv2.IMREAD_GRAYSCALE)
+    background_depth_path = os.path.join(basic_data_dir, "data/v1/scans", scan_id, "matterport_skybox_images", f"{view_id}_skybox_depth_small.png")
+    background_depth = concat(background_depth_path, DOWNSIZED_WIDTH)
     # convert M
     #print(np.min(background_depth), np.max(background_depth))
     # Matterport3D坐标-->pyrende坐标
@@ -50,9 +55,9 @@ def render_video(meshes, background, cam_loc, cam_angle, human_loc, human_angle,
 
 def render_first_frame(mesh, background, cam_loc, cam_angle, human_loc, human_angle, renderer, output_frame_path, view_id,scan_id,human_view_id,color=[0, 0.8, 0.5]):
     #0.25mm per unit
-    background_depth = cv2.imread(os.path.join(basic_data_dir, "data/v1/scans", scan_id, "matterport_panorama_depth", f"{view_id}.png"), cv2.IMREAD_GRAYSCALE)
+    background_depth_path = os.path.join(basic_data_dir, "data/v1/scans", scan_id, "matterport_skybox_images", f"{view_id}_skybox_depth_small.png")
     # convert M
-    background_depth = background_depth
+    background_depth = concat(background_depth_path, DOWNSIZED_WIDTH)
     # Matterport3D坐标-->pyrende坐标
     cam_loc = (cam_loc[0], cam_loc[2], -cam_loc[1])
     human_loc = (human_loc[0], human_loc[2]-1.36, -human_loc[1])

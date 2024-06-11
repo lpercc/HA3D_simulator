@@ -31,7 +31,7 @@ def runProgram(command, suppress_output=False):
     os.system(f'python {command}')
 
 
-dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DATA_PATH"), "data/v1/scans")
 WIDTH = 800
 HEIGHT = 600
 VFOV = math.radians(60)

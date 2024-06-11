@@ -21,9 +21,9 @@ First, set an environment variable to the location of the **unzipped** dataset. 
 
 ```bash
 vim ~/.bashrc
-export HA3D_SIMULATOR_DTAT_PATH=/your/path/to/store/data
+export HA3D_SIMULATOR_DATA_PATH=/your/path/to/store/data
 source ~/.bashrc
-echo $HA3D_SIMULATOR_DTAT_PATH
+echo $HA3D_SIMULATOR_DATA_PATH
 ```
 
 Expected directory structure:
@@ -46,7 +46,7 @@ pip install -r requirements.txt
 To use the simulator, download the [Matterport3D Dataset](https://niessner.github.io/Matterport/) (access required).
 
 ```bash
-python2 download_mp.py -o $HA3D_SIMULATOR_DTAT_PATH/dataset --type matterport_skybox_images undistorted_camera_parameters undistorted_depth_images
+python2 download_mp.py -o $HA3D_SIMULATOR_DATA_PATH/dataset --type matterport_skybox_images undistorted_camera_parameters undistorted_depth_images
 python scripts/unzip_data.py
 ```
 

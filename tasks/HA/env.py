@@ -77,7 +77,7 @@ class EnvBatch():
         
         self.batch_size = batch_size
         if not MODELING_ONLY:
-            dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+            dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DATA_PATH"), "data/v1/scans")
             self.sim.setDatasetPath(dataset_path)
         self.sim = HA3DSim.HASimulator()
         self.sim.setRenderingEnabled(self.renderingFlag)

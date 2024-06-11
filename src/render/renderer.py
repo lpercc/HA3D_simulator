@@ -124,7 +124,6 @@ class Renderer:
         rgb = cv2.hconcat(image_all)
         human_depth = cv2.hconcat(image_depth_all) * 4000
         #print(np.max(human_depth))
-        #print(human_depth.shape, background_depth.shape)
         mask = (human_depth <= background_depth) & (human_depth != 0)
         #print(mask.shape,np.sum(human_depth)/np.sum(human_depth != 0))
         # 扩展掩码到三个通道，以匹配rgb和background的形状
@@ -136,7 +135,7 @@ class Renderer:
         #cv2.imwrite("./background.jpg",background)
         #cv2.imwrite("./rgb_valid_mask.jpg",rgb[:, :, :-1] * valid_mask)
         #cv2.imwrite("./background_valid_mask.jpg",(1 - valid_mask) * background)
-        cv2.imwrite("./output_img.jpg",output_img)
+        #cv2.imwrite("./output_img.jpg",output_img)
         image = output_img.astype(np.uint8)
 
         self.scene.remove_node(mesh_node)

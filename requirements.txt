@@ -10,3 +10,4 @@ PyQtChart
 timm
 tensorboard
 transformers
+imageio[ffmpeg]

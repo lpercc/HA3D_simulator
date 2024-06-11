@@ -59,7 +59,7 @@ def get_human_info(basic_data_dir, scan_id, agent_view_id):
 def getHumanOfScan(scan_id):
     human_list = []
     human_item = {}
-    motion_dir = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"),"human_motion_meshes")
+    motion_dir = os.path.join(os.environ.get("HA3D_SIMULATOR_DATA_PATH"),"human_motion_meshes")
         # 一共90个建筑场景数据
     with open(os.path.join(HA3D_SIMULATOR_PATH, 'human-viewpoint_annotation/human_motion_text.json'), 'r') as f:
         human_view_data = json.load(f)

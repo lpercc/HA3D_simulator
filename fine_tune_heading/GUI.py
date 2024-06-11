@@ -1,13 +1,7 @@
 import sys
 import os
 import json
-import time
 import trimesh
-import imageio.v2 as imageio
-sys.path.append('./')
-from src.render.renderer import get_renderer
-from src.render.rendermdm import render_first_frame, render_video
-from src.utils.concat_skybox import concat
 from form1 import Ui_Form
 from PyQt5.QtWidgets import *
 from PyQt5.QtMultimedia import *
@@ -15,6 +9,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtChart import *
 from PyQt5.QtMultimediaWidgets import QVideoWidget
+
+
 
 DOWNSIZED_WIDTH = 512
 DOWNSIZED_HEIGHT = 512
@@ -41,9 +37,7 @@ class myMainWindow(Ui_Form,QMainWindow):
             self.connection_data = json.load(f)
             #print(len(connection_data))
         
-        ## 获取该建筑场景的全景视图存放路径
-        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, f"{self.scan_id}/matterport_skybox_images")
-        
+
         ## 输出路径
         self.video_output_path = os.path.join(self.video_output_dir, f"{self.scan_id}/matterport_panorama_video")
         if not os.path.exists(self.video_output_path):
@@ -67,13 +61,15 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.agent_viewpoint_id = self.agent_viewpoint_list[0]
         self.agent_heading = self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0]
         self.agent_location = self.location_data[self.agent_viewpoint_id]
+        ## 获取该建筑场景的全景视图存放路径
+        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, self.scan_id, "matterport_skybox_images", f"{self.human_viewpoint_id}_skybox_small.jpg")
         self.background = concat(self.panorama_image_path, DOWNSIZED_WIDTH)
         self.output_frame_path = "./fine_tune_heading/adjust.jpg"
         self.output_video_path = os.path.join(self.video_output_path,f"{self.agent_viewpoint_id}.mp4")
         
         
         # Initialize render
-        self.renderer = get_renderer(self.background.shape[1], self.background.shape[0])
+        self.renderer = get_renderer(int(self.background.shape[1]/4), self.background.shape[0])
         self.updateFusion()
         
         # Initialize Ui
@@ -171,9 +167,7 @@ class myMainWindow(Ui_Form,QMainWindow):
             self.connection_data = json.load(f)
             #print(len(connection_data))
         
-        ## 获取该建筑场景的全景视图存放路径
-        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, f"{self.scan_id}/matterport_skybox_images")
-        
+
         ## 输出路径
         self.video_output_path = os.path.join(self.video_output_dir, f"{self.scan_id}/matterport_panorama_video")
         if not os.path.exists(self.video_output_path):
@@ -181,6 +175,8 @@ class myMainWindow(Ui_Form,QMainWindow):
         
         self.human_viewpoint_list = [human_viewpoint for human_viewpoint in self.human_motion_data[self.scan_id]]
         self.human_viewpoint_id = self.human_viewpoint_list[0]
+        ## 获取该建筑场景的全景视图存放路径
+        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, self.scan_id, "matterport_skybox_images", f"{self.human_viewpoint_id}_skybox_small.jpg")
         self.pushButton_agentPrevious.setEnabled(False)
         self.pushButton_agentNext.setEnabled(True)
         self.pushButton_humanNext.setEnabled(True)
@@ -269,6 +265,7 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.textBrowser_agentHeading.setText(f"{self.agent_heading}")
         self.textBrowser_agentLocation.setText(f"X:{self.agent_location[0]} Y:{self.agent_location[1]} Z:{self.agent_location[2]}")
         self.dial_agentHeading.setValue(int(self.agent_heading))
+        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, self.scan_id, "matterport_skybox_images", f"{self.agent_viewpoint_id}_skybox_small.jpg")
         self.updateImage()
 
     def on_dial_agentHeading_changed(self, value):
@@ -278,6 +275,7 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.updateImage()
 
     def updateImage(self):
+        
         self.background = concat(self.panorama_image_path, DOWNSIZED_WIDTH)
         #self.renderer = get_renderer(self.background.shape[1], self.background.shape[0])
         self.updateFusion()
@@ -329,7 +327,7 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.player.pause()
 
     def headingAngleSave(self):
-        with open("human-viewpoint_pair/human_motion_text.json", 'w') as f:
+        with open("human-viewpoint_annotation/human_motion_text.json", 'w') as f:
             json.dump(self.human_motion_data, f, indent=4)
 
         with open("con/heading_info.json", 'w') as f:
@@ -353,11 +351,11 @@ class myMainWindow(Ui_Form,QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     GRAPHS = 'connectivity/'
-    data_dir = os.getenv("HA3D_SIMULATOR_DTAT_PATH")
+    data_dir = os.getenv("HA3D_SIMULATOR_DATA_PATH")
     # 每个建筑场景编号
     with open(GRAPHS+'scans.txt') as f:
         scan_list = [scan.strip() for scan in f.readlines()]
-    with open('human-viewpoint_pair/human_motion_text.json', 'r') as f:
+    with open('human-viewpoint_annotation/human_motion_text.json', 'r') as f:
         human_motion_data = json.load(f)
     # 每个建筑场景中的视点视角朝向
     with open("con/heading_info.json", 'r') as f:
@@ -366,7 +364,11 @@ if __name__ == '__main__':
     viewpoint_image_dir = os.path.join(data_dir,"data/v1/scans")
     motion_model_dir = os.path.join(data_dir,"human_motion_meshes")
     video_output_dir = os.path.join(data_dir, "data/v1/scans")
-
+    HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
+    sys.path.append(HA3D_SIMULATOR_PATH)
+    from src.render.renderer import get_renderer
+    from src.render.rendermdm import render_first_frame, render_video
+    from src.utils.concat_skybox import concat
     mainWindow = myMainWindow(viewpoint_image_dir, video_output_dir, motion_model_dir, scan_list, human_motion_data, agent_heading_data)
     mainWindow.show()
     sys.exit(app.exec_())

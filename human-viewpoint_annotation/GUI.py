@@ -37,13 +37,13 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.human_model_list = ['0','1','2']
         self.human_model_id = self.human_model_list[0]
 
-        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, self.scan_id, "matterport_panorama_images", self.viewpoint_id+'.jpg')
-        self.feet_image_path = os.path.join(self.viewpoint_image_dir, self.scan_id, "matterport_skybox_images", self.viewpoint_id+'_skybox5_sami.jpg')
+        self.panorama_image_path = os.path.join(viewpoint_image_dir, self.scan_id, "matterport_skybox_images", f"{self.viewpoint_id}_skybox_small.jpg")
+        self.feet_image_path = os.path.join(viewpoint_image_dir, self.scan_id, "matterport_skybox_images", self.viewpoint_id+'_skybox5_sami.jpg')
         self.model_video_path = os.path.join(self.model_video_dir, f"sample{self.human_motion_id:02d}_rep{int(self.human_model_id):02d}.mp4")
         if not os.path.exists(self.model_video_path):
             print("error")
             return
-        
+
         self.setupUi(self)
         # textBrowser
         self.textBrowser_scanID.setText(self.scan_id)
@@ -81,12 +81,9 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.pushButton_save.clicked.connect(self.save)
         
         # frame initial
-        pix_panorama = QPixmap(self.panorama_image_path)
-        pix_feet = QPixmap(self.feet_image_path)
-        self.label_frame1.setPixmap(pix_panorama)
-        self.label_frame2.setPixmap(pix_feet)
         self.label_frame1.setScaledContents(True)  # 自适应QLabel大小
         self.label_frame2.setScaledContents(True)  # 自适应QLabel大小
+        self.showImage()
 
         # video player
         self.player = QMediaPlayer()
@@ -239,7 +236,7 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.comboBox_humanMotion.addItems(self.human_motion_list)
     
     def showImage(self):
-        self.panorama_image_path = os.path.join(viewpoint_image_dir, self.scan_id, "matterport_panorama_images", self.viewpoint_id+'.jpg')
+        self.panorama_image_path = os.path.join(viewpoint_image_dir, self.scan_id, "matterport_skybox_images", f"{self.viewpoint_id}_skybox_small.jpg")
         self.feet_image_path = os.path.join(viewpoint_image_dir, self.scan_id, "matterport_skybox_images", self.viewpoint_id+'_skybox5_sami.jpg')
         if not os.path.exists(self.panorama_image_path):
             self.label_frame1.setText("No Panorama Image!")
@@ -465,16 +462,16 @@ def compute(pos_data,average_area):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     GRAPHS = 'connectivity/'
-    data_dir = os.getenv("HA3D_SIMULATOR_DTAT_PATH")
+    data_dir = os.getenv("HA3D_SIMULATOR_DATA_PATH")
     # 每个建筑场景编号
     with open(GRAPHS+'scans.txt') as f:
         scans = [scan.strip() for scan in f.readlines()]
-    with open('human-viewpoint_pair/human_motion_text.json', 'r') as f:
+    with open('human-viewpoint_annotation/human_motion_text.json', 'r') as f:
         human_motion_data = json.load(f)
-    with open('human-viewpoint_pair/human_motion_model/region_motion_text.json', 'r') as f:
+    with open('human-viewpoint_annotation/human_motion_model/region_motion_text.json', 'r') as f:
         region_motion_data = json.load(f)
     viewpoint_image_dir = os.path.join(data_dir,"data/v1/scans")
-    model_video_dir = os.path.join(data_dir,"samples_humanml_trans_enc_512_000200000_seed10")
+    model_video_dir = os.path.join(data_dir,"samples_humanml_trans_enc_512_000200000_seed10_HC-VLN_text_prompts")
     with open(os.path.join(model_video_dir, "results.txt")) as f:
         motion_text = [motion.strip() for motion in f.readlines()]
     mainWindow = myMainWindow(viewpoint_image_dir,model_video_dir, scans, human_motion_data, region_motion_data, motion_text)

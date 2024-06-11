@@ -87,7 +87,7 @@ def build_tsv(args):
     # Set up the simulator
     viewpoint_s = int(args.viewpoint_s)
     viewpoint_e = int(args.viewpoint_e)
-    dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+    dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DATA_PATH"), "data/v1/scans")
     # Create child processes
     from multiprocessing import Process
     def runProgram(command, suppress_output=False):

@@ -313,7 +313,7 @@ def main(args):
     HEIGHT = 600
     VFOV = math.radians(60)
     batch_size = 1
-    dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+    dataset_path = os.path.join(os.environ.get("HA3D_SIMULATOR_DATA_PATH"), "data/v1/scans")
     sim = HASimulator()
     sim.setRenderingEnabled(True)
     sim.setBatchSize(batch_size)

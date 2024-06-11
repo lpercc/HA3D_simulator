@@ -512,7 +512,7 @@ def runProgram(command, suppress_output=False):
     os.system(f'python {command}')
 
 if __name__ == '__main__':
-    simulatorDataPath = os.path.join(os.environ.get("HA3D_SIMULATOR_DTAT_PATH"), "data/v1/scans")
+    simulatorDataPath = os.path.join(os.environ.get("HA3D_SIMULATOR_DATA_PATH"), "data/v1/scans")
     datasetPath = os.path.join('./tasks/R2R/data', 'path.json')
     scanIDList = readScanIDList("./connectivity/scans.txt")
     pipeID = 0
