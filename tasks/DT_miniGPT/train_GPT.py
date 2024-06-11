@@ -1,16 +1,3 @@
-'''
-Author: Dylan Li dylan.h.li@outlook.com
-Date: 2024-03-26 15:31:50
-LastEditors: Dylan Li dylan.h.li@outlook.com
-LastEditTime: 2024-03-30 22:34:04
-FilePath: /motion_hcl/Matterport3DSimulator/tasks/R2R/DT/train_GPT.py
-Description: 
-
-Copyright (c) 2024 by Heng Li, All Rights Reserved. 
-'''
-
-
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -53,7 +40,23 @@ else:
     # You may choose to ask again or terminate the program
 
 class StateActionReturnDataset(Dataset):
+    """
+    A PyTorch Dataset for state-action-return data.
 
+    Attributes:
+        block_size (int): The context length for the transformer model.
+        vocab_size (int): The size of the action vocabulary.
+        data (np.array): State features.
+        actions (np.array): Action indices.
+        targets (np.array): Target actions.
+        done_idxs (list[int]): Indices where episodes end.
+        rtgs (np.array): Return-to-go values.
+        timesteps (np.array): Timestep indices for each state.
+
+    Methods:
+        __len__(): Returns the number of samples in the dataset.
+        __getitem__(idx): Returns a sample from the dataset at the specified index.
+    """
     def __init__(self, data, block_size, actions, targets, done_idxs, rtgs, timesteps):        
         """ This is a dataset class for the State-Action-Reward dataset.
         How do we model a GPT like model here? For data, we concanate all text into one list than split it by context windows. 
@@ -81,7 +84,7 @@ class StateActionReturnDataset(Dataset):
         self.rtgs = rtgs
         self.timesteps = timesteps
         
-        assert self.block_size // 3 < np.min(done_idxs), "Error: block_size is too large, should be smaller than the minimum done index, which means that the block_size is too large for the shortest episode." # TODO: shall we set a limit like this in GPT model.
+        assert self.block_size // 3 < np.min(done_idxs), "Error: block_size is too large, should be smaller than the minimum done index, which means that the block_size is too large for the shortest episode." 
     
     def __len__(self):
         return len(self.data) - self.block_size
@@ -103,28 +106,25 @@ class StateActionReturnDataset(Dataset):
         return states, actions, targets, rtgs, timesteps
     
 def load_data(data_dir, trajs_type): 
-    # TODO: Train as incremental learning
     train_trajs = []
     val_seen_trajs = []
     val_unseen_trajs = []
     trajs_type = trajs_type.split('_')
     for traj_type in trajs_type:
-        #NOTE - Here load all trajs including teacher and random
-        with open(os.path.join(data_dir, f"train_trajs_{traj_type}_{args.dataset_name}.pkl"), 'rb') as f: #DONE: change to support pkl 
+        with open(os.path.join(data_dir, f"train_trajs_{traj_type}_{args.dataset_name}.pkl"), 'rb') as f: 
             train_traj = pickle.load(f) # 
             if args.mode == 'debug':
                 train_trajs.extend(train_traj[:args.train_samples])
             else:
                 train_trajs.extend(train_traj)
 
-        with open(os.path.join(data_dir, f"val_seen_trajs_{traj_type}_{args.dataset_name}.pkl"), 'rb') as f: #DONE: change to support pkl 
-            val_seen_traj = pickle.load(f) # 
+        with open(os.path.join(data_dir, f"val_seen_trajs_{traj_type}_{args.dataset_name}.pkl"), 'rb') as f: 
             if args.mode == 'debug':
                 val_seen_trajs.extend(val_seen_traj[:args.train_samples])
             else:
                 val_seen_trajs.extend(val_seen_traj)
         
-        with open(os.path.join(data_dir, f"val_unseen_trajs_{traj_type}_{args.dataset_name}.pkl"), 'rb') as f: #DONE: change to support pkl 
+        with open(os.path.join(data_dir, f"val_unseen_trajs_{traj_type}_{args.dataset_name}.pkl"), 'rb') as f: 
             val_unseen_traj = pickle.load(f) # 
             if args.mode == 'debug':
                 val_unseen_trajs.extend(val_unseen_traj[:args.train_samples])
@@ -144,7 +144,7 @@ def create_dataset(trajs,reward_strategy):
     done_idxs = []
     for t in trajs: 
         states.extend(t['state_features'])
-        actions.extend(t['student_actions']) #TODO： 和其对齐
+        actions.extend(t['student_actions']) # ： 和其对齐
         rewards.extend(t['final_reward'])
         targets.extend(t['teacher_actions'])
         done_idxs.append(len(t['student_actions']) - 1) # -1 because the index starts from 0
@@ -159,13 +159,11 @@ def create_dataset(trajs,reward_strategy):
     assert np.sum(done_idxs) == len(actions) - len(done_idxs), "Error: sum of done_idxs is not equal to length of actions"
     
     
-    # -- create return to go reward datasets TODO: return 是错位的
     rtgs = np.zeros(len(rewards))
     start_index = 0
     for done_idx in done_idxs: 
         if done_idx == -1: 
-            rtgs[start_index: start_index + args.max_episode_len] = -100 #FIXME: if not finish the episode, set the reward to -100 
-        else: 
+            rtgs[start_index: start_index + args.max_episode_len] = -100 
             rtgs[start_index: start_index + done_idx + 1] = np.cumsum(rewards[start_index: start_index + done_idx + 1][::-1])[::-1]
         start_index += done_idx + 1
         
@@ -192,7 +190,6 @@ def create_dataset(trajs,reward_strategy):
     
     done_idxs = np.array(done_idxs)
     
-    # TODO: Shall we need a done_idxs for whole sequences 
     done_idxs = np.cumsum(done_idxs + 1)
     
     
@@ -214,7 +211,6 @@ if __name__ == '__main__':
     print(f"train_trajs len:{len(train_trajs)}")
     train_states, train_actions, train_targets, train_rtgs,  train_done_idxs, train_time_steps = create_dataset(train_trajs, args.reward_strategy)
     train_dataset = StateActionReturnDataset(train_states, 5 * 3, train_actions, train_targets, train_done_idxs, train_rtgs, train_time_steps)
-    #TODO - Subset
     #indices = list(range(args.train_samples))
     #sub_train = torch.utils.data.Subset(train_dataset, indices)
     
@@ -249,9 +245,9 @@ if __name__ == '__main__':
                 record_file.write(f"\nValidation model path:{cpt_path}\n{args}\n{eval_results}\n")
                 record_file.close()
     elif args.mode == 'train': 
-        # 先 Train
+
         trainer.train()
-        # 开始 validation
+
         for model_file in os.listdir(model_dir):
             if model_file.endswith(".pth"):
                 cpt_path = os.path.join(model_dir, model_file)
