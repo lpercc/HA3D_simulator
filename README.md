@@ -1,6 +1,5 @@
 
 
-```markdown
 # 🕹️ HC3D Simulator
 
 HC3D Simulator integrates 3D human models into real-world environments. Built upon Matterport3D Simulator API and MDM, this simulator offers a robust platform for immersive 3D simulations.
@@ -106,6 +105,4 @@ python tasks/DT_miniGPT/train_GPT.py --experiment_id time --cuda 2 --reward_stra
 ---
 
 Feel free to contribute, report issues, or request features!
-```
 
-This version adds emojis to make the README more visually appealing and engaging, while still maintaining clear and organized instructions.
