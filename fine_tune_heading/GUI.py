@@ -10,173 +10,166 @@ from PyQt5.QtCore import *
 from PyQt5.QtChart import *
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 
-
-
 DOWNSIZED_WIDTH = 512
 DOWNSIZED_HEIGHT = 512
 
-class myMainWindow(Ui_Form,QMainWindow):
-    def __init__(self,viewpoint_image_dir, video_output_dir, motion_model_dir, scan_list, human_motion_data, agent_heading_data):
+class MyMainWindow(Ui_Form, QMainWindow):
+    def __init__(self, viewpointImageDir, videoOutputDir, motionModelDir, scanList, humanMotionData, agentHeadingData):
         super(Ui_Form, self).__init__()
-        self.viewpoint_image_dir = viewpoint_image_dir
-        self.video_output_dir = video_output_dir
-        self.motion_model_dir = motion_model_dir
-        self.scan_list = scan_list
-        self.human_motion_data = human_motion_data
-        self.agent_heading_data = agent_heading_data
-        
-        # Initialize parameters
-        self.scan_id = self.scan_list[0]
-        
-        ## 获取建筑场景所有视点信息（视点位置）
-        with open('con/pos_info/{}_pos_info.json'.format(self.scan_id), 'r') as f:
-            self.location_data = json.load(f)
-        
-        ## 获取建筑场景所有视点信息（视点之间的关系）
-        with open('con/con_info/{}_con_info.json'.format(self.scan_id), 'r') as f:
-            self.connection_data = json.load(f)
-            #print(len(connection_data))
-        
+        self.viewpointImageDir = viewpointImageDir
+        self.videoOutputDir = videoOutputDir
+        self.motionModelDir = motionModelDir
+        self.scanList = scanList
+        self.humanMotionData = humanMotionData
+        self.agentHeadingData = agentHeadingData
 
-        ## 输出路径
-        self.video_output_path = os.path.join(self.video_output_dir, f"{self.scan_id}/matterport_panorama_video")
-        if not os.path.exists(self.video_output_path):
-            os.makedirs(self.video_output_path)
-        
-        ## Human Information
-        self.human_viewpoint_list = [human_viewpoint for human_viewpoint in self.human_motion_data[self.scan_id]]
-        self.human_viewpoint_id = self.human_viewpoint_list[0]
-        self.region = self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].split(":")[0]
-        self.human_motion = self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].split(":")[1]
-        self.human_model_id = str(self.human_motion_data[self.scan_id][self.human_viewpoint_id][1])
-        self.human_heading = self.human_motion_data[self.scan_id][self.human_viewpoint_id][2]
-        self.human_location = self.location_data[self.human_viewpoint_id]
-        self.motion_path = os.path.join(self.motion_model_dir, self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].replace(' ', '_').replace('/', '_'), f"{self.human_model_id}_obj")
-        self.mesh = trimesh.load(os.path.join(self.motion_path,"frame000.obj"))
-        ## Agent Information
-        self.agent_viewpoint_list = []
-        for num, val in self.connection_data.items():
-            if self.human_viewpoint_id in val['visible']:
-                self.agent_viewpoint_list.append(num)
-        self.agent_viewpoint_id = self.agent_viewpoint_list[0]
-        self.agent_heading = self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0]
-        self.agent_location = self.location_data[self.agent_viewpoint_id]
-        ## 获取该建筑场景的全景视图存放路径
-        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, self.scan_id, "matterport_skybox_images", f"{self.human_viewpoint_id}_skybox_small.jpg")
-        self.background = concat(self.panorama_image_path, DOWNSIZED_WIDTH)
-        self.output_frame_path = "./fine_tune_heading/adjust.jpg"
-        self.output_video_path = os.path.join(self.video_output_path,f"{self.agent_viewpoint_id}.mp4")
-        
-        
+        # Initialize parameters
+        self.scanId = self.scanList[0]
+
+        # Get all viewpoints information (positions) of the building scene
+        with open(f'con/pos_info/{self.scanId}_pos_info.json', 'r') as f:
+            self.locationData = json.load(f)
+
+        # Get all viewpoint relationships of the building scene
+        with open(f'con/con_info/{self.scanId}_con_info.json', 'r') as f:
+            self.connectionData = json.load(f)
+
+        # Output path
+        self.videoOutputPath = os.path.join(self.videoOutputDir, f"{self.scanId}/matterport_panorama_video")
+        if not os.path.exists(self.videoOutputPath):
+            os.makedirs(self.videoOutputPath)
+
+        # Human Information
+        self.humanViewpointList = [humanViewpoint for humanViewpoint in self.humanMotionData[self.scanId]]
+        self.humanViewpointId = self.humanViewpointList[0]
+        self.region = self.humanMotionData[self.scanId][self.humanViewpointId][0].split(":")[0]
+        self.humanMotion = self.humanMotionData[self.scanId][self.humanViewpointId][0].split(":")[1]
+        self.humanModelId = str(self.humanMotionData[self.scanId][self.humanViewpointId][1])
+        self.humanHeading = self.humanMotionData[self.scanId][self.humanViewpointId][2]
+        self.humanLocation = self.locationData[self.humanViewpointId]
+        self.motionPath = os.path.join(self.motionModelDir, self.humanMotionData[self.scanId][self.humanViewpointId][0].replace(' ', '_').replace('/', '_'), f"{self.humanModelId}_obj")
+        self.mesh = trimesh.load(os.path.join(self.motionPath, "frame000.obj"))
+
+        # Agent Information
+        self.agentViewpointList = [num for num, val in self.connectionData.items() if self.humanViewpointId in val['visible']]
+        self.agentViewpointId = self.agentViewpointList[0]
+        self.agentHeading = self.agentHeadingData[self.scanId][self.agentViewpointId][0]
+        self.agentLocation = self.locationData[self.agentViewpointId]
+
+        # Get the panorama view storage path of the building scene
+        self.panoramaImagePath = os.path.join(self.viewpointImageDir, self.scanId, "matterport_skybox_images", f"{self.humanViewpointId}_skybox_small.jpg")
+        self.background = concat(self.panoramaImagePath, DOWNSIZED_WIDTH)
+        self.outputFramePath = "./fine_tune_heading/adjust.jpg"
+        self.outputVideoPath = os.path.join(self.videoOutputPath, f"{self.agentViewpointId}.mp4")
+
         # Initialize render
-        self.renderer = get_renderer(int(self.background.shape[1]/4), self.background.shape[0])
+        self.renderer = getRenderer(int(self.background.shape[1] / 4), self.background.shape[0])
         self.updateFusion()
-        
-        # Initialize Ui
+
+        # Initialize UI
         self.setupUi(self)
-        
-        ## Scan Information textBrowser
-        self.textBrowser_scanID.setText(self.scan_id)
-        ## Scan Information button
+
+        # Scan Information textBrowser
+        self.textBrowser_scanID.setText(self.scanId)
+        # Scan Information buttons
         self.pushButton_scanPrevious.setEnabled(False)
         self.pushButton_scanPrevious.clicked.connect(self.scanPrevious)
         self.pushButton_scanNext.clicked.connect(self.scanNext)
 
-        ## Human Information textBrowser
-        self.textBrowser_humanViewpointID.setText(self.human_viewpoint_id)
+        # Human Information textBrowser
+        self.textBrowser_humanViewpointID.setText(self.humanViewpointId)
         self.textBrowser_region.setText(self.region)
-        self.textBrowser_humanMotion.setText(self.human_motion)
-        self.textBrowser_humanHeading.setText(f"{self.human_heading}")
-        self.textBrowser_humanLocation.setText(f"X:{self.human_location[0]} Y:{self.human_location[1]} Z:{self.human_location[2]}")
+        self.textBrowser_humanMotion.setText(self.humanMotion)
+        self.textBrowser_humanHeading.setText(f"{self.humanHeading}")
+        self.textBrowser_humanLocation.setText(f"X:{self.humanLocation[0]} Y:{self.humanLocation[1]} Z:{self.humanLocation[2]}")
 
-        ## Human Information button
+        # Human Information buttons
         self.pushButton_humanPrevious.setEnabled(False)
         self.pushButton_humanPrevious.clicked.connect(self.humanPrevious)
         self.pushButton_humanNext.clicked.connect(self.humanNext)
 
-        ## Human Heading dial
+        # Human Heading dial
         self.dial_humanHeading.setRange(0, 360)
         self.dial_humanHeading.setNotchesVisible(True)
         self.dial_humanHeading.setWrapping(True)
         self.dial_humanHeading.setSingleStep(5)
-        self.dial_humanHeading.setValue(int(self.human_heading))
-        self.dial_humanHeading.valueChanged.connect(self.on_dial_humanHeading_changed)
-        
-        ## Agent Information textBrowser
-        self.textBrowser_agentViewpointID.setText(self.agent_viewpoint_id)
-        self.textBrowser_agentHeading.setText(f"{self.agent_heading}")
-        self.textBrowser_agentLocation.setText(f"X:{self.agent_location[0]} Y:{self.agent_location[1]} Z:{self.agent_location[2]}")
+        self.dial_humanHeading.setValue(int(self.humanHeading))
+        self.dial_humanHeading.valueChanged.connect(self.onDialHumanHeadingChanged)
 
-        ## Agent Information button
+        # Agent Information textBrowser
+        self.textBrowser_agentViewpointID.setText(self.agentViewpointId)
+        self.textBrowser_agentHeading.setText(f"{self.agentHeading}")
+        self.textBrowser_agentLocation.setText(f"X:{self.agentLocation[0]} Y:{self.agentLocation[1]} Z:{self.agentLocation[2]}")
+
+        # Agent Information buttons
         self.pushButton_agentPrevious.setEnabled(False)
         self.pushButton_agentPrevious.clicked.connect(self.agentPrevious)
         self.pushButton_agentNext.clicked.connect(self.agentNext)
-        
-        ## Agent Heading dial
+
+        # Agent Heading dial
         self.dial_agentHeading.setRange(0, 360)
         self.dial_agentHeading.setNotchesVisible(True)
         self.dial_agentHeading.setWrapping(True)
         self.dial_agentHeading.setSingleStep(5)
-        self.dial_agentHeading.setValue(int(self.agent_heading))
-        self.dial_agentHeading.valueChanged.connect(self.on_dial_agentHeading_changed)
+        self.dial_agentHeading.setValue(int(self.agentHeading))
+        self.dial_agentHeading.valueChanged.connect(self.onDialAgentHeadingChanged)
 
-        ## Panorama Frame Label
-        pix_panorama = QPixmap(self.output_frame_path)
-        self.label_frame1.setPixmap(pix_panorama)
-        self.label_frame1.setScaledContents(True)  # 自适应QLabel大小
+        # Panorama Frame Label
+        pixPanorama = QPixmap(self.outputFramePath)
+        self.label_frame1.setPixmap(pixPanorama)
+        self.label_frame1.setScaledContents(True)  # Adjust QLabel size
 
-        ## Fusion preview 
+        # Fusion preview
         self.pushButton_fusionPreview.clicked.connect(self.updateVideo)
         self.pushButton_play.clicked.connect(self.playFusionVideo)
         self.pushButton_stop.clicked.connect(self.stopFusionVideo)
         self.pushButton_play.setEnabled(False)
         self.pushButton_stop.setEnabled(False)
-        # video player
+
+        # Video player
         self.player = QMediaPlayer()
         self.player.setVideoOutput(self.widget_fusionVideo)
 
-        ## save
+        # Save button
         self.pushButton_save.clicked.connect(self.headingAngleSave)
 
     def scanPrevious(self):
-        index = self.scan_list.index(self.scan_id) - 1
+        index = self.scanList.index(self.scanId) - 1
         self.pushButton_scanNext.setEnabled(True)
         if index == 0:
             self.pushButton_scanPrevious.setEnabled(False)
-        self.scan_id = self.scan_list[index]
+        self.scanId = self.scanList[index]
         self.updateScan()
-    
+
     def scanNext(self):
-        index = self.scan_list.index(self.scan_id) + 1
+        index = self.scanList.index(self.scanId) + 1
         self.pushButton_scanPrevious.setEnabled(True)
-        if index == 0:
+        if index == len(self.scanList) - 1:
             self.pushButton_scanNext.setEnabled(False)
-        self.scan_id = self.scan_list[index]
+        self.scanId = self.scanList[index]
         self.updateScan()
 
     def updateScan(self):
-        self.textBrowser_scanID.setText(self.scan_id)
-        print(self.scan_list.index(self.scan_id)+1," : ", self.scan_id)
-        
-        ## 获取建筑场景所有视点信息（视点位置）
-        with open('con/pos_info/{}_pos_info.json'.format(self.scan_id), 'r') as f:
-            self.location_data = json.load(f)
-        
-        ## 获取建筑场景所有视点信息（视点之间的关系）
-        with open('con/con_info/{}_con_info.json'.format(self.scan_id), 'r') as f:
-            self.connection_data = json.load(f)
-            #print(len(connection_data))
-        
+        self.textBrowser_scanID.setText(self.scanId)
+        print(self.scanList.index(self.scanId) + 1, ":", self.scanId)
 
-        ## 输出路径
-        self.video_output_path = os.path.join(self.video_output_dir, f"{self.scan_id}/matterport_panorama_video")
-        if not os.path.exists(self.video_output_path):
-            os.makedirs(self.video_output_path)
-        
-        self.human_viewpoint_list = [human_viewpoint for human_viewpoint in self.human_motion_data[self.scan_id]]
-        self.human_viewpoint_id = self.human_viewpoint_list[0]
-        ## 获取该建筑场景的全景视图存放路径
-        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, self.scan_id, "matterport_skybox_images", f"{self.human_viewpoint_id}_skybox_small.jpg")
+        # Get all viewpoints information (positions) of the building scene
+        with open(f'con/pos_info/{self.scanId}_pos_info.json', 'r') as f:
+            self.locationData = json.load(f)
+
+        # Get all viewpoint relationships of the building scene
+        with open(f'con/con_info/{self.scanId}_con_info.json', 'r') as f:
+            self.connectionData = json.load(f)
+
+        # Output path
+        self.videoOutputPath = os.path.join(self.videoOutputDir, f"{self.scanId}/matterport_panorama_video")
+        if not os.path.exists(self.videoOutputPath):
+            os.makedirs(self.videoOutputPath)
+
+        self.humanViewpointList = [humanViewpoint for humanViewpoint in self.humanMotionData[self.scanId]]
+        self.humanViewpointId = self.humanViewpointList[0]
+        # Get the panorama view storage path of the building scene
+        self.panoramaImagePath = os.path.join(self.viewpointImageDir, self.scanId, "matterport_skybox_images", f"{self.humanViewpointId}_skybox_small.jpg")
         self.pushButton_agentPrevious.setEnabled(False)
         self.pushButton_agentNext.setEnabled(True)
         self.pushButton_humanNext.setEnabled(True)
@@ -184,132 +177,117 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.updateHuman()
 
     def humanPrevious(self):
-        index = self.human_viewpoint_list.index(self.human_viewpoint_id) - 1
+        index = self.humanViewpointList.index(self.humanViewpointId) - 1
         self.pushButton_humanNext.setEnabled(True)
         if index == 0:
             self.pushButton_humanPrevious.setEnabled(False)
-        self.human_viewpoint_id = self.human_viewpoint_list[index]
+        self.humanViewpointId = self.humanViewpointList[index]
         self.updateHuman()
 
     def humanNext(self):
-        index = self.human_viewpoint_list.index(self.human_viewpoint_id) + 1
+        index = self.humanViewpointList.index(self.humanViewpointId) + 1
         self.pushButton_humanPrevious.setEnabled(True)
-        if index == len(self.human_viewpoint_list)-1:
+        if index == len(self.humanViewpointList) - 1:
             self.pushButton_humanNext.setEnabled(False)
         try:
-            self.human_viewpoint_id = self.human_viewpoint_list[index]
+            self.humanViewpointId = self.humanViewpointList[index]
             self.updateHuman()
         except IndexError:
             self.pushButton_humanNext.setEnabled(False)
-    
+
     def updateHuman(self):
-        self.region = self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].split(":")[0]
-        self.human_motion = self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].split(":")[1]
-        self.human_model_id = str(self.human_motion_data[self.scan_id][self.human_viewpoint_id][1])
-        self.human_heading = self.human_motion_data[self.scan_id][self.human_viewpoint_id][2]
-        self.human_location = self.location_data[self.human_viewpoint_id]
-        self.motion_path = os.path.join(self.motion_model_dir, self.human_motion_data[self.scan_id][self.human_viewpoint_id][0].replace(' ', '_').replace('/', '_'), f"{self.human_model_id}_obj")
-        self.mesh = trimesh.load(os.path.join(self.motion_path,"frame000.obj"))
-        self.textBrowser_humanViewpointID.setText(self.human_viewpoint_id)
+        self.region = self.humanMotionData[self.scanId][self.humanViewpointId][0].split(":")[0]
+        self.humanMotion = self.humanMotionData[self.scanId][self.humanViewpointId][0].split(":")[1]
+        self.humanModelId = str(self.humanMotionData[self.scanId][self.humanViewpointId][1])
+        self.humanHeading = self.humanMotionData[self.scanId][self.humanViewpointId][2]
+        self.humanLocation = self.locationData[self.humanViewpointId]
+        self.motionPath = os.path.join(self.motionModelDir, self.humanMotionData[self.scanId][self.humanViewpointId][0].replace(' ', '_').replace('/', '_'), f"{self.humanModelId}_obj")
+        self.mesh = trimesh.load(os.path.join(self.motionPath, "frame000.obj"))
+        self.textBrowser_humanViewpointID.setText(self.humanViewpointId)
         self.textBrowser_region.setText(self.region)
-        self.textBrowser_humanMotion.setText(self.human_motion)
-        self.textBrowser_humanHeading.setText(f"{self.human_heading}")
-        self.textBrowser_humanLocation.setText(f"X:{self.human_location[0]} Y:{self.human_location[1]} Z:{self.human_location[2]}")
-        self.agent_viewpoint_list = []
-        for num, val in self.connection_data.items():
-            try:
-                if self.human_viewpoint_id in val['visible']:
-                    self.agent_viewpoint_list.append(num)
-            except KeyError:
-                print(self.scan_id)
-                print(num)
-        self.agent_viewpoint_id = self.agent_viewpoint_list[0]
-        self.dial_humanHeading.setValue(int(self.human_heading))
+        self.textBrowser_humanMotion.setText(self.humanMotion)
+        self.textBrowser_humanHeading.setText(f"{self.humanHeading}")
+        self.textBrowser_humanLocation.setText(f"X:{self.humanLocation[0]} Y:{self.humanLocation[1]} Z:{self.humanLocation[2]}")
+        self.agentViewpointList = [num for num, val in self.connectionData.items() if self.humanViewpointId in val['visible']]
+        self.agentViewpointId = self.agentViewpointList[0]
+        self.dial_humanHeading.setValue(int(self.humanHeading))
         self.pushButton_agentPrevious.setEnabled(False)
         self.pushButton_agentNext.setEnabled(True)
         self.updateAgent()
 
-    def on_dial_humanHeading_changed(self, value):
-        self.human_motion_data[self.scan_id][self.human_viewpoint_id][2] = value
-        self.human_heading = self.human_motion_data[self.scan_id][self.human_viewpoint_id][2]
-        self.textBrowser_humanHeading.setText(f"{self.human_heading}")
+    def onDialHumanHeadingChanged(self, value):
+        self.humanMotionData[self.scanId][self.humanViewpointId][2] = value
+        self.humanHeading = self.humanMotionData[self.scanId][self.humanViewpointId][2]
+        self.textBrowser_humanHeading.setText(f"{self.humanHeading}")
         self.updateImage()
 
     def agentPrevious(self):
-        index = self.agent_viewpoint_list.index(self.agent_viewpoint_id) - 1
+        index = self.agentViewpointList.index(self.agentViewpointId) - 1
         self.pushButton_agentNext.setEnabled(True)
         if index == 0:
             self.pushButton_agentPrevious.setEnabled(False)
-        self.agent_viewpoint_id = self.agent_viewpoint_list[index]
+        self.agentViewpointId = self.agentViewpointList[index]
         self.updateAgent()
 
     def agentNext(self):
-        index = self.agent_viewpoint_list.index(self.agent_viewpoint_id) + 1
+        index = self.agentViewpointList.index(self.agentViewpointId) + 1
         self.pushButton_agentPrevious.setEnabled(True)
-        if index == len(self.agent_viewpoint_list)-1:
+        if index == len(self.agentViewpointList) - 1:
             self.pushButton_agentNext.setEnabled(False)
         try:
-            self.agent_viewpoint_id = self.agent_viewpoint_list[index]
+            self.agentViewpointId = self.agentViewpointList[index]
             self.updateAgent()
         except IndexError:
             self.pushButton_agentNext.setEnabled(False)
 
     def updateAgent(self):
         try:
-            self.agent_heading = self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0]
+            self.agentHeading = self.agentHeadingData[self.scanId][self.agentViewpointId][0]
         except KeyError:
-            self.agent_heading_data[self.scan_id][self.agent_viewpoint_id] = [0]
-            self.agent_heading = self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0]
-        self.agent_location = self.location_data[self.agent_viewpoint_id]
-        self.textBrowser_agentViewpointID.setText(self.agent_viewpoint_id)
-        self.textBrowser_agentHeading.setText(f"{self.agent_heading}")
-        self.textBrowser_agentLocation.setText(f"X:{self.agent_location[0]} Y:{self.agent_location[1]} Z:{self.agent_location[2]}")
-        self.dial_agentHeading.setValue(int(self.agent_heading))
-        self.panorama_image_path = os.path.join(self.viewpoint_image_dir, self.scan_id, "matterport_skybox_images", f"{self.agent_viewpoint_id}_skybox_small.jpg")
+            self.agentHeadingData[self.scanId][self.agentViewpointId] = [0]
+            self.agentHeading = self.agentHeadingData[self.scanId][self.agentViewpointId][0]
+        self.agentLocation = self.locationData[self.agentViewpointId]
+        self.textBrowser_agentViewpointID.setText(self.agentViewpointId)
+        self.textBrowser_agentHeading.setText(f"{self.agentHeading}")
+        self.textBrowser_agentLocation.setText(f"X:{self.agentLocation[0]} Y:{self.agentLocation[1]} Z:{self.agentLocation[2]}")
+        self.dial_agentHeading.setValue(int(self.agentHeading))
+        self.panoramaImagePath = os.path.join(self.viewpointImageDir, self.scanId, "matterport_skybox_images", f"{self.agentViewpointId}_skybox_small.jpg")
         self.updateImage()
 
-    def on_dial_agentHeading_changed(self, value):
-        self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0] = value
-        self.agent_heading = self.agent_heading_data[self.scan_id][self.agent_viewpoint_id][0]
-        self.textBrowser_agentHeading.setText(f"{self.agent_heading}")
+    def onDialAgentHeadingChanged(self, value):
+        self.agentHeadingData[self.scanId][self.agentViewpointId][0] = value
+        self.agentHeading = self.agentHeadingData[self.scanId][self.agentViewpointId][0]
+        self.textBrowser_agentHeading.setText(f"{self.agentHeading}")
         self.updateImage()
 
     def updateImage(self):
-        
-        self.background = concat(self.panorama_image_path, DOWNSIZED_WIDTH)
-        #self.renderer = get_renderer(self.background.shape[1], self.background.shape[0])
+        self.background = concat(self.panoramaImagePath, DOWNSIZED_WIDTH)
         self.updateFusion()
-        pix_panorama = QPixmap(self.output_frame_path)
-        self.label_frame1.setPixmap(pix_panorama)
+        pixPanorama = QPixmap(self.outputFramePath)
+        self.label_frame1.setPixmap(pixPanorama)
 
     def updateVideo(self):
-        self.output_video_path = os.path.join(self.video_output_path,f"{self.agent_viewpoint_id}.mp4")
+        self.outputVideoPath = os.path.join(self.videoOutputPath, f"{self.agentViewpointId}.mp4")
         meshes = []
-        i = 0
-        # 从.obj文件创建mesh
-        # 获取目录下的所有.obj文件，并按照序号从大到小排序
-        obj_files = [f for f in os.listdir(self.motion_path) if f.endswith('.obj')]
-        #print(obj_files[0].split('frame')[1].split('.obj')[0])
-        sorted_obj_files = sorted(obj_files)
-        for obj_file in sorted_obj_files[:60]:
-            i = i + 1
-            obj_file.split('.')
-            obj_path = os.path.join(self.motion_path,obj_file)
-            mesh = trimesh.load(obj_path)
+        objFiles = [f for f in os.listdir(self.motionPath) if f.endswith('.obj')]
+        sortedObjFiles = sorted(objFiles)
+        for objFile in sortedObjFiles[:60]:
+            objPath = os.path.join(self.motionPath, objFile)
+            mesh = trimesh.load(objPath)
             meshes.append(mesh)
-        render_video(meshes, 
+        renderVideo(meshes, 
                     self.background, 
-                    self.agent_location, 
-                    self.agent_heading, 
-                    self.human_location, 
-                    self.human_heading, 
+                    self.agentLocation, 
+                    self.agentHeading, 
+                    self.humanLocation, 
+                    self.humanHeading, 
                     self.renderer, 
-                    self.output_video_path, 
-                    self.agent_viewpoint_id,
-                    self.scan_id,
-                    self.human_viewpoint_id)
+                    self.outputVideoPath, 
+                    self.agentViewpointId,
+                    self.scanId,
+                    self.humanViewpointId)
 
-        self.player.setMedia(QMediaContent(QUrl.fromLocalFile(self.output_video_path))) 
+        self.player.setMedia(QMediaContent(QUrl.fromLocalFile(self.outputVideoPath))) 
         self.pushButton_stop.setEnabled(True)
         self.pushButton_play.setEnabled(False)
         self.player.play()
@@ -318,9 +296,7 @@ class myMainWindow(Ui_Form,QMainWindow):
         self.pushButton_stop.setEnabled(True)
         self.pushButton_play.setEnabled(False)
         self.player.play()
-        
-        #print(self.player.availableMetaData())
- 
+
     def stopFusionVideo(self):
         self.pushButton_stop.setEnabled(False)
         self.pushButton_play.setEnabled(True)
@@ -328,47 +304,46 @@ class myMainWindow(Ui_Form,QMainWindow):
 
     def headingAngleSave(self):
         with open("human-viewpoint_annotation/human_motion_text.json", 'w') as f:
-            json.dump(self.human_motion_data, f, indent=4)
+            json.dump(self.humanMotionData, f, indent=4)
 
         with open("con/heading_info.json", 'w') as f:
-            json.dump(self.agent_heading_data, f, indent=4)
+            json.dump(self.agentHeadingData, f, indent=4)
 
     def updateFusion(self):
-        render_first_frame(self.mesh.copy(), 
-                            self.background, 
-                            self.agent_location, 
-                            self.agent_heading, 
-                            self.human_location, 
-                            self.human_heading, 
-                            self.renderer, 
-                            self.output_frame_path, 
-                            self.agent_viewpoint_id,
-                            self.scan_id,
-                            self.human_viewpoint_id)
-
+        renderFirstFrame(self.mesh.copy(), 
+                         self.background, 
+                         self.agentLocation, 
+                         self.agentHeading, 
+                         self.humanLocation, 
+                         self.humanHeading, 
+                         self.renderer, 
+                         self.outputFramePath, 
+                         self.agentViewpointId,
+                         self.scanId,
+                         self.humanViewpointId)
 
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     GRAPHS = 'connectivity/'
-    data_dir = os.getenv("HA3D_SIMULATOR_DATA_PATH")
-    # 每个建筑场景编号
+    dataDir = os.getenv("HA3D_SIMULATOR_DATA_PATH")
+    # Read scan list
     with open(GRAPHS+'scans.txt') as f:
-        scan_list = [scan.strip() for scan in f.readlines()]
+        scanList = [scan.strip() for scan in f.readlines()]
     with open('human-viewpoint_annotation/human_motion_text.json', 'r') as f:
-        human_motion_data = json.load(f)
-    # 每个建筑场景中的视点视角朝向
+        humanMotionData = json.load(f)
+    # Read agent heading information
     with open("con/heading_info.json", 'r') as f:
-        agent_heading_data = json.load(f)
+        agentHeadingData = json.load(f)
 
-    viewpoint_image_dir = os.path.join(data_dir,"data/v1/scans")
-    motion_model_dir = os.path.join(data_dir,"human_motion_meshes")
-    video_output_dir = os.path.join(data_dir, "data/v1/scans")
+    viewpointImageDir = os.path.join(dataDir, "data/v1/scans")
+    motionModelDir = os.path.join(dataDir, "human_motion_meshes")
+    videoOutputDir = os.path.join(dataDir, "data/v1/scans")
     HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
     sys.path.append(HA3D_SIMULATOR_PATH)
-    from src.render.renderer import get_renderer
-    from src.render.rendermdm import render_first_frame, render_video
+    from src.render.renderer import getRenderer
+    from src.render.rendermdm import renderFirstFrame, renderVideo
     from src.utils.concat_skybox import concat
-    mainWindow = myMainWindow(viewpoint_image_dir, video_output_dir, motion_model_dir, scan_list, human_motion_data, agent_heading_data)
+    mainWindow = MyMainWindow(viewpointImageDir, videoOutputDir, motionModelDir, scanList, humanMotionData, agentHeadingData)
     mainWindow.show()
     sys.exit(app.exec_())

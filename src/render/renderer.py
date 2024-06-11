@@ -1,5 +1,3 @@
-
-
 import math
 import trimesh
 import trimesh.transformations as tf
@@ -11,59 +9,59 @@ import cv2
 from tqdm import tqdm
 import inspect
 
-def print_file_and_line_quick():
-    # 快速获取当前行号
+def printFileAndLineQuick():
+    """
+    Quickly print the current file name and line number.
+    """
     line_no = inspect.stack()[1][2]
-    # 快速获取当前文件名
     file_name = __file__
     print(f"File: {file_name}, Line: {line_no}")
 
+# Set environment variable for OpenGL
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
 class Renderer:
-    def __init__(self, background=None, resolution=(224, 224), bg_color=[0, 0, 0, 0.5], orig_img=False, wireframe=False):
+    def __init__(self, background=None, resolution=(224, 224), bgColor=[0, 0, 0, 0.5], origImg=False, wireframe=False):
         width, height = resolution
         self.background = np.zeros((height, width, 3))
         self.resolution = resolution
-        self.orig_img = orig_img
+        self.origImg = origImg
         self.wireframe = wireframe
         self.renderer = pyrender.OffscreenRenderer(
             viewport_width=self.resolution[0],
             viewport_height=self.resolution[1],
             point_size=0.5
         )
-        self.aspectRatio = self.resolution[0]/self.resolution[1]
-        # set the scene
-        self.scene = pyrender.Scene(bg_color=bg_color, ambient_light=(0.4, 0.4, 0.4))
-        # set light
+        self.aspectRatio = self.resolution[0] / self.resolution[1]
+        # Set the scene
+        self.scene = pyrender.Scene(bg_color=bgColor, ambient_light=(0.4, 0.4, 0.4))
+        # Set light
         self.light = pyrender.PointLight(color=[1.0, 1.0, 1.0], intensity=4)
-        self.human_list = []
-        self.human_location = []
-        self.cam_node = None
-        self.light_node1 = None
-    def render(self, mesh, background, background_depth, cam_loc, cam_angle, human_angle=None, mesh_filename=None, color=[1.0, 1.0, 0.9]):
+        self.humanList = []
+        self.humanLocation = []
+        self.camNode = None
+        self.lightNode1 = None
 
-        #Rx = trimesh.transformations.rotation_matrix(math.radians(0), [1, 0, 0])
-        #mesh.apply_transform(Rx)
-        if mesh_filename is not None:
-            mesh.export(mesh_filename)
+    def render(self, mesh, background, backgroundDepth, camLoc, camAngle, humanAngle=None, meshFilename=None, color=[1.0, 1.0, 0.9]):
+        """
+        Render a scene with the given parameters.
+        
+        Parameters:
+        - mesh: The mesh to be rendered
+        - background: The background image
+        - backgroundDepth: The depth of the background
+        - camLoc: Camera location
+        - camAngle: Camera angle
+        - humanAngle: Angle of the human (optional)
+        - meshFilename: Filename to save the mesh (optional)
+        - color: Color of the mesh
+        """
+        if meshFilename is not None:
+            mesh.export(meshFilename)
 
-        if human_angle:
-            R = trimesh.transformations.rotation_matrix(math.radians(human_angle), axis)
+        if humanAngle:
+            R = trimesh.transformations.rotation_matrix(math.radians(humanAngle), [0, 1, 0])
             mesh.apply_transform(R)
-
-        # 这四个值分别代表x方向的缩放、y方向的缩放、x方向的平移和y方向的平移
-        # sx, sy, tx, ty = cam
-        # 弱透视相机
-        """ 
-        camera = WeakPerspectiveCamera(
-            scale=[sx, sy],
-            translation=[tx, ty],
-            #设置相机的远裁剪面。这意味着在z=1000的位置之后的所有物体都不会被渲染
-            zfar=1000.
-        ) """
-
-
 
         material = pyrender.MetallicRoughnessMaterial(
             metallicFactor=0.7,
@@ -72,207 +70,220 @@ class Renderer:
         )
 
         mesh = pyrender.Mesh.from_trimesh(mesh, material=material)
+        meshNode = self.scene.add(mesh, 'mesh')
 
-        mesh_node = self.scene.add(mesh, 'mesh')
-        
-
-        dx, dy, dz = cam_loc # 例如，平移沿x轴，沿y轴，沿z轴
-        translation_matrix = np.array([
+        dx, dy, dz = camLoc
+        translationMatrix = np.array([
             [1, 0, 0, dx],
             [0, 1, 0, dy],
             [0, 0, 1, dz],
             [0, 0, 0, 1]
         ])
-        
-        
-        # 光源
-        light_pose = np.eye(4)
-        light_pose[:3, 3] = [dx+1, dy, dz]
-        light_node1 = self.scene.add(self.light, pose=light_pose.copy())
 
-        light_pose[:3, 3] = [dx, dy+1, dz]
-        light_node2 = self.scene.add(self.light, pose=light_pose.copy())
+        lightPose = np.eye(4)
+        lightPose[:3, 3] = [dx + 1, dy, dz]
+        lightNode1 = self.scene.add(self.light, pose=lightPose.copy())
 
-        light_pose[:3, 3] = [dx-1, dy, dz]
-        light_node3 = self.scene.add(self.light, pose=light_pose.copy())
+        lightPose[:3, 3] = [dx, dy + 1, dz]
+        lightNode2 = self.scene.add(self.light, pose=lightPose.copy())
+
+        lightPose[:3, 3] = [dx - 1, dy, dz]
+        lightNode3 = self.scene.add(self.light, pose=lightPose.copy())
 
         camera = pyrender.PerspectiveCamera(yfov=np.pi / 2.0, aspectRatio=1)
         
         if self.wireframe:
-            render_flags = RenderFlags.ALL_WIREFRAME
+            renderFlags = RenderFlags.ALL_WIREFRAME
 
+        imageAll = []
+        imageDepthAll = []
+        camsAngle = [180, 90, 0, 270]
 
-        #cam_nodes = []
-        image_all = []
-        image_depth_all = []
-        cams_angle = [180,90,0,270]
         for i in range(4):
-            angle = np.radians(cams_angle[i]-cam_angle)  # 旋转
-            rotation_matrix = tf.rotation_matrix(angle, [0, 1, 0])
-            camera_pose = translation_matrix @ rotation_matrix
-            # 将刚刚创建的相机添加到场景中，并设置其位置和方向为camera_pose
-            cam_node = self.scene.add(camera, pose=camera_pose)
-            #cam_nodes.append(cam_node)
-            image, d_img = self.renderer.render(self.scene)
-            image_all.append(image)
-            image_depth_all.append(d_img)
-            #print(image.shape)
-            self.scene.remove_node(cam_node)
+            angle = np.radians(camsAngle[i] - camAngle)
+            rotationMatrix = tf.rotation_matrix(angle, [0, 1, 0])
+            cameraPose = translationMatrix @ rotationMatrix
+            camNode = self.scene.add(camera, pose=cameraPose)
+            image, dImg = self.renderer.render(self.scene)
+            imageAll.append(image)
+            imageDepthAll.append(dImg)
+            self.scene.remove_node(camNode)
 
+        rgb = cv2.hconcat(imageAll)
+        humanDepth = cv2.hconcat(imageDepthAll) * 4000
+        mask = (humanDepth <= backgroundDepth) & (humanDepth != 0)
+        mask3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
+        outputImg = np.where(mask3d, rgb, background)
+        image = outputImg.astype(np.uint8)
 
-        #rgb = cv2.hconcat([image_all[2], image_all[3], image_all[0], image_all[1]])
-        rgb = cv2.hconcat(image_all)
-        human_depth = cv2.hconcat(image_depth_all) * 4000
-        #print(np.max(human_depth))
-        mask = (human_depth <= background_depth) & (human_depth != 0)
-        #print(mask.shape,np.sum(human_depth)/np.sum(human_depth != 0))
-        # 扩展掩码到三个通道，以匹配rgb和background的形状
-        mask_3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
-
-        # 创建输出图像，其中白色背景被 background 替换
-        # 注意这里只处理RGB通道，不处理alpha通道
-        output_img = np.where(mask_3d, rgb, background)
-        #cv2.imwrite("./background.jpg",background)
-        #cv2.imwrite("./rgb_valid_mask.jpg",rgb[:, :, :-1] * valid_mask)
-        #cv2.imwrite("./background_valid_mask.jpg",(1 - valid_mask) * background)
-        #cv2.imwrite("./output_img.jpg",output_img)
-        image = output_img.astype(np.uint8)
-
-        self.scene.remove_node(mesh_node)
-        self.scene.remove_node(light_node1)
-        self.scene.remove_node(light_node2)
-        self.scene.remove_node(light_node3)
-        
-        #np.save("./depth.npy",depth)
+        self.scene.remove_node(meshNode)
+        self.scene.remove_node(lightNode1)
+        self.scene.remove_node(lightNode2)
+        self.scene.remove_node(lightNode3)
 
         return image
-    
-    def newHumans(self, human_list, color=[0.7, 0.9, 0]):
-        self.human_list = []
-        self.human_location = []
+
+    def newHumans(self, humanList, color=[0.7, 0.9, 0]):
+        """
+        Load new human meshes into the scene.
+
+        Parameters:
+        - humanList: List of human meshes
+        - color: Color of the human meshes
+        """
+        self.humanList = []
+        self.humanLocation = []
         material = pyrender.MetallicRoughnessMaterial(
             metallicFactor=0.5,
             alphaMode='OPAQUE',
             baseColorFactor=(color[0], color[1], color[2], 1.0)
         )
-        bar = tqdm(human_list, desc=f"Loading New Human of Building")
+        bar = tqdm(humanList, desc="Loading New Human of Building")
         for human in bar:
             location = human['location']
             meshes = []
-            human_location = []
-            human_start_loc = (location[0], location[2]-1.36, -location[1])
-            theta_angle = (np.pi / 180 * float(human['heading']))
-            matrix = get_rotation(theta=theta_angle)
-            min = 1
-            o_index = 0
-            # find O point of human mesh
+            humanLocation = []
+            humanStartLoc = (location[0], location[2] - 1.36, -location[1])
+            thetaAngle = (np.pi / 180 * float(human['heading']))
+            matrix = getRotation(theta=thetaAngle)
+            minDist = 1
+            oIndex = 0
             for index, item in enumerate(human['meshes'][0].vertices):
-                sum = (item[0]**2)+(item[1]**2)+(item[2]**2)
-                if sum < min:
-                    min = sum
-                    o_index = index
+                sumDist = (item[0]**2) + (item[1]**2) + (item[2]**2)
+                if sumDist < minDist:
+                    minDist = sumDist
+                    oIndex = index
             for mesh in human['meshes']:
                 mesh.vertices = np.einsum("ij,ki->kj", matrix, mesh.vertices)
-                #human平移
-                mesh.vertices = mesh.vertices + human_start_loc
-                mesh_location = mesh.vertices[o_index]
-                human_location.append((mesh_location[0], -mesh_location[2], mesh_location[1]+1.36))
+                mesh.vertices = mesh.vertices + humanStartLoc
+                meshLocation = mesh.vertices[oIndex]
+                humanLocation.append((meshLocation[0], -meshLocation[2], meshLocation[1] + 1.36))
                 mesh = pyrender.Mesh.from_trimesh(mesh, material=material)
                 meshes.append(mesh)
-            self.human_list.append(meshes)
-            self.human_location.append(human_location)
+            self.humanList.append(meshes)
+            self.humanLocation.append(humanLocation)
 
     def newAgent(self, vfov, location, heading, elevation):
-        if  self.cam_node is not None:
-            self.scene.remove_node(self.cam_node)
-            self.scene.remove_node(self.light_node1)
-        cam_loc = (location[0], location[2], -location[1])
-        dx, dy, dz = cam_loc # 例如，平移沿x轴，沿y轴，沿z轴
-        translation_matrix = np.array([
+        """
+        Add a new agent to the scene.
+
+        Parameters:
+        - vfov: Vertical field of view
+        - location: Agent's location
+        - heading: Agent's heading
+        - elevation: Agent's elevation
+        """
+        if self.camNode is not None:
+            self.scene.remove_node(self.camNode)
+            self.scene.remove_node(self.lightNode1)
+        camLoc = (location[0], location[2], -location[1])
+        dx, dy, dz = camLoc
+        translationMatrix = np.array([
             [1, 0, 0, dx],
             [0, 1, 0, dy],
             [0, 0, 1, dz],
             [0, 0, 0, 1]
         ])
-        # 光源
-        light_pose = np.eye(4)
-        light_pose[:3, 3] = [dx, dy, dz]
-        self.light_node1 = self.scene.add(self.light, pose=light_pose.copy())
+        lightPose = np.eye(4)
+        lightPose[:3, 3] = [dx, dy, dz]
+        self.lightNode1 = self.scene.add(self.light, pose=lightPose.copy())
         camera = pyrender.PerspectiveCamera(yfov=vfov, aspectRatio=self.aspectRatio)
-        #cam_nodes = []
-        rotation_matrix_heading = tf.rotation_matrix(heading, [0, -1, 0])
-        rotation_matrix_elevation = tf.rotation_matrix(elevation, [1, 0, 0])
-        camera_pose = translation_matrix @ (rotation_matrix_heading @ rotation_matrix_elevation)
-        # 将刚刚创建的相机添加到场景中，并设置其位置和方向为camera_pose
-        self.cam_node = self.scene.add(camera, pose=camera_pose)
+        rotationMatrixHeading = tf.rotation_matrix(heading, [0, -1, 0])
+        rotationMatrixElevation = tf.rotation_matrix(elevation, [1, 0, 0])
+        cameraPose = translationMatrix @ (rotationMatrixHeading @ rotationMatrixElevation)
+        self.camNode = self.scene.add(camera, pose=cameraPose)
 
     def moveAgent(self, vfov, location, heading, elevation):
-        self.scene.remove_node(self.cam_node)
-        self.scene.remove_node(self.light_node1)
-        cam_loc = (location[0], location[2], -location[1])
-        dx, dy, dz = cam_loc # 例如，平移沿x轴，沿y轴，沿z轴
-        translation_matrix = np.array([
+        """
+        Move the agent to a new position.
+
+        Parameters:
+        - vfov: Vertical field of view
+        - location: New location
+        - heading: New heading
+        - elevation: New elevation
+        """
+        self.scene.remove_node(self.camNode)
+        self.scene.remove_node(self.lightNode1)
+        camLoc = (location[0], location[2], -location[1])
+        dx, dy, dz = camLoc
+        translationMatrix = np.array([
             [1, 0, 0, dx],
             [0, 1, 0, dy],
             [0, 0, 1, dz],
             [0, 0, 0, 1]
         ])
-        # 光源
-        light_pose = np.eye(4)
-        light_pose[:3, 3] = [dx, dy, dz]
-        self.light_node1 = self.scene.add(self.light, pose=light_pose.copy())
+        lightPose = np.eye(4)
+        lightPose[:3, 3] = [dx, dy, dz]
+        self.lightNode1 = self.scene.add(self.light, pose=lightPose.copy())
         camera = pyrender.PerspectiveCamera(yfov=vfov, aspectRatio=self.aspectRatio)
-        #cam_nodes = []
-        rotation_matrix_heading = tf.rotation_matrix(heading, [0, -1, 0])
-        rotation_matrix_elevation = tf.rotation_matrix(elevation, [1, 0, 0])
-        camera_pose = translation_matrix @ (rotation_matrix_heading @ rotation_matrix_elevation)
-        # 将刚刚创建的相机添加到场景中，并设置其位置和方向为camera_pose
-        self.cam_node = self.scene.add(camera, pose=camera_pose)
+        rotationMatrixHeading = tf.rotation_matrix(heading, [0, -1, 0])
+        rotationMatrixElevation = tf.rotation_matrix(elevation, [1, 0, 0])
+        cameraPose = translationMatrix @ (rotationMatrixHeading @ rotationMatrixElevation)
+        self.camNode = self.scene.add(camera, pose=cameraPose)
 
-    def render_agent(self, frame_num, background, background_depth):
-        mesh_node_list = []
-        for mesh in self.human_list:
-            mesh_node = self.scene.add(mesh[frame_num], 'mesh')
-            mesh_node_list.append(mesh_node)
+    def renderAgent(self, frameNum, background, backgroundDepth):
+        """
+        Render the agent at the current frame.
+
+        Parameters:
+        - frameNum: Frame number
+        - background: Background image
+        - backgroundDepth: Background depth
+        """
+        meshNodeList = []
+        for mesh in self.humanList:
+            meshNode = self.scene.add(mesh[frameNum], 'mesh')
+            meshNodeList.append(meshNode)
         if self.wireframe:
-            render_flags = RenderFlags.ALL_WIREFRAME
-        image, d_img = self.renderer.render(self.scene)
-        #print(self.scene.get_pose(mesh_node_list[0])[0:3,3])
-        #print(image.shape)
-        for mesh_node in mesh_node_list:
-            self.scene.remove_node(mesh_node)
+            renderFlags = RenderFlags.ALL_WIREFRAME
+        image, dImg = self.renderer.render(self.scene)
+        for meshNode in meshNodeList:
+            self.scene.remove_node(meshNode)
         rgb = image
-        human_depth = d_img * 4000
-        #print(human_depth.dtype, np.max(human_depth))
-        mask = (human_depth <= background_depth) & (human_depth != 0)
-        # 扩展掩码到三个通道，以匹配rgb和background的形状
-        mask_3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
+        humanDepth = dImg * 4000
+        mask = (humanDepth <= backgroundDepth) & (humanDepth != 0)
+        mask3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
+        outputImg = np.where(mask3d, rgb, background)
+        image = outputImg.astype(np.uint8)
+        return image, humanDepth
 
-        # 创建输出图像，其中白色背景被 background 替换
-        # 注意这里只处理RGB通道，不处理alpha通道
-        output_img = np.where(mask_3d, rgb, background)
-        cv2.imwrite("./output_img.jpg",output_img)
-        image = output_img.astype(np.uint8)
-        return image,human_depth
+    def getHumanLocation(self, frameNum):
+        """
+        Get the location of humans at the current frame.
 
-    def getHumanLocation(self, frame_num):
-        human_location = []
-        for i in self.human_location:
-            human_location.append(i[frame_num])
-        return human_location
+        Parameters:
+        - frameNum: Frame number
+        """
+        humanLocation = []
+        for i in self.humanLocation:
+            humanLocation.append(i[frameNum])
+        return humanLocation
 
+def getRenderer(width, height):
+    """
+    Create a new renderer instance.
 
-def get_renderer(width, height):
+    Parameters:
+    - width: Width of the renderer
+    - height: Height of the renderer
+    """
     renderer = Renderer(resolution=(width, height),
-                        bg_color=[1, 1, 1, 0.5],
-                        orig_img=False,
+                        bgColor=[1, 1, 1, 0.5],
+                        origImg=False,
                         wireframe=False)
     return renderer
 
-def get_rotation(theta=np.pi):
+def getRotation(theta=np.pi):
+    """
+    Get a rotation matrix for a given angle.
+
+    Parameters:
+    - theta: Rotation angle
+    """
     import src.utils.rotation_conversions as geometry
     import torch
     axis = torch.tensor([0, 1, 0], dtype=torch.float)
-    axisangle = theta*axis
-    matrix = geometry.axis_angle_to_matrix(axisangle)
+    axisAngle = theta * axis
+    matrix = geometry.axisAngleToMatrix(axisAngle)
     return matrix.numpy()
