@@ -9,7 +9,7 @@
   <style>
     .video-container-title1 video {
       width: 100%; /* 保持原有的宽度 */
-      transform: scale(1.2); /* 放大20% */
+      transform: scale(1); /* 放大20% */
       transform-origin: center center; /* 确保视频从中心放大 */
     }
     .video-container-title2 video {
@@ -31,7 +31,44 @@
       transform: scale(1.0);
       transform-origin: center center; /* 确保视频从中心放大 */
     }
-
+    .publication-authors {
+            font-size: 1.25rem;
+    }
+    .author-block {
+        display: inline-block;
+        margin-bottom: 10px;
+    }
+    .author-block span {
+        margin-right: 30px;
+    }
+    .eql-cntrb small {
+        display: inline-block;
+        margin-top: 10px;
+    }
+    .button-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px; /* Add some space between the buttons */
+      }
+    .icon-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #333;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 25px;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        text-decoration: none;
+        max-width: 150px; /* Set a maximum width */
+        width: auto;
+    }
+    .icon-button img {
+        margin-right: 8px;
+    }
   </style>
 </head>
 
@@ -65,45 +102,79 @@
 
 <div class="w3-container" id="paper">
   <div class="w3-content" style="max-width:850px">
-    <h2 class="w3-center w3-padding-32"><b>Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions</b></h2>
-    <h3 class="w3-center w3-padding-32"><b>Panoramas Observation</b></h3>
-    <div class="w3-center video-container-title1">
-      <video controls>
-        <source src="29hnd4uzFmX_beaaf39947ee40f7822ed8a383bf6472.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-      </video>
-    </div>
-    <h3 class="w3-center w3-padding-32"><b>Egocentric(60-degree) Observation</b></h3>
-    <div class="w3-center video-container-title2">
-      <video controls>
-        <source src="29hnd4uzFmX_beaaf39947ee40f7822ed8a383bf6472_agent.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-      </video>
-    </div>
-    <h3><b>Abstract</b></h3>
+    <h1 class="w3-center w3-padding-32"><b>Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions</b></h2>
+      <div class="w3-center w3-padding-small">
+        <span class="author-block">
+          Minghan Li<sup>1,*</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          Heng Li<sup>1,*</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          Zhi-Qi Cheng<sup>1,†</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          Yifei Dong<sup>2</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          Yuxuan Zhou<sup>3</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          Jun-Yan He<sup>4</sup>
+        </span>
+        <span class="author-block" style="display: block;">
+          Qi Dai<sup>5</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          Teruko Mitamura<sup>1</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          Alexander G Hauptmann<sup>1</sup>
+        </span>
+      </div>
+      <div class="w3-center w3-padding-small">
+        <!-- <span class="author-block">Institution Name<br>Conferance name and year</span> -->
+        <span class="author-block">
+          <sup>1</sup>Carnegie Mellon University&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          <sup>2</sup>Columbia University&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          <sup>3</sup>University of Mannheim
+        </span>
+        <span class="author-block" style="display: block;">
+          <sup>4</sup>Alibaba Group&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          <sup>5</sup>Microsoft Research
+        </span>
+        <span class="eql-cntrb" style="display: block;">
+          <small><sup>*</sup>Indicates Equal Contribution,&nbsp;</small>
+          <small><sup>†</sup>Indicates Corresponding author.</small>
+        </span>
+      </div>
+      <div class="button-container">
+        <a href="https://arxiv.org/abs/xxx" class="icon-button">
+        arXiv
+        </a>
+        <a href="https://github.com/lpercc/HA3D_simulator" class="icon-button">
+          code
+        </a>
+      </div>
+      <h3 class="w3-center w3-padding-16"><b>Panoramas Observation Demo</b></h3>
+        <div class="w3-center video-container-title1">
+          <video controls>
+            <source src="1pXnuDYAj8r_video.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+          <video controls>
+            <source src="2azQ1b91cZZ_video.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+    <h2><b>Abstract</b></h2>
     <p>
     Vision-and-Language Navigation (VLN) aims to develop embodied agents that navigate based on human instructions. However, current VLN frameworks often rely on static environments and optimal expert supervision, limiting their real-world applicability. To address this, we introduce Human-Aware Vision-and-Language Navigation (HA-VLN), extending traditional VLN by incorporating dynamic human activities and relaxing key assumptions. We propose the Human-Aware 3D (HA3D) simulator, which combines dynamic human activities with the Matterport3D dataset, and the Human-Aware Room-to-Room (HA-R2R) dataset, extending R2R with human activity descriptions. To tackle HA-VLN challenges, we present the Expert-Supervised Cross-Modal (VLN-CM) and Non-Expert-Supervised Decision Transformer (VLN-DT) agents, utilizing cross-modal fusion and diverse training strategies for effective navigation in dynamic human environments. A comprehensive evaluation, including metrics considering human activities, and systematic analysis of HA-VLN's unique challenges, underscores the need for further research to enhance HA-VLN agents' real-world robustness and adaptability. Ultimately, this work provides benchmarks and insights for future research on embodied AI and Sim2Real transfer, paving the way for more realistic and applicable VLN systems in human-populated environments.
     </p>
-    <h3 class="w3-left-align"><b>Paper</b></h3>
-    Minghan Li, Heng Li, Zhi-Qi Cheng, Yifei Dong, Yuxuan Zhou, Jun-Yan He, Qi Dai, Teruko Mitamura, Alexander G Hauptmann<br>
-    <b><a href="https://arxiv.org/pdf/xxxx.xxxxx.pdf">Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions</a></b><br>
-    XXX<br>
+    <h2 class="w3-left-align"><b>Paper</b></h2>
+    <b><a href="https://arxiv.org/pdf/xxxx.xxxxx.pdf">Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions</a></b><br>  
     Paper | <a href="https://arxiv.org/pdf/xxxx.xxxxx.pdf"> arXiv (low res) </a> | Supplemental Material
     <pre class="w3-panel w3-leftbar w3-light-grey" style="white-space: pre-wrap; font-family: monospace;">
-@article{xxx,
-  title={Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions},
-  author={Minghan Li, Heng Li, Zhi-Qi Cheng, Yifei Dong, Yuxuan Zhou, Jun-Yan He, Qi Dai, Teruko Mitamura, Alexander G Hauptmann},
-  journal={xxx},
-  year={2024}
-}</pre>
+    @article{xxx,
+      title={Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions},
+      author={Minghan Li, Heng Li, Zhi-Qi Cheng, Yifei Dong, Yuxuan Zhou, Jun-Yan He, Qi Dai, Teruko Mitamura, Alexander G Hauptmann},
+      journal={xxx},
+      year={2024}
+    }</pre>
   </div>
 </div>
 
 <div class="w3-container" id="dataset">
   <div class="w3-content" style="max-width:850px">
-    <h3 class="w3-left-align"><b>Dataset</b></h3>
+    <h2 class="w3-left-align"><b>Dataset</b></h2>
     <p>Dataset download link <a href="https://drive.google.com/drive/folders/1aswHATnKNViqw6QenAwdQRTwXQQE5jd3?usp=drive_link">Google drive</a></p>
-    <h4 class="w3-left-align"><b>HAPS</b></h4>
+    <h3 class="w3-left-align"><b>HAPS</b></h3>
     <p>Animation of the human motion skeletons</p>
     <div class=".video-container_3">
       <video controls>
@@ -124,7 +195,7 @@
 
 <div class="w3-container" id="simulator">
   <div class="w3-content" style="max-width:850px">
-    <h3 class="w3-left-align"><b>Explore the Simulator</b></h3>
+    <h2 class="w3-left-align"><b>Explore the Simulator</b></h2>
     <div class=".video-container_3">
       <video controls>
         <source src="sim1.webm" type="video/webm">
@@ -144,14 +215,14 @@
 
 <div class="w3-container" id="code">
   <div class="w3-content" style="max-width:850px">
-    <h3 class="w3-left-align"><b>Code</b></h3>
+    <h2 class="w3-left-align"><b>Code</b></h2>
     <p>Please check the <a href="https://github.com/lpercc/HA3D_simulator">git repository</a> for a detailed introduction to the dataset and code for HA-VLN task.</p>
   </div>
 </div>
 
 <div class="w3-container" id="real-world">
   <div class="w3-content" style="max-width:850px">
-    <h3 class="w3-left-align"><b>Real-world</b></h3>
+    <h2 class="w3-left-align"><b>Real-world</b></h2>
     <p>We use <a href="https://www.unitree.com/go1">Unitree GO1</a> to validate in a real environment.</p>
     <p>video of the robot's navigation can be found at <a href="https://www.bilibili.com/video/BV1wm421V7Ui/?share_source=copy_web&vd_source=d4988b5cd2fc432c567c0aa979ea211e">link</a></p>
   </div>
@@ -159,7 +230,7 @@
 
 <div class="w3-container" id="changelog">
   <div class="w3-content" style="max-width:850px">
-    <h3 class="w3-left-align"><b>Changelog</b></h3>
+    <h2 class="w3-left-align"><b>Changelog</b></h2>
     <ul>
       <li><b>2024-06-03</b>: Create webpage</li>
     </ul>
@@ -168,7 +239,7 @@
 
 <div class="w3-container" id="contact">
   <div class="w3-content" style="max-width:850px">
-    <h3 class="w3-left-align"><b>Contact</b></h3>
+    <h2 class="w3-left-align"><b>Contact</b></h2>
     Please contact us at <a href="lperlpm@gmail.com">lperlpm@gmail.com</a> if you have any questions.
   </div>
 </div>
