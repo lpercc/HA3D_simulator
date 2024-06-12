@@ -110,6 +110,8 @@ class HASimulator(MatterSim.Simulator):
     def makeAction(self, index, heading, elevation):
         """Perform an action in the simulation and update the state."""
         self.frameNum += self.framesPerStep
+        if self.frameNum >= 120:
+            self.frameNum = 0
         super().makeAction(index, heading, elevation)
         if self.isRealTimeRender:
             self.state = super().getState()[0]
@@ -125,8 +127,6 @@ class HASimulator(MatterSim.Simulator):
                 pipe.write(serialized_data)
             receiveMessage(self.pipeR2S)
             self.renderScene()
-        if self.frameNum >= 120:
-            self.frameNum = 0
 
     def renderScene(self):
         """Render the current scene in the simulator."""

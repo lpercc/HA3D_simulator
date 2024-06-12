@@ -35,7 +35,7 @@ class MyMainWindow(Ui_Form, QMainWindow):
             self.connectionData = json.load(f)
 
         # Output path
-        self.videoOutputPath = os.path.join(self.videoOutputDir, f"{self.scanId}/matterport_panorama_video")
+        self.videoOutputPath = os.path.join(self.videoOutputDir, f"{self.scanId}")
         if not os.path.exists(self.videoOutputPath):
             os.makedirs(self.videoOutputPath)
 
@@ -162,7 +162,7 @@ class MyMainWindow(Ui_Form, QMainWindow):
             self.connectionData = json.load(f)
 
         # Output path
-        self.videoOutputPath = os.path.join(self.videoOutputDir, f"{self.scanId}/matterport_panorama_video")
+        self.videoOutputPath = os.path.join(self.videoOutputDir, f"{self.scanId}")
         if not os.path.exists(self.videoOutputPath):
             os.makedirs(self.videoOutputPath)
 
@@ -271,10 +271,11 @@ class MyMainWindow(Ui_Form, QMainWindow):
         meshes = []
         objFiles = [f for f in os.listdir(self.motionPath) if f.endswith('.obj')]
         sortedObjFiles = sorted(objFiles)
-        for objFile in sortedObjFiles[:60]:
+        for objFile in sortedObjFiles[:120]:
             objPath = os.path.join(self.motionPath, objFile)
             mesh = trimesh.load(objPath)
             meshes.append(mesh)
+        print(self.outputVideoPath)
         renderVideo(meshes, 
                     self.background, 
                     self.agentLocation, 
@@ -326,6 +327,8 @@ class MyMainWindow(Ui_Form, QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     GRAPHS = 'connectivity/'
+    HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
+    sys.path.append(HA3D_SIMULATOR_PATH)
     dataDir = os.getenv("HA3D_SIMULATOR_DATA_PATH")
     # Read scan list
     with open(GRAPHS+'scans.txt') as f:
@@ -338,9 +341,8 @@ if __name__ == '__main__':
 
     viewpointImageDir = os.path.join(dataDir, "data/v1/scans")
     motionModelDir = os.path.join(dataDir, "human_motion_meshes")
-    videoOutputDir = os.path.join(dataDir, "data/v1/scans")
-    HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
-    sys.path.append(HA3D_SIMULATOR_PATH)
+    videoOutputDir = os.path.join(HA3D_SIMULATOR_PATH, "fine_tune_heading/video")
+
     from src.render.renderer import getRenderer
     from src.render.rendermdm import renderFirstFrame, renderVideo
     from src.utils.concat_skybox import concat

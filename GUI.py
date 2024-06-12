@@ -239,7 +239,7 @@ class MyMainWindow(Ui_Form, QMainWindow):
             self.sim.makeAction([0], [0], [0])
             print("Back")
         elif event.key() == Qt.Key_C:
-            imgFile = f"sim_imgs/{self.agentState.scanId}_{self.pathItem['path_id']}_{self.agentState.step}.png"
+            imgFile = f"sim_imgs/{self.agentState.scanId}_{self.agentState.location.viewpointId}_{self.agentState.step}.png"
             cv2.imwrite(imgFile, self.agentState.rgb)
         super().keyPressEvent(event)
 
