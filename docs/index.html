@@ -1,250 +1,408 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <title>Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="./w3.css">
-  <style>
-    .video-container-title1 video {
-      width: 100%; /* 保持原有的宽度 */
-      transform: scale(1); /* 放大20% */
-      transform-origin: center center; /* 确保视频从中心放大 */
-    }
-    .video-container-title2 video {
-      width: 40%; /* 保持原有的宽度 */
-      transform: scale(1.0);
-      transform-origin: center center; /* 确保视频从中心放大 */
-    }
-    .video-container_3 {
-      display: flex; /* 使用Flexbox布局 */
-      justify-content: space-around; /* 视频之间平均分配空间 */
-      align-items: center; /* 垂直居中 */
-    }
-    video {
-      width: 30%; /* 每个视频占容器宽度的30% */
-      margin: 5px; /* 添加一些外边距 */
-    }
-    .video-container-simGUI video {
-      width: 80%; /* 保持原有的宽度 */
-      transform: scale(1.0);
-      transform-origin: center center; /* 确保视频从中心放大 */
-    }
-    .publication-authors {
-            font-size: 1.25rem;
-    }
-    .author-block {
-        display: inline-block;
-        margin-bottom: 10px;
-    }
-    .author-block span {
-        margin-right: 30px;
-    }
-    .eql-cntrb small {
-        display: inline-block;
-        margin-top: 10px;
-    }
-    .button-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px; /* Add some space between the buttons */
-      }
-    .icon-button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #333;
-        color: white;
-        padding: 5px 10px;
-        border-radius: 25px;
-        border: none;
-        cursor: pointer;
-        font-size: 1rem;
-        text-decoration: none;
-        max-width: 150px; /* Set a maximum width */
-        width: auto;
-    }
-    .icon-button img {
-        margin-right: 8px;
-    }
-  </style>
-</head>
+  <meta charset="utf-8">
+  <!-- Meta tags for social media banners, these should be filled in appropriatly as they are your "business card" -->
+  <!-- Replace the content tag with appropriate information -->
+  <meta name="description" content="DESCRIPTION META TAG">
+  <meta property="og:title" content="SOCIAL MEDIA TITLE TAG"/>
+  <meta property="og:description" content="SOCIAL MEDIA DESCRIPTION TAG TAG"/>
+  <meta property="og:url" content="URL OF THE WEBSITE"/>
+  <!-- Path to banner image, should be in the path listed below. Optimal dimenssions are 1200X630-->
+  <meta property="og:image" content="static/image/your_banner_image.png" />
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
 
+
+  <meta name="twitter:title" content="TWITTER BANNER TITLE META TAG">
+  <meta name="twitter:description" content="TWITTER BANNER DESCRIPTION META TAG">
+  <!-- Path to banner image, should be in the path listed below. Optimal dimenssions are 1200X600-->
+  <meta name="twitter:image" content="static/images/your_twitter_banner_image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <!-- Keywords for your paper to be indexed by-->
+  <meta name="keywords" content="KEYWORDS SHOULD BE PLACED HERE">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <title>HA-VLN</title>
+  <link rel="icon" type="image/x-icon" href="static/images/favicon.ico">
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+  rel="stylesheet">
+
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://documentcloud.adobe.com/view-sdk/main.js"></script>
+  <script defer src="static/js/fontawesome.all.min.js"></script>
+  <script src="static/js/bulma-carousel.min.js"></script>
+  <script src="static/js/bulma-slider.min.js"></script>
+  <script src="static/js/index.js"></script>
+</head>
 <body>
 
-<!-- Links (sit on top) -->
-<div class="w3-top">
-  <div class="w3-row w3-padding w3-black">
-    <div class="w3-col s2">
-      <a href="#paper" class="w3-button w3-block w3-black">Paper</a>
+
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column has-text-centered">
+            <h1 class="title is-1 publication-title">Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions</h1>
+            <div class="is-size-5 publication-authors">
+              <!-- Paper authors -->
+              <span class="author-block">
+                <a href="FIRST AUTHOR PERSONAL LINK" target="_blank">Minghan Li</a><sup>1,*</sup>,
+                <a href="SECOND AUTHOR PERSONAL LINK" target="_blank">Heng Li</a><sup>1,*</sup>,
+                <a href="THIRD AUTHOR PERSONAL LINK" target="_blank">Zhi-Qi Cheng</a><sup>1,†</sup>,
+                <a href="THIRD AUTHOR PERSONAL LINK" target="_blank">Yifei Dong</a><sup>2</sup>,
+              </span>
+              <span class="author-block" style="display: block;">
+                <a href="THIRD AUTHOR PERSONAL LINK" target="_blank">Yuxuan Zhou</a><sup>3</sup>,
+                <a href="THIRD AUTHOR PERSONAL LINK" target="_blank">Jun-Yan He</a><sup>4</sup>,
+                <a href="THIRD AUTHOR PERSONAL LINK" target="_blank">Qi Dai</a><sup>5</sup>,
+                <a href="THIRD AUTHOR PERSONAL LINK" target="_blank">Teruko Mitamura</a><sup>1</sup>,
+                <a href="THIRD AUTHOR PERSONAL LINK" target="_blank">Alexander G Hauptmann</a><sup>1</sup>
+              </span>
+            </div>
+
+                  <div class="is-size-5 publication-authors">
+                    <span class="author-block">
+                      <sup>1</sup>Carnegie Mellon University&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                      <sup>2</sup>Columbia University
+                    </span>
+                    <span class="author-block" style="display: block;">
+                      <sup>3</sup>University of Mannheim&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                      <sup>4</sup>Alibaba Group&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                      <sup>5</sup>Microsoft Research
+                    </span>
+                    <span class="eql-cntrb">
+                      <small><br><sup>*</sup>Indicates Equal Contribution</small>
+                      <small><br><sup>†</sup>Indicates Corresponding author</small>
+                    </span>
+                  </div>
+
+                  <div class="column has-text-centered">
+                    <div class="publication-links">
+                         <!-- Arxiv PDF link -->
+                      <span class="link-block">
+                        <a href="https://arxiv.org/pdf/<ARXIV PAPER ID>.pdf" target="_blank"
+                        class="external-link button is-normal is-rounded is-dark">
+                        <span class="icon">
+                          <i class="fas fa-file-pdf"></i>
+                        </span>
+                        <span>Paper</span>
+                      </a>
+                    </span>
+
+                    <!-- Supplementary PDF link -->
+                    <span class="link-block">
+                      <a href="static/pdfs/supplementary_material.pdf" target="_blank"
+                      class="external-link button is-normal is-rounded is-dark">
+                      <span class="icon">
+                        <i class="fas fa-file-pdf"></i>
+                      </span>
+                      <span>Supplementary</span>
+                    </a>
+                  </span>
+
+                  <!-- Github link -->
+                  <span class="link-block">
+                    <a href="https://github.com/lpercc/HA3D_simulator" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fab fa-github"></i>
+                    </span>
+                    <span>Code</span>
+                  </a>
+                </span>
+
+                <!-- ArXiv abstract Link -->
+                <span class="link-block">
+                  <a href="https://arxiv.org/abs/<ARXIV PAPER ID>" target="_blank"
+                  class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    <i class="ai ai-arxiv"></i>
+                  </span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="w3-col s2">
-      <a href="#dadaset" class="w3-button w3-block w3-black">Dataset</a>
+  </div>
+</section>
+
+
+<!-- Teaser video-->
+<section class="hero teaser">
+  <div class="container is-max-desktop has-text-centered">
+    <h2 class="title is-3">Panoramas Observation Demos</h2>
+    <div class="hero-body">
+      <video poster="" id="tree" autoplay controls muted loop height="100%">
+        <!-- Your video here -->
+        <source src="static/videos/1pXnuDYAj8r_video.mp4" type="video/mp4">
+      </video>
+      <h2 class="subtitle has-text-centered">
+        "hallway:Someone talking on the phone while pacing."
+      </h2>
     </div>
-    <div class="w3-col s2">
-      <a href="#simulator" class="w3-button w3-block w3-black">Simulator</a>
+    <div class="hero-body">
+      <video poster="" id="tree" autoplay controls muted loop height="100%">
+        <!-- Your video here -->
+        <source src="static/videos/2azQ1b91cZZ_video.mp4" type="video/mp4">
+      </video>
+      <h2 class="subtitle has-text-centered">
+        "rec/game:Someone setting up a table game."
+      </h2>
     </div>
-    <div class="w3-col s2">
-      <a href="https://github.com/lpercc/HA3D_simulator" class="w3-button w3-block w3-black">Code</a>
+  </div>
+</section>
+<!-- End teaser video -->
+
+<!-- Paper abstract -->
+<section class="section hero is-light">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            Vision-and-Language Navigation (VLN) aims to develop embodied agents that navigate based on human instructions. However, current VLN frameworks often rely on static environments and optimal expert supervision, limiting their real-world applicability. To address this, we introduce Human-Aware Vision-and-Language Navigation (HA-VLN), extending traditional VLN by incorporating dynamic human activities and relaxing key assumptions. We propose the Human-Aware 3D (HA3D) simulator, which combines dynamic human activities with the Matterport3D dataset, and the Human-Aware Room-to-Room (HA-R2R) dataset, extending R2R with human activity descriptions. To tackle HA-VLN challenges, we present the Expert-Supervised Cross-Modal (VLN-CM) and Non-Expert-Supervised Decision Transformer (VLN-DT) agents, utilizing cross-modal fusion and diverse training strategies for effective navigation in dynamic human environments. A comprehensive evaluation, including metrics considering human activities, and systematic analysis of HA-VLN's unique challenges, underscores the need for further research to enhance HA-VLN agents' real-world robustness and adaptability. Ultimately, this work provides benchmarks and insights for future research on embodied AI and Sim2Real transfer, paving the way for more realistic and applicable VLN systems in human-populated environments.
+          </p>
+        </div>
+      </div>
     </div>
-    <div class="w3-col s2">
-      <a href="#Real-world" class="w3-button w3-block w3-black">Real-world</a>
-    </div>
-    <div class="w3-col s2">
-      <a href="#contact" class="w3-button w3-block w3-black">Contact</a>
+  </div>
+</section>
+<!-- End paper abstract -->
+
+<!-- Image carousel -->
+<section class="hero is-small">
+  <div class="hero-body">
+    <div class="container">
+      <div id="results-carousel" class="carousel results-carousel">
+       <div class="item">
+        <!-- Your image here -->
+        <img src="static/images/sim_grid.jpg" alt="MY ALT TEXT"/>
+        <h2 class="subtitle has-text-centered">
+          First image description.
+        </h2>
+      </div>
+      <div class="item">
+        <!-- Your image here -->
+        <img src="static/images/sim_grid.jpg" alt="MY ALT TEXT"/>
+        <h2 class="subtitle has-text-centered">
+          Second image description.
+        </h2>
+      </div>
+      <div class="item">
+        <!-- Your image here -->
+        <img src="static/images/sim_grid.jpg" alt="MY ALT TEXT"/>
+        <h2 class="subtitle has-text-centered">
+         Third image description.
+       </h2>
+     </div>
+     <div class="item">
+      <!-- Your image here -->
+      <img src="static/images/sim_grid.jpg" alt="MY ALT TEXT"/>
+      <h2 class="subtitle has-text-centered">
+        Fourth image description.
+      </h2>
     </div>
   </div>
 </div>
+</div>
+</section>
+<!-- End image carousel -->
 
-<br><br><br>
+<!-- Paper dataset -->
+<section class="hero is-small is-light">
+  <div class="hero-body">
+    <div class="container has-text-centered">
+      <!-- Paper video. -->
+      <h2 class="title is-3">Dataset</h2>
+      <!-- Dataset link -->
+      <span class="link-block">
+        <a href="https://drive.google.com/drive/folders/1-ox4u8ciI6CvbHPCbW63nzBKrrzT8AZM?usp=drive_link" target="_blank"
+          class="external-link button is-normal is-rounded is-dark">
+          <span class="icon">
+            <i class="fas fa-file-download"></i>
+          </span>
+          <span>Download Link</span>
+        </a>
+      </span>
 
-<div class="w3-container" id="paper">
-  <div class="w3-content" style="max-width:850px">
-    <h1 class="w3-center w3-padding-32"><b>Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions</b></h2>
-      <div class="w3-center w3-padding-small">
-        <span class="author-block">
-          Minghan Li<sup>1,*</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          Heng Li<sup>1,*</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          Zhi-Qi Cheng<sup>1,†</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          Yifei Dong<sup>2</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          Yuxuan Zhou<sup>3</sup>
-        </span>
-        <span class="author-block" style="display: block;">
-          Jun-Yan He<sup>4</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          Qi Dai<sup>5</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          Teruko Mitamura<sup>1</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          Alexander G Hauptmann<sup>1</sup>
-        </span>
-      </div>
-      <div class="w3-center w3-padding-small">
-        <!-- <span class="author-block">Institution Name<br>Conferance name and year</span> -->
-        <span class="author-block">
-          <sup>1</sup>Carnegie Mellon University&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          <sup>2</sup>Columbia University&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          <sup>3</sup>University of Mannheim
-        </span>
-        <span class="author-block" style="display: block;">
-          <sup>4</sup>Alibaba Group&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          <sup>5</sup>Microsoft Research
-        </span>
-        <span class="eql-cntrb" style="display: block;">
-          <small><sup>*</sup>Indicates Equal Contribution,&nbsp;</small>
-          <small><sup>†</sup>Indicates Corresponding author.</small>
-        </span>
-      </div>
-      <div class="button-container">
-        <a href="https://arxiv.org/abs/xxx" class="icon-button">
-        arXiv
-        </a>
-        <a href="https://github.com/lpercc/HA3D_simulator" class="icon-button">
-          code
-        </a>
-      </div>
-      <h3 class="w3-center w3-padding-16"><b>Panoramas Observation Demo</b></h3>
-        <div class="w3-center video-container-title1">
-          <video controls>
-            <source src="1pXnuDYAj8r_video.mp4" type="video/mp4">
-            Your browser does not support the video tag.
-          </video>
-          <video controls>
-            <source src="2azQ1b91cZZ_video.mp4" type="video/mp4">
-            Your browser does not support the video tag.
+      <h3 class="title is-4">Human Motion Skeletons in HAPS Dataset</h3>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-video1">
+          <video poster="" id="video1" autoplay controls muted loop height="20%">
+            <!-- Your video file here -->
+            <source src="static/videos/samples_07_to_13.mp4"
+            type="video/mp4">
           </video>
         </div>
-    <h2><b>Abstract</b></h2>
-    <p>
-    Vision-and-Language Navigation (VLN) aims to develop embodied agents that navigate based on human instructions. However, current VLN frameworks often rely on static environments and optimal expert supervision, limiting their real-world applicability. To address this, we introduce Human-Aware Vision-and-Language Navigation (HA-VLN), extending traditional VLN by incorporating dynamic human activities and relaxing key assumptions. We propose the Human-Aware 3D (HA3D) simulator, which combines dynamic human activities with the Matterport3D dataset, and the Human-Aware Room-to-Room (HA-R2R) dataset, extending R2R with human activity descriptions. To tackle HA-VLN challenges, we present the Expert-Supervised Cross-Modal (VLN-CM) and Non-Expert-Supervised Decision Transformer (VLN-DT) agents, utilizing cross-modal fusion and diverse training strategies for effective navigation in dynamic human environments. A comprehensive evaluation, including metrics considering human activities, and systematic analysis of HA-VLN's unique challenges, underscores the need for further research to enhance HA-VLN agents' real-world robustness and adaptability. Ultimately, this work provides benchmarks and insights for future research on embodied AI and Sim2Real transfer, paving the way for more realistic and applicable VLN systems in human-populated environments.
-    </p>
-    <h2 class="w3-left-align"><b>Paper</b></h2>
-    <b><a href="https://arxiv.org/pdf/xxxx.xxxxx.pdf">Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions</a></b><br>  
-    Paper | <a href="https://arxiv.org/pdf/xxxx.xxxxx.pdf"> arXiv (low res) </a> | Supplemental Material
-    <pre class="w3-panel w3-leftbar w3-light-grey" style="white-space: pre-wrap; font-family: monospace;">
-    @article{xxx,
-      title={Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions},
-      author={Minghan Li, Heng Li, Zhi-Qi Cheng, Yifei Dong, Yuxuan Zhou, Jun-Yan He, Qi Dai, Teruko Mitamura, Alexander G Hauptmann},
-      journal={xxx},
-      year={2024}
-    }</pre>
-  </div>
-</div>
+        <div class="item item-video2">
+          <video poster="" id="video2" autoplay controls muted loop height="20%">
+            <!-- Your video file here -->
+            <source src="static/videos/samples_28_to_34.mp4"
+            type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-video3">
+          <video poster="" id="video3" autoplay controls muted loop height="20%">\
+            <!-- Your video file here -->
+            <source src="static/videos/samples_42_to_48.mp4"
+            type="video/mp4">
+          </video>
+        </div>
+      </div>
 
-<div class="w3-container" id="dataset">
-  <div class="w3-content" style="max-width:850px">
-    <h2 class="w3-left-align"><b>Dataset</b></h2>
-    <p>Dataset download link <a href="https://drive.google.com/drive/folders/1aswHATnKNViqw6QenAwdQRTwXQQE5jd3?usp=drive_link">Google drive</a></p>
-    <h3 class="w3-left-align"><b>HAPS</b></h3>
-    <p>Animation of the human motion skeletons</p>
-    <div class=".video-container_3">
-      <video controls>
-        <source src="samples_07_to_13.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-      </video>
-      <video controls>
-        <source src="samples_28_to_34.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-      </video>
-      <video controls>
-        <source src="samples_42_to_48.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-      </video>
+      <h3 class="title is-4">Human Activity Annotation GUI</h3>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-video1">
+          <video poster="" id="video1" autoplay controls muted loop height="100%">
+            <!-- Your video file here -->
+            <source src="static/videos/carousel1.mp4"
+            type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-video2">
+          <video poster="" id="video2" autoplay controls muted loop height="100%">
+            <!-- Your video file here -->
+            <source src="static/videos/carousel2.mp4"
+            type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-video3">
+          <video poster="" id="video3" autoplay controls muted loop height="100%">\
+            <!-- Your video file here -->
+            <source src="static/videos/carousel3.mp4"
+            type="video/mp4">
+          </video>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+  </div>
+</section>
+<!-- End paper dataset -->
 
-<div class="w3-container" id="simulator">
-  <div class="w3-content" style="max-width:850px">
-    <h2 class="w3-left-align"><b>Explore the Simulator</b></h2>
-    <div class=".video-container_3">
-      <video controls>
-        <source src="sim1.webm" type="video/webm">
-        Your browser does not support the video tag.
-      </video>
-      <video controls>
-        <source src="sim2.webm" type="video/webm">
-        Your browser does not support the video tag.
-      </video>
-      <video controls>
-        <source src="sim3.webm" type="video/webm">
-        Your browser does not support the video tag.
-      </video>
+<!-- simulator -->
+<section class="hero is-small">
+  <div class="hero-body">
+    <div class="container has-text-centered">
+      <!-- Paper video. -->
+      <h2 class="title is-3">Explore the Simulator</h2>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-video1">
+          <video poster="" id="video1" autoplay controls muted loop height="50%">
+            <!-- Your video file here -->
+            <source src="static/videos/sim1.webm"
+            type="video/webm">
+          </video>
+        </div>
+        <div class="item item-video2">
+          <video poster="" id="video2" autoplay controls muted loop height="50%">
+            <!-- Your video file here -->
+            <source src="static/videos/sim2.webm"
+            type="video/webm">
+          </video>
+        </div>
+        <div class="item item-video3">
+          <video poster="" id="video3" autoplay controls muted loop height="50%">\
+            <!-- Your video file here -->
+            <source src="static/videos/sim3.webm"
+            type="video/webm">
+          </video>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+</section>
+<!-- End paper simulator -->
 
-<div class="w3-container" id="code">
-  <div class="w3-content" style="max-width:850px">
-    <h2 class="w3-left-align"><b>Code</b></h2>
-    <p>Please check the <a href="https://github.com/lpercc/HA3D_simulator">git repository</a> for a detailed introduction to the dataset and code for HA-VLN task.</p>
+<!-- Youtube video -->
+<section class="hero is-small is-light">
+  <div class="hero-body">
+    <div class="container has-text-centered">
+      <!-- Paper video. -->
+      <h2 class="title is-3">Video of Real-World Robots</h2>
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          
+          <div class="publication-video">
+            <!-- Youtube embed code here -->
+            <iframe src="https://www.youtube.com/embed/xxx" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
+</section>
+<!-- End youtube video -->
 
-<div class="w3-container" id="real-world">
-  <div class="w3-content" style="max-width:850px">
-    <h2 class="w3-left-align"><b>Real-world</b></h2>
-    <p>We use <a href="https://www.unitree.com/go1">Unitree GO1</a> to validate in a real environment.</p>
-    <p>video of the robot's navigation can be found at <a href="https://www.bilibili.com/video/BV1wm421V7Ui/?share_source=copy_web&vd_source=d4988b5cd2fc432c567c0aa979ea211e">link</a></p>
+
+<!-- Paper poster -->
+<section class="hero is-small is-light">
+  <div class="hero-body">
+    <div class="container has-text-centered">
+      <h2 class="title">Poster</h2>
+
+      <iframe  src="static/pdfs/HA_VLN_NeurIPS_24.pdf" width="100%" height="550"></iframe>
+        
+      </div>
+    </div>
+  </section>
+<!--End paper poster -->
+
+
+<!--BibTex citation -->
+  <section class="section" id="BibTeX">
+    <div class="container is-max-desktop content">
+      <h2 class="title">BibTeX</h2>
+      <pre><code>
+      @article{xxx,
+        title={Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions},
+        author={Minghan Li, Heng Li, Zhi-Qi Cheng, Yifei Dong, Yuxuan Zhou, Jun-Yan He, Qi Dai, Teruko Mitamura, Alexander G Hauptmann},
+        journal={xxx},
+        year={2024}
+      }
+      </code></pre>
+    </div>
+</section>
+<!--End BibTex citation -->
+
+
+  <footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+
+          <p>
+            This page was built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank">Academic Project Page Template</a> which was adopted from the <a href="https://nerfies.github.io" target="_blank">Nerfies</a> project page.
+            You are free to borrow the of this website, we just ask that you link back to this page in the footer. <br> This website is licensed under a <a rel="license"  href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative
+            Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+
+        </div>
+      </div>
+    </div>
   </div>
-</div>
+</footer>
 
-<div class="w3-container" id="changelog">
-  <div class="w3-content" style="max-width:850px">
-    <h2 class="w3-left-align"><b>Changelog</b></h2>
-    <ul>
-      <li><b>2024-06-03</b>: Create webpage</li>
-    </ul>
-  </div>
-</div>
+<!-- Statcounter tracking code -->
+  
+<!-- You can add a tracker to track page visits by creating an account at statcounter.com -->
 
-<div class="w3-container" id="contact">
-  <div class="w3-content" style="max-width:850px">
-    <h2 class="w3-left-align"><b>Contact</b></h2>
-    Please contact us at <a href="lperlpm@gmail.com">lperlpm@gmail.com</a> if you have any questions.
-  </div>
-</div>
+    <!-- End of Statcounter Code -->
 
-<br><br><br>
-
-</body>
-</html>
+  </body>
+  </html>
