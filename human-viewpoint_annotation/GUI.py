@@ -10,6 +10,12 @@ from PyQt5.QtChart import *
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 import random
 import math
+import imageio
+HA3D_SIMULATOR_PATH = os.environ.get("HA3D_SIMULATOR_PATH")
+sys.path.append(HA3D_SIMULATOR_PATH)
+from src.utils.concat_skybox import *
+DOWNSIZED_WIDTH = 512
+DOWNSIZED_HEIGHT = 512
 
 class MyMainWindow(Ui_Form, QMainWindow):
     def __init__(self, viewpointImageDir, modelVideoDir, scanList, humanMotionData, regionMotionData, motionText):
@@ -188,17 +194,15 @@ class MyMainWindow(Ui_Form, QMainWindow):
 
     def showImage(self):
         self.panoramaImagePath = os.path.join(self.viewpointImageDir, self.scanId, "matterport_skybox_images", f"{self.viewpointId}_skybox_small.jpg")
-        self.feetImagePath = os.path.join(self.viewpointImageDir, self.scanId, "matterport_skybox_images", f"{self.viewpointId}_skybox5_sami.jpg")
         if not os.path.exists(self.panoramaImagePath):
             self.label_frame1.setText("No Panorama Image!")
-        else:  
-            pixPanorama = QPixmap(self.panoramaImagePath)
-            self.label_frame1.setPixmap(pixPanorama)
-        
-        if not os.path.exists(self.feetImagePath):
             self.label_frame2.setText("No skybox-feet Image!")
-        else:
-            pixFeet = QPixmap(self.feetImagePath)
+        else:  
+            imageio.imwrite("panoramaImage.jpg", concat(self.panoramaImagePath, DOWNSIZED_WIDTH))
+            pixPanorama = QPixmap("panoramaImage.jpg")
+            self.label_frame1.setPixmap(pixPanorama)
+            imageio.imwrite("feetImage.jpg", concat_feet(self.panoramaImagePath, DOWNSIZED_WIDTH))
+            pixFeet = QPixmap("feetImage.jpg")
             self.label_frame2.setPixmap(pixFeet)
 
     def updateHumanMotion(self):
