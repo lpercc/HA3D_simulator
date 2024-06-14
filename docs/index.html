@@ -192,49 +192,49 @@
         <!-- Your image here -->
         <img src="static/images/agent_human_interaction.jpg" alt="MY ALT TEXT"/>
         <h2 class="subtitle has-text-centered">
-          Second image description.
+          HA-VLN scenario: The agent navigates while interacting with dynamic human activities, optimizing its route and maintaining safe distances to address the Sim2Real gap and improve real-world applicability.
         </h2>
       </div>
       <div class="item">
         <!-- Your image here -->
         <img src="static/images/simulator.jpg" alt="MY ALT TEXT"/>
         <h2 class="subtitle has-text-centered">
-          Second image description.
+          HA3D Simulator annotation process, illustrating the integration of the HAPS dataset, human activity annotation, realistic rendering, and agent-environment interaction. The simulator generates dynamic environments by combining human activities with photorealistic 3D scenes, enabling the HA-VLN task.
         </h2>
       </div>
       <div class="item">
         <!-- Your image here -->
         <img src="static/images/sim_grid.jpg" alt="MY ALT TEXT"/>
         <h2 class="subtitle has-text-centered">
-          First image description.
+          Single-frame in the HA3D simulator showcase viewpoints with human presence in each scene(120-degree FOV), demonstrating the diversity of human activities and environments. Common indoor regions such as bedrooms, hallways, kitchens, balconies, and bathrooms are displayed. Multiple humans can appear in the same region, as seen in the third row, sixth column, and the fifth row, fifth and sixth columns.
         </h2>
       </div>
       <div class="item">
         <!-- Your image here -->
         <img src="static/images/agents.jpg" alt="MY ALT TEXT"/>
         <h2 class="subtitle has-text-centered">
-          First image description.
+          Model architectures of VLN-CM (left) and VLN-DT (right) agents. Both utilize a cross-modality fusion module to integrate visual and linguistic information for predicting navigation actions.
         </h2>
       </div>
       <div class="item">
         <!-- Your image here -->
         <img src="static/images/introduction.jpg" alt="MY ALT TEXT"/>
         <h2 class="subtitle has-text-centered">
-          First image description.
+          Overview of the VLN framework assumptions in the HA3D simulator. The simulator introduces an Ergonomic Action Space, Dynamic Environments, and a Sub-Optimal Expert to bridge the gap between simulated and real-world navigation scenarios. The Ergonomic Action Space limits the agent's field of view to 60 degrees, requiring a more realistic navigation strategy compared to the panoramic view used in traditional VLN tasks. Dynamic Environments incorporate time-varying elements, such as human activities, challenging the agent to adapt its navigation strategy to handle video streams that include people. The Sub-Optimal Expert provides navigation guidance that accounts for human factors and dynamic elements, resulting in a more realistic and human-like navigation strategy compared to the optimal expert model that always finds the shortest path without considering these factors.
         </h2>
       </div>
       <div class="item">
         <!-- Your image here -->
         <img src="static/images/human_activity.jpg" alt="MY ALT TEXT"/>
         <h2 class="subtitle has-text-centered">
-          First image description.
+          The 145 human activity descriptions in the HAPS Dataset, categorized by their respective indoor regions (highlighted in bold red font). Each region includes 5 carefully selected human activity descriptions that best represent the diversity and relevance of activities within that space.
         </h2>
       </div>
       <div class="item">
         <!-- Your image here -->
         <img src="static/images/robot.jpg" alt="MY ALT TEXT"/>
         <h2 class="subtitle has-text-centered">
-          First image description.
+          Real-world robot used in our experiments. The robot is Unitree GO1-EDU, a quadruped robot equipped with an NVIDIA Jetson TX2 high-performance computing module for handling computational tasks. The robot features an Inertial Measurement Unit (IMU) for measuring acceleration and rotational speed, a Stereo Fisheye Camera for wide-angle perception of its surroundings, and an Ultrasonic Distance Sensor for measuring the distance between the robot and obstacles.
         </h2>
       </div>
   </div>
@@ -290,22 +290,15 @@
         <div class="item item-video1">
           <video poster="" id="video1" autoplay controls muted loop height="100%">
             <!-- Your video file here -->
-            <source src="static/videos/carousel1.mp4"
-            type="video/mp4">
+            <source src="static/videos/human_activity_anno.webm"
+            type="video/webm">
           </video>
         </div>
         <div class="item item-video2">
           <video poster="" id="video2" autoplay controls muted loop height="100%">
             <!-- Your video file here -->
-            <source src="static/videos/carousel2.mp4"
-            type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-video3">
-          <video poster="" id="video3" autoplay controls muted loop height="100%">\
-            <!-- Your video file here -->
-            <source src="static/videos/carousel3.mp4"
-            type="video/mp4">
+            <source src="static/videos/fine-tune_human_model.webm"
+            type="video/webm">
           </video>
         </div>
       </div>
@@ -360,7 +353,9 @@
           
           <div class="publication-video">
             <!-- Youtube embed code here -->
-            <iframe src="https://www.bilibili.com/video/BV1AXVxe6Emw/?share_source=copy_web&vd_source=0ff71d9a366128f0cbc905d4cec3fbc6" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            <iframe 
+            src="//player.bilibili.com/player.html?aid=112614042504793&cid=500001581650472&page=1" 
+            frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
           </div>
         </div>
       </div>
@@ -368,8 +363,6 @@
   </div>
 </section>
 <!-- End youtube video -->
-
-
 <!-- Paper poster -->
 <section class="hero is-small is-light">
   <div class="hero-body">
