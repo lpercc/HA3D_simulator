@@ -1,7 +1,7 @@
 # HA3D Simulator
 
 HA3D Simulator integrates 3D human models into real-world environments. Built upon Matterport3D Simulator API and MDM, this simulator offers a robust platform for immersive 3D simulations.
-
+* [Project Page](https://lpercc.github.io/HA3D_simulator/)
 ## Table of Contents
 - [HA3D Simulator](#ha3d-simulator)
   - [Table of Contents](#table-of-contents)
