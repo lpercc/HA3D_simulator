@@ -101,3 +101,10 @@ python tasks/DT_miniGPT/train_GPT.py --experiment_id time --cuda 2 --reward_stra
 
 Feel free to contribute, report issues, or request features!
 
+## Citation
+@article{xxx,
+    title={Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions},
+    author={Minghan Li, Heng Li, Zhi-Qi Cheng, Yifei Dong, Yuxuan Zhou, Jun-Yan He, Qi Dai, Teruko Mitamura, Alexander G Hauptmann},
+    journal={xxx},
+    year={2024}
+}
