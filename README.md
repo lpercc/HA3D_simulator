@@ -2,6 +2,8 @@
 
 HA3D Simulator integrates 3D human models into real-world environments. Built upon Matterport3D Simulator API and MDM, this simulator offers a robust platform for immersive 3D simulations.
 * [Project Page](https://lpercc.github.io/HA3D_simulator/)
+* [Human-Aware Vision-and-Language Navigation: Bridging Simulation to Reality with Dynamic Human Interactions](https://arxiv.org/abs/%3CARXIV%20PAPER%20ID%3E)
+* [Dataset](https://drive.google.com/drive/folders/1-ox4u8ciI6CvbHPCbW63nzBKrrzT8AZM?usp=drive_link)
 ## Table of Contents
 - [HA3D Simulator](#ha3d-simulator)
   - [Table of Contents](#table-of-contents)
@@ -59,21 +61,14 @@ Speed up data loading and reduce memory usage by preprocessing the `matterport_s
 ```
 
 This script downscales and combines all cube faces into a single image, resulting in filenames like `<PANO_ID>_skybox_small.jpg`.
-
+You can download the processed dataset directly from [googledrive](https://drive.google.com/drive/folders/1-ox4u8ciI6CvbHPCbW63nzBKrrzT8AZM)
 ## 🏗️ Build Matterport3D Simulator
 Follow the instructions in the [Matterport3DSimulator/README](Matterport3DSimulator/README).
 
 ## 🚀 Run HA3D Simulator
-1. Create pipes:
+1. test
     ```bash
-    mkdir pipe
-    mkfifo ./pipe/my_S2R_pipe
-    mkfifo ./pipe/my_R2S_pipe
-    ```
-
-2. Run the renderer:
-    ```bash
-    python HA3DRender.py --pipeID 0
+    python driven.py
     ```
 
 3. In a new terminal, start the HA3D Simulator GUI:
