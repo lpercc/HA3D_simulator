@@ -63,7 +63,7 @@ Speed up data loading and reduce memory usage by preprocessing the `matterport_s
 This script downscales and combines all cube faces into a single image, resulting in filenames like `<PANO_ID>_skybox_small.jpg`.
 You can download the processed dataset directly from [googledrive](https://drive.google.com/drive/folders/1-ox4u8ciI6CvbHPCbW63nzBKrrzT8AZM)
 ## 🏗️ Build Matterport3D Simulator
-Follow the instructions in the [Matterport3DSimulator/README](Matterport3DSimulator/README).
+Follow the instructions in the [Matterport3DSimulator/README](Matterport3DSimulator/README.md).
 
 ## 🚀 Run HA3D Simulator
 1. test
@@ -77,10 +77,10 @@ Follow the instructions in the [Matterport3DSimulator/README](Matterport3DSimula
     ```
 
 ## 🕺 Human Motion Generation
-Refer to the [human_motion_model/README](human_motion_model/README) for detailed instructions.
+Refer to the [human_motion_model/README](human-viewpoint_annotation/README.md) for detailed instructions.
 
 ## 🌆 Human-Scene Fusion
-Refer to the [human-viewpoint_pair/README](human-viewpoint_pair/README) for detailed instructions.
+Refer to the [human-viewpoint_pair/README](fine_tune_heading/README.md) for detailed instructions.
 
 ## 🖥️ Offscreen Rendering
 Pyrender supports three backends for offscreen rendering:
