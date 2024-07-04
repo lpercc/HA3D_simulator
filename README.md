@@ -79,8 +79,8 @@ Follow the instructions in the [Matterport3DSimulator/README](Matterport3DSimula
 ## 🕺 Human Motion Generation
 Refer to the [human_motion_model/README](human-viewpoint_annotation/human_motion_model/README.md) for detailed instructions.
 
-## 🌆 Human-Scene Fusion
-Refer to the [human-viewpoint_pair/README](fine_tune_heading/README.md) for detailed instructions.
+## 🌆 Annotation
+Refer to the [human-viewpoint_annotation/README](human-viewpoint_annotation//README.md) for detailed instructions.
 
 ## 🖥️ Offscreen Rendering
 Pyrender supports three backends for offscreen rendering:
