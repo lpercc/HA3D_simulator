@@ -13,11 +13,15 @@ sudo apt-get install -y wget doxygen curl libjsoncpp-dev libepoxy-dev libglm-dev
 ```
 
 ### building
-build the simulator code:
+Ensure that you are in a conda environment(python=3.10): 
+```bash
+conda activate ha3d_simulator
+```
+build the simulator:
 ```
 mkdir build && cd build
 cmake -DEGL_RENDERING=ON ..
-    make
+make
 cd ../
 ```
 The main requirements are:
@@ -50,11 +54,10 @@ source ~/.bashrc
 echo $PYTHONPATH
 ```
 
-## Interactive Demo
-Python demo:
+## Test
 ```
-conda activate hc3d_simulator
-python src/driver/driver.py
+python
+import MatterSim
 ```
 
 ## Acknowledgements
