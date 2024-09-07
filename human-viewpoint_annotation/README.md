@@ -1,4 +1,4 @@
-# Collacte Human descriptions from indoor view images
+# Collect Human descriptions from indoor view images
 human activity data
 ```bash
 human_motion_text.json
